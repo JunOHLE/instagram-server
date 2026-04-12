@@ -242,11 +242,19 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
           <div id="stock-result" class="result-box">
             <span class="placeholder">종목을 검색하세요.</span>
           </div>
+          <div id="stock-frame" style="margin-top:1rem;display:none;">
+            <iframe id="naver-stock-frame" width="100%" height="500" frameborder="0" style="border-radius:10px;border:1px solid #eee;"></iframe>
+          </div>
         </div>
         <div class="content-card" style="margin-top:1rem;">
-          <h3>📊 주요 지수</h3>
-          <div id="index-result" style="display:flex;gap:10px;flex-wrap:wrap;">
-            <div style="font-size:13px;color:#aaa;">불러오는 중...</div>
+          <h3>📊 주요 지수 (네이버 금융)</h3>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="https://finance.naver.com/sise/sise_index.naver?code=KOSPI" target="_blank" class="stock-quick-btn" style="text-decoration:none;">📊 KOSPI</a>
+            <a href="https://finance.naver.com/sise/sise_index.naver?code=KOSDAQ" target="_blank" class="stock-quick-btn" style="text-decoration:none;">📊 KOSDAQ</a>
+            <a href="https://finance.naver.com/sise/" target="_blank" class="stock-quick-btn" style="text-decoration:none;">📊 전체 시세</a>
+            <a href="https://finance.naver.com/sise/sise_quant.naver" target="_blank" class="stock-quick-btn" style="text-decoration:none;">🔥 거래량 순위</a>
+            <a href="https://finance.naver.com/sise/sise_rise.naver" target="_blank" class="stock-quick-btn" style="text-decoration:none;">📈 상승 종목</a>
+            <a href="https://finance.naver.com/sise/sise_fall.naver" target="_blank" class="stock-quick-btn" style="text-decoration:none;">📉 하락 종목</a>
           </div>
         </div>
         <div class="content-card" style="margin-top:1rem;">
@@ -264,6 +272,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
             <button onclick="quickStock('068270','셀트리온')" class="stock-quick-btn">셀트리온</button>
             <button onclick="quickStock('000270','기아')" class="stock-quick-btn">기아</button>
             <button onclick="quickStock('096770','SK이노베이션')" class="stock-quick-btn">SK이노베이션</button>
+            <button onclick="quickStock('003670','포스코퓨처엠')" class="stock-quick-btn">포스코퓨처엠</button>
+            <button onclick="quickStock('086520','에코프로')" class="stock-quick-btn">에코프로</button>
+            <button onclick="quickStock('247540','에코프로비엠')" class="stock-quick-btn">에코프로비엠</button>
+            <button onclick="quickStock('352820','하이브')" class="stock-quick-btn">하이브</button>
+            <button onclick="quickStock('259960','크래프톤')" class="stock-quick-btn">크래프톤</button>
+            <button onclick="quickStock('323410','카카오뱅크')" class="stock-quick-btn">카카오뱅크</button>
           </div>
         </div>
       </div>
@@ -549,24 +563,40 @@ async function searchStock(code) {
   const naverUrl = `https://finance.naver.com/item/main.nhn?code=${stockCode}`;
   const apiUrl = `https://api.finance.naver.com/service/itemSummary.nhn?itemcode=${stockCode}`;
 
+  // 네이버 금융으로 바로가기
+  box.className="result-box has-data";
+  box.innerHTML=`
+    <div style="width:100%">
+      <div style="font-weight:600;font-size:14px;color:#111;margin-bottom:10px;">${input||stockCode} (${stockCode})</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a href="${naverUrl}" target="_blank" style="padding:8px 16px;background:linear-gradient(45deg,#03c75a,#00a844);color:#fff;border-radius:8px;font-size:13px;text-decoration:none;font-weight:500;">📈 네이버 금융 상세보기</a>
+        <a href="https://finance.naver.com/item/fchart.naver?code=${stockCode}" target="_blank" style="padding:8px 16px;background:#1a56db;color:#fff;border-radius:8px;font-size:13px;text-decoration:none;font-weight:500;">📊 차트 보기</a>
+        <a href="https://finance.naver.com/item/news_news.naver?code=${stockCode}" target="_blank" style="padding:8px 16px;background:#f0f0f0;color:#333;border-radius:8px;font-size:13px;text-decoration:none;font-weight:500;">📰 관련 뉴스</a>
+      </div>
+    </div>`;
+  if(false) { // 더미 try 블록 시작
   try {
-    const res = await fetch(`https://cors-anywhere.herokuapp.com/${apiUrl}`);
+    const yahooSymbol = stockCode + ".KS";
+    const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?interval=1d&range=1d`);
     const d = await res.json();
-    const price = d.now?.toLocaleString() || "-";
-    const change = d.diff || 0;
-    const changeRate = d.rate || 0;
-    const changeClass = change > 0 ? "up" : change < 0 ? "down" : "flat";
-    const changeSign = change > 0 ? "▲" : change < 0 ? "▼" : "-";
-    const vol = d.quant?.toLocaleString() || "-";
-    const high = d.high?.toLocaleString() || "-";
-    const low = d.low?.toLocaleString() || "-";
+    const meta = d.chart.result[0].meta;
+    const price = meta.regularMarketPrice;
+    const prev = meta.chartPreviousClose;
+    const change = price - prev;
+    const rate = ((change/prev)*100).toFixed(2);
+    const cls = change>0?"up":change<0?"down":"flat";
+    const sign = change>0?"▲":change<0?"▼":"-";
+    const vol = meta.regularMarketVolume?.toLocaleString() || "-";
+    const high = meta.regularMarketDayHigh?.toLocaleString() || "-";
+    const low = meta.regularMarketDayLow?.toLocaleString() || "-";
+    const name = meta.longName || meta.shortName || input;
 
     box.className="result-box has-data";
     box.innerHTML=`
       <div class="stock-card" style="width:100%">
-        <div class="s-name">${d.itemname||input} (${stockCode})</div>
-        <div class="s-price">${price}원</div>
-        <div class="s-change ${changeClass}">${changeSign} ${Math.abs(change).toLocaleString()}원 (${changeRate}%)</div>
+        <div class="s-name">${name} (${stockCode})</div>
+        <div class="s-price">${price.toLocaleString()}원</div>
+        <div class="s-change ${cls}">${sign} ${Math.abs(change).toFixed(0)}원 (${rate}%)</div>
         <div style="margin-top:10px;font-size:12px;color:#888;display:flex;gap:16px;flex-wrap:wrap;">
           <span>고가: ${high}원</span>
           <span>저가: ${low}원</span>
@@ -575,30 +605,44 @@ async function searchStock(code) {
         <a href="${naverUrl}" target="_blank" style="display:inline-block;margin-top:10px;font-size:12px;color:#1a56db;">네이버 금융에서 차트 보기 →</a>
       </div>`;
   } catch(e) {
-    // CORS 우회 실패시 네이버로 바로 이동
-    box.className="result-box has-data";
-    box.innerHTML=`
-      <div style="font-size:13px;color:#333;margin-bottom:8px;">종목코드: <b>${stockCode}</b></div>
-      <a href="${naverUrl}" target="_blank" style="padding:8px 16px;background:linear-gradient(45deg,#03c75a,#00a844);color:#fff;border-radius:8px;font-size:13px;text-decoration:none;font-weight:500;">📈 네이버 금융에서 보기</a>
-      <div style="margin-top:8px;font-size:11px;color:#aaa;">실시간 데이터는 네이버 금융에서 확인하세요.</div>`;
-  }
+    // KQ (코스닥) 시도
+    try {
+      const yahooSymbol2 = stockCode + ".KQ";
+      const res2 = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol2}?interval=1d&range=1d`);
+      const d2 = await res2.json();
+      const meta = d2.chart.result[0].meta;
+      const price = meta.regularMarketPrice;
+      const prev = meta.chartPreviousClose;
+      const change = price - prev;
+      const rate = ((change/prev)*100).toFixed(2);
+      const cls = change>0?"up":change<0?"down":"flat";
+      const sign = change>0?"▲":change<0?"▼":"-";
+      const vol = meta.regularMarketVolume?.toLocaleString() || "-";
+      const high = meta.regularMarketDayHigh?.toLocaleString() || "-";
+      const low = meta.regularMarketDayLow?.toLocaleString() || "-";
+      const name = meta.longName || meta.shortName || input;
+      box.className="result-box has-data";
+      box.innerHTML=`
+        <div class="stock-card" style="width:100%">
+          <div class="s-name">${name} (${stockCode}) <span style="font-size:10px;color:#888;">KOSDAQ</span></div>
+          <div class="s-price">${price.toLocaleString()}원</div>
+          <div class="s-change ${cls}">${sign} ${Math.abs(change).toFixed(0)}원 (${rate}%)</div>
+          <div style="margin-top:10px;font-size:12px;color:#888;display:flex;gap:16px;flex-wrap:wrap;">
+            <span>고가: ${high}원</span><span>저가: ${low}원</span><span>거래량: ${vol}</span>
+          </div>
+          <a href="${naverUrl}" target="_blank" style="display:inline-block;margin-top:10px;font-size:12px;color:#1a56db;">네이버 금융에서 차트 보기 →</a>
+        </div>`;
+    } catch(e2) {
+      box.className="result-box has-data";
+      box.innerHTML=`
+        <div style="font-size:13px;color:#333;margin-bottom:8px;">종목코드: <b>${stockCode}</b></div>
+        <a href="${naverUrl}" target="_blank" style="padding:8px 16px;background:linear-gradient(45deg,#03c75a,#00a844);color:#fff;border-radius:8px;font-size:13px;text-decoration:none;font-weight:500;">📈 네이버 금융에서 보기</a>
+        <div style="margin-top:8px;font-size:11px;color:#aaa;">실시간 데이터는 네이버 금융에서 확인하세요.</div>`;
+    }
+  } } // 더미 블록 닫기
 }
 
-// 주요 지수 로드
-async function loadMarketIndex() {
-  const box = document.getElementById("index-result");
-  const indices = [
-    {name:"KOSPI", code:"KOSPI"},
-    {name:"KOSDAQ", code:"KOSDAQ"},
-    {name:"KOSPI200", code:"KPI200"}
-  ];
-  box.innerHTML = indices.map(i => `
-    <div class="index-card">
-      <div class="i-name">${i.name}</div>
-      <div class="i-val">-</div>
-      <div class="i-chg" style="color:#888;">로딩중</div>
-    </div>`).join("");
-}
+async function loadMarketIndex() {}
 
 function searchActive() {
   const id=document.getElementById("active-input").value.trim().replace("@","");
