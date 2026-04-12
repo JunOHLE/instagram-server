@@ -170,7 +170,46 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <input type="checkbox" id="terms-chk" onchange="toggleTermsBtn()">
       위 이용약관을 모두 확인하였으며, 이에 동의합니다.
     </label>
-    <button class="btn-ig" id="terms-btn" disabled onclick="goToDash()">동의하고 시작하기</button>
+    <button class="btn-ig" id="terms-btn" disabled onclick="goToProfile()">동의하고 시작하기</button>
+  </div>
+</div>
+
+<!-- ── 프로필 설정 페이지 ── -->
+<div id="page-profile" style="display:none;align-items:center;justify-content:center;min-height:100vh;padding:1rem;">
+  <div class="terms-card" style="max-width:420px;">
+    <h2 style="margin-bottom:.5rem;">👤 프로필 설정</h2>
+    <div class="terms-sub">닉네임과 프로필 아바타를 설정하세요.</div>
+
+    <!-- 아바타 선택 -->
+    <div style="margin-bottom:1.25rem;">
+      <div style="font-size:13px;font-weight:500;color:#333;margin-bottom:.75rem;">프로필 사진</div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div id="avatar-preview-wrap" style="width:72px;height:72px;border-radius:50%;overflow:hidden;border:2px solid #eee;background:#f5f5f5;display:flex;align-items:center;justify-content:center;font-size:36px;flex-shrink:0;">
+          😊
+        </div>
+        <div>
+          <input type="file" id="avatar-file" accept="image/*" style="display:none;" onchange="handleAvatarUpload(event)">
+          <button onclick="document.getElementById('avatar-file').click()" style="padding:8px 16px;border:1px solid #cc2366;border-radius:8px;background:#fef0f7;color:#cc2366;font-size:13px;font-weight:500;cursor:pointer;display:block;margin-bottom:6px;">📷 갤러리에서 선택</button>
+          <div style="font-size:11px;color:#aaa;">JPG, PNG, GIF 지원</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 닉네임 입력 -->
+    <div style="margin-bottom:1.25rem;">
+      <div style="font-size:13px;font-weight:500;color:#333;margin-bottom:.5rem;">닉네임</div>
+      <input id="nickname-input" type="text" maxlength="12" placeholder="닉네임 입력 (최대 12자)"
+        style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;outline:none;">
+      <div id="nickname-err" style="font-size:12px;color:#c0392b;margin-top:4px;min-height:16px;"></div>
+    </div>
+
+    <!-- 미리보기 -->
+    <div style="text-align:center;margin-bottom:1.25rem;padding:1rem;background:#fafafa;border-radius:12px;border:1px solid #eee;">
+      <div id="preview-avatar" style="width:64px;height:64px;border-radius:50%;overflow:hidden;margin:0 auto 8px;border:2px solid #eee;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:36px;">😊</div>
+      <div id="preview-name" style="font-size:15px;font-weight:600;color:#111;">닉네임</div>
+    </div>
+
+    <button id="profile-btn" onclick="saveProfile()" class="btn-ig active">완료</button>
   </div>
 </div>
 
@@ -182,6 +221,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       Instagram Server
     </div>
     <div style="display:flex;align-items:center;gap:12px;font-size:13px;">
+      <div id="nav-profile" onclick="openProfileEdit()" style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:4px 10px;border-radius:99px;border:1px solid #eee;background:#fafafa;">
+        <span id="nav-avatar" style="font-size:18px;">😊</span>
+        <span id="nav-name" style="font-size:12px;font-weight:500;color:#333;">프로필</span>
+      </div>
       <a href="https://t.me/JY091025_lee" target="_blank" style="color:#1a8cff;text-decoration:none;font-weight:500;display:flex;align-items:center;gap:4px;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="#1a8cff"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.012 9.487c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L6.26 14.4l-2.95-.924c-.642-.204-.655-.642.136-.953l11.57-4.461c.537-.194 1.006.131.546 2.186z"/></svg>
         텔레그램
@@ -209,6 +252,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <div class="sidebar-item" onclick="showTab('tab-stock')" id="si-stock">
         <span class="si-icon">📈</span>
         <span class="si-label">주식</span>
+      </div>
+      <div class="sidebar-item" onclick="showTab('tab-game')" id="si-game">
+        <span class="si-icon">⚡</span>
+        <span class="si-label">반응속도</span>
       </div>
     </div>
     <div class="content">
@@ -299,6 +346,33 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
             <button onclick="quickStock('259960','크래프톤')" class="stock-quick-btn">크래프톤</button>
             <button onclick="quickStock('323410','카카오뱅크')" class="stock-quick-btn">카카오뱅크</button>
           </div>
+        </div>
+      </div>
+
+      <!-- 반응속도 게임 탭 -->
+      <div id="tab-game" style="display:none;">
+        <div class="content-card" style="text-align:center;">
+          <h3>⚡ 반응속도 테스트</h3>
+          <div class="desc" style="margin-bottom:1.5rem;">초록색으로 바뀌면 최대한 빨리 클릭하세요!</div>
+
+          <div id="game-box" onclick="handleClick()"
+            style="width:100%;height:200px;border-radius:14px;background:#e0e0e0;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .1s;user-select:none;">
+            <div id="game-text" style="font-size:20px;font-weight:600;color:#555;">클릭해서 시작</div>
+          </div>
+
+          <div id="game-result" style="margin-top:1rem;font-size:15px;color:#111;min-height:24px;font-weight:500;"></div>
+
+          <div style="margin-top:1.5rem;">
+            <input id="player-name" type="text" placeholder="닉네임 입력" maxlength="10"
+              style="padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;width:160px;text-align:center;margin-right:8px;">
+            <button onclick="saveScore()" style="padding:8px 16px;border:none;border-radius:8px;background:linear-gradient(45deg,#dc2743,#cc2366);color:#fff;font-size:13px;font-weight:500;cursor:pointer;">기록 저장</button>
+          </div>
+        </div>
+
+        <div class="content-card" style="margin-top:1rem;">
+          <h3>🏆 리더보드</h3>
+          <div id="leaderboard" style="margin-top:.5rem;"></div>
+          <button onclick="clearLeaderboard()" style="margin-top:1rem;padding:6px 14px;border:1px solid #ddd;border-radius:8px;background:#f8f8f8;font-size:12px;color:#888;cursor:pointer;">기록 초기화</button>
         </div>
       </div>
 
@@ -399,12 +473,14 @@ function updateClock() {
 updateClock(); setInterval(updateClock,1000);
 
 function verifyPin(input) { return btoa(unescape(encodeURIComponent(input)))==="MTk4MjM1"; }
+function verifyAdminPin(input) { return btoa(unescape(encodeURIComponent(input)))==="MDA5MjM0"; }
 function getPin() { return [...document.querySelectorAll(".pin-box")].map(b=>b.value).join(""); }
 function clearPin() { const b=document.querySelectorAll(".pin-box"); b.forEach(x=>x.value=""); b[0].focus(); }
 
 function checkPin() {
   const pin=getPin();
   if(pin.length<6){document.getElementById("err-msg").textContent="PIN 6자리를 모두 입력하세요.";return;}
+  if(verifyAdminPin(pin)){overlay.classList.remove("show");enterAsDeveloper();return;}
   if(verifyPin(pin)){overlay.classList.remove("show");goToTerms();return;}
   attempts++; clearPin(); showWarningModal(attempts);
 }
@@ -420,18 +496,61 @@ function toggleTermsBtn() {
   btn.classList.toggle("active",!btn.disabled);
 }
 
+function enterAsDeveloper() {
+  localStorage.setItem("userProfile", JSON.stringify({
+    name: "개발자",
+    avatar: "👑",
+    avatarImg: null,
+    role: "developer"
+  }));
+  document.getElementById("page-pin").style.display="none";
+  goToDash();
+  // 개발자 배지 표시
+  setTimeout(() => {
+    const navName = document.getElementById("nav-name");
+    if(navName) navName.innerHTML = `개발자 <span style="background:#cc2366;color:#fff;font-size:10px;padding:1px 6px;border-radius:99px;margin-left:3px;">DEV</span>`;
+  }, 300);
+}
+
+async function checkAdminAndGo() {
+  try {
+    const r = await fetch("https://api.ipify.org?format=json");
+    const d = await r.json();
+    if(d.ip === "113.199.115.91") {
+      // 관리자 - 바로 대시보드
+      document.getElementById("page-pin").style.display="none";
+      goToDash();
+      return;
+    }
+  } catch(e) {}
+  goToTerms();
+}
+
+function goToProfile() {
+  document.getElementById("page-terms").style.display="none";
+  // 이미 프로필 있으면 바로 대시보드
+  const saved = localStorage.getItem("userProfile");
+  if(saved) { goToDash(); return; }
+  const profilePage = document.getElementById("page-profile");
+  profilePage.style.display="flex";
+  profilePage.style.flexDirection="column";
+  initAvatarGrid();
+}
+
 function goToDash() {
   document.getElementById("page-terms").style.display="none";
+  document.getElementById("page-profile").style.display="none";
   document.getElementById("page-dash").style.display="flex";
   document.getElementById("page-dash").style.flexDirection="column";
   loadMarketIndex();
+  loadUserProfile();
 }
 
 function showTab(id) {
-  ["tab-anon","tab-unfollow","tab-active","tab-stock"].forEach(t=>document.getElementById(t).style.display="none");
-  ["si-anon","si-unfollow","si-active","si-stock"].forEach(s=>document.getElementById(s).classList.remove("active"));
+  ["tab-anon","tab-unfollow","tab-active","tab-stock","tab-game"].forEach(t=>document.getElementById(t).style.display="none");
+  ["si-anon","si-unfollow","si-active","si-stock","si-game"].forEach(s=>document.getElementById(s).classList.remove("active"));
   document.getElementById(id).style.display="block";
-  const map={"tab-anon":"si-anon","tab-unfollow":"si-unfollow","tab-active":"si-active","tab-stock":"si-stock"};
+  const map={"tab-anon":"si-anon","tab-unfollow":"si-unfollow","tab-active":"si-active","tab-stock":"si-stock","tab-game":"si-game"};
   document.getElementById(map[id]).classList.add("active");
 }
 
@@ -663,6 +782,228 @@ async function searchStock(code) {
 }
 
 async function loadMarketIndex() {}
+
+let selectedAvatar = "😊"; // 기본값 (이미지 없을 때)
+let avatarDataURL = null; // 업로드된 이미지
+
+function initAvatarGrid() {
+  // 갤러리 방식이라 그리드 불필요
+  const saved = localStorage.getItem("userProfile");
+  if(saved) {
+    const p = JSON.parse(saved);
+    if(p.avatarImg) {
+      avatarDataURL = p.avatarImg;
+      setAvatarPreview(p.avatarImg, true);
+    }
+  }
+}
+
+function handleAvatarUpload(e) {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    avatarDataURL = ev.target.result;
+    setAvatarPreview(ev.target.result, true);
+  };
+  reader.readAsDataURL(file);
+}
+
+function setAvatarPreview(src, isImg) {
+  const wrap = document.getElementById("avatar-preview-wrap");
+  const prev = document.getElementById("preview-avatar");
+  if(isImg) {
+    wrap.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:cover;">`;
+    prev.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+  } else {
+    wrap.textContent = src;
+    prev.textContent = src;
+  }
+}
+
+function selectAvatar(av) {
+  selectedAvatar = av;
+  updatePreview();
+}
+
+function updatePreview() {
+  const name = document.getElementById("nickname-input").value.trim() || "닉네임";
+  document.getElementById("preview-name").textContent = name;
+  document.getElementById("preview-avatar").textContent = selectedAvatar;
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const ni = document.getElementById("nickname-input");
+  if(ni) ni.addEventListener("input", updatePreview);
+});
+
+function saveProfile() {
+  const name = document.getElementById("nickname-input").value.trim();
+  const err = document.getElementById("nickname-err");
+  if(!name) { err.textContent = "닉네임을 입력하세요."; return; }
+  if(name.length < 2) { err.textContent = "닉네임은 2자 이상이어야 해요."; return; }
+  err.textContent = "";
+  const profile = {name, avatar: selectedAvatar, avatarImg: avatarDataURL||null};
+  localStorage.setItem("userProfile", JSON.stringify(profile));
+  goToDash();
+}
+
+function loadUserProfile() {
+  const saved = localStorage.getItem("userProfile");
+  if(!saved) return;
+  const p = JSON.parse(saved);
+  const navAv = document.getElementById("nav-avatar");
+  if(p.avatarImg) {
+    navAv.innerHTML = `<img src="${p.avatarImg}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;">`;
+  } else {
+    navAv.textContent = p.avatar || "😊";
+  }
+  document.getElementById("nav-name").textContent = p.name || "프로필";
+  const pn = document.getElementById("player-name");
+  if(pn) pn.value = p.name;
+}
+
+function openProfileEdit() {
+  document.getElementById("page-dash").style.display="none";
+  const profilePage = document.getElementById("page-profile");
+  profilePage.style.display="flex";
+  profilePage.style.flexDirection="column";
+  initAvatarGrid();
+  // 기존 프로필 불러오기
+  const saved = localStorage.getItem("userProfile");
+  if(saved) {
+    const p = JSON.parse(saved);
+    document.getElementById("nickname-input").value = p.name || "";
+    selectedAvatar = p.avatar || "😊";
+    selectAvatar(selectedAvatar);
+    updatePreview();
+  }
+  // 저장 후 대시보드로
+  document.getElementById("profile-btn").onclick = () => {
+    const name = document.getElementById("nickname-input").value.trim();
+    const err = document.getElementById("nickname-err");
+    if(!name) { err.textContent = "닉네임을 입력하세요."; return; }
+    if(name.length < 2) { err.textContent = "닉네임은 2자 이상이어야 해요."; return; }
+    err.textContent = "";
+    localStorage.setItem("userProfile", JSON.stringify({name, avatar: selectedAvatar}));
+    profilePage.style.display="none";
+    document.getElementById("page-dash").style.display="flex";
+    document.getElementById("page-dash").style.flexDirection="column";
+    loadUserProfile();
+  };
+}
+
+// 반응속도 게임
+let gameState = "idle"; // idle, waiting, ready, result
+let startTime = 0;
+let waitTimer = null;
+let lastScore = null;
+
+function handleClick() {
+  const box = document.getElementById("game-box");
+  const text = document.getElementById("game-text");
+  const result = document.getElementById("game-result");
+
+  if(gameState === "idle") {
+    gameState = "waiting";
+    box.style.background = "#fde8e8";
+    text.style.color = "#c0392b";
+    text.textContent = "기다리세요...";
+    result.textContent = "";
+    const delay = Math.random() * 3000 + 1000;
+    waitTimer = setTimeout(() => {
+      gameState = "ready";
+      box.style.background = "#2ecc71";
+      text.style.color = "#fff";
+      text.textContent = "지금 클릭!";
+      startTime = Date.now();
+    }, delay);
+
+  } else if(gameState === "waiting") {
+    clearTimeout(waitTimer);
+    gameState = "idle";
+    box.style.background = "#e0e0e0";
+    text.style.color = "#555";
+    text.textContent = "너무 빨랐어요! 다시 클릭";
+    result.textContent = "⚠️ 초록색이 되기 전에 클릭했어요!";
+
+  } else if(gameState === "ready") {
+    const elapsed = Date.now() - startTime;
+    lastScore = elapsed;
+    gameState = "idle";
+    box.style.background = "#e0e0e0";
+    text.style.color = "#555";
+    text.textContent = "다시 클릭해서 시작";
+
+    let grade = "";
+    if(elapsed < 150) grade = "🏆 전설급!";
+    else if(elapsed < 200) grade = "⚡ 매우 빠름!";
+    else if(elapsed < 250) grade = "😎 빠름!";
+    else if(elapsed < 350) grade = "👍 보통";
+    else if(elapsed < 500) grade = "😅 조금 느림";
+    else grade = "🐢 느림";
+
+    result.textContent = `${elapsed}ms — ${grade}`;
+    result.style.color = elapsed < 250 ? "#cc2366" : "#333";
+  }
+}
+
+function saveScore() {
+  if(lastScore === null) { alert("먼저 게임을 플레이하세요!"); return; }
+  const name = document.getElementById("player-name").value.trim() || "익명";
+  const scores = JSON.parse(localStorage.getItem("reactionScores") || "[]");
+  const exists = scores.find(s => s.name === name);
+  if(exists) {
+    if(lastScore < exists.score) {
+      exists.score = lastScore;
+      exists.date = new Date().toLocaleDateString("ko-KR");
+      scores.sort((a,b) => a.score - b.score);
+      localStorage.setItem("reactionScores", JSON.stringify(scores.slice(0,10)));
+      lastScore = null;
+      renderLeaderboard();
+      alert("🎉 기록 갱신! 새 최고기록이에요!");
+    } else {
+      alert(`이미 등록된 닉네임이에요.
+기존 기록: ${exists.score}ms
+현재 기록: ${lastScore}ms
+기존 기록이 더 좋아요!`);
+    }
+    return;
+  }
+  scores.push({name, score: lastScore, date: new Date().toLocaleDateString("ko-KR")});
+  scores.sort((a,b) => a.score - b.score);
+  localStorage.setItem("reactionScores", JSON.stringify(scores.slice(0,10)));
+  lastScore = null;
+  renderLeaderboard();
+  alert("기록이 저장됐어요!");
+}
+
+function renderLeaderboard() {
+  const scores = JSON.parse(localStorage.getItem("reactionScores") || "[]");
+  const box = document.getElementById("leaderboard");
+  if(!scores.length) { box.innerHTML=`<div style="font-size:13px;color:#aaa;text-align:center;padding:1rem;">아직 기록이 없어요.</div>`; return; }
+  const medals = ["🥇","🥈","🥉"];
+  box.innerHTML = scores.map((s,i) => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f5f5f5;font-size:13px;">
+      <span>${medals[i]||`${i+1}.`} <b>${s.name}</b></span>
+      <span style="color:${i===0?'#cc2366':'#333'};font-weight:${i===0?'700':'400'}">${s.score}ms</span>
+      <span style="color:#aaa;font-size:11px;">${s.date}</span>
+    </div>`).join("");
+}
+
+function clearLeaderboard() {
+  if(confirm("리더보드를 초기화할까요?")) {
+    localStorage.removeItem("reactionScores");
+    renderLeaderboard();
+  }
+}
+
+// 탭 진입시 리더보드 로드
+const origShowTab = showTab;
+function showTab(id) {
+  origShowTab(id);
+  if(id === "tab-game") renderLeaderboard();
+}
 
 function searchActive() {
   const id=document.getElementById("active-input").value.trim().replace("@","");
