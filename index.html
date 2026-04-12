@@ -100,23 +100,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   .content { padding: 1rem; }
 }
 </style>
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
-<script>
-const firebaseConfig = {
-  apiKey: "AIzaSyAuQVCyfJ2y1GbnwVGskcNW258mWe-sSHA",
-  authDomain: "instagram-server-d01e0.firebaseapp.com",
-  databaseURL: "https://instagram-server-d01e0-default-rtdb.firebaseio.com",
-  projectId: "instagram-server-d01e0",
-  storageBucket: "instagram-server-d01e0.firebasestorage.app",
-  messagingSenderId: "317207599974",
-  appId: "1:317207599974:web:056aff9ea6034418ab06a7",
-  measurementId: "G-63QFRSEYQW"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-</script>
+
 </head>
 <body>
 <audio id="bgm" src="bgm.mp3" loop preload="auto"></audio>
@@ -569,7 +553,15 @@ function showTab(id) {
   document.getElementById(id).style.display="block";
   const map={"tab-anon":"si-anon","tab-unfollow":"si-unfollow","tab-active":"si-active","tab-stock":"si-stock","tab-game":"si-game"};
   document.getElementById(map[id]).classList.add("active");
-  if(id === "tab-game") renderLeaderboard();
+  if(id === "tab-game") {
+    setTimeout(function(){
+      if(window._fbReady && window.startRealtimeLeaderboard) {
+        window.startRealtimeLeaderboard();
+      } else {
+        renderLeaderboard();
+      }
+    }, 100);
+  }
 }
 
 function searchAnon() {
@@ -1238,6 +1230,54 @@ boxes[0].focus();
   document.addEventListener("touchstart", playBGM, {once:true});
   document.addEventListener("keydown", playBGM, {once:true});
 })();
+</script>
+
+<!-- Firebase CDN - body 맨 아래 로드 -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAuQVCyfJ2y1GbnwVGskcNW258mWe-sSHA",
+    authDomain: "instagram-server-d01e0.firebaseapp.com",
+    databaseURL: "https://instagram-server-d01e0-default-rtdb.firebaseio.com",
+    projectId: "instagram-server-d01e0",
+    storageBucket: "instagram-server-d01e0.firebasestorage.app",
+    messagingSenderId: "317207599974",
+    appId: "1:317207599974:web:056aff9ea6034418ab06a7"
+  };
+  firebase.initializeApp(firebaseConfig);
+  var _db = firebase.database();
+  window._db = _db;
+  window._fbReady = true;
+
+  window.startRealtimeLeaderboard = function() {
+    _db.ref("reactionScores").orderByChild("score").limitToFirst(5).on("value", function(snapshot) {
+      var data = snapshot.val();
+      if(!data) { renderFirebaseLeaderboard([]); return; }
+      var arr = Object.values(data).sort(function(a,b){return a.score-b.score;}).slice(0,5);
+      renderFirebaseLeaderboard(arr);
+    });
+  };
+
+  window.saveScoreToFirebase = function(name, score) {
+    return new Promise(function(resolve) {
+      var key = name.replace(/[.#$\[\]]/g, "_");
+      _db.ref("reactionScores/" + key).once("value").then(function(snap) {
+        if(snap.exists() && snap.val().score <= score) { resolve(false); return; }
+        _db.ref("reactionScores/" + key).set({
+          name: name, score: score,
+          date: new Date().toLocaleDateString("ko-KR")
+        }).then(function(){ resolve(true); });
+      });
+    });
+  };
+
+  // 로드 완료 후 리더보드 자동 시작
+  window.startRealtimeLeaderboard();
+  // renderLeaderboard 재시도도 트리거
+  if(document.getElementById("tab-game") && document.getElementById("tab-game").style.display !== "none") {
+    window.startRealtimeLeaderboard();
+  }
 </script>
 </body>
 </html>
