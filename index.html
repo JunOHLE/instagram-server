@@ -100,6 +100,23 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   .content { padding: 1rem; }
 }
 </style>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAuQVCyfJ2y1GbnwVGskcNW258mWe-sSHA",
+  authDomain: "instagram-server-d01e0.firebaseapp.com",
+  databaseURL: "https://instagram-server-d01e0-default-rtdb.firebaseio.com",
+  projectId: "instagram-server-d01e0",
+  storageBucket: "instagram-server-d01e0.firebasestorage.app",
+  messagingSenderId: "317207599974",
+  appId: "1:317207599974:web:056aff9ea6034418ab06a7",
+  measurementId: "G-63QFRSEYQW"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+</script>
 </head>
 <body>
 <audio id="bgm" src="bgm.mp3" loop preload="auto"></audio>
@@ -980,22 +997,26 @@ function saveScore() {
 }
 
 function renderLeaderboard() {
-  const scores = JSON.parse(localStorage.getItem("reactionScores") || "[]");
   const box = document.getElementById("leaderboard");
-  if(!scores.length) { box.innerHTML=`<div style="font-size:13px;color:#aaa;text-align:center;padding:1rem;">아직 기록이 없어요.</div>`; return; }
-  const medals = ["🥇","🥈","🥉"];
-  box.innerHTML = scores.map((s,i) => `
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f5f5f5;font-size:13px;">
-      <span>${medals[i]||`${i+1}.`} <b>${s.name}</b></span>
-      <span style="color:${i===0?'#cc2366':'#333'};font-weight:${i===0?'700':'400'}">${s.score}ms</span>
-      <span style="color:#aaa;font-size:11px;">${s.date}</span>
-    </div>`).join("");
+  if(!box) return;
+  box.innerHTML = `<div style="font-size:13px;color:#aaa;text-align:center;padding:1rem;">불러오는 중...</div>`;
+  db.ref("leaderboard").orderByChild("score").limitToFirst(5).on("value", snap => {
+    const data = snap.val();
+    if(!data) { box.innerHTML=`<div style="font-size:13px;color:#aaa;text-align:center;padding:1rem;">아직 기록이 없어요.</div>`; return; }
+    const scores = Object.values(data).sort((a,b) => a.score - b.score).slice(0,5);
+    const medals = ["🥇","🥈","🥉","4️⃣","5️⃣"];
+    box.innerHTML = scores.map((s,i) => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f5f5f5;font-size:13px;">
+        <span>${medals[i]} <b>${s.name}</b></span>
+        <span style="color:${i===0?'#cc2366':'#333'};font-weight:${i===0?'700':'400'}">${s.score}ms</span>
+        <span style="color:#aaa;font-size:11px;">${s.date}</span>
+      </div>`).join("");
+  });
 }
 
 function clearLeaderboard() {
   if(confirm("리더보드를 초기화할까요?")) {
-    localStorage.removeItem("reactionScores");
-    renderLeaderboard();
+    db.ref("leaderboard").remove().then(() => renderLeaderboard());
   }
 }
 
