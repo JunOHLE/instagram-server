@@ -79,6 +79,20 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .tag-online { display: inline-block; background: #e6f4ea; color: #1e7e34; font-size: 11px; padding: 2px 8px; border-radius: 99px; font-weight: 500; }
 .tag-offline { display: inline-block; background: #f5f5f5; color: #888; font-size: 11px; padding: 2px 8px; border-radius: 99px; font-weight: 500; }
 
+.stock-quick-btn { padding:6px 12px; border:1px solid #ddd; border-radius:99px; background:#fafafa; font-size:12px; cursor:pointer; color:#333; transition:all .15s; }
+.stock-quick-btn:hover { background:#fef0f7; border-color:#cc2366; color:#cc2366; }
+.stock-card { background:#fafafa; border:1px solid #eee; border-radius:10px; padding:12px; min-width:140px; }
+.stock-card .s-name { font-size:13px; font-weight:600; color:#111; margin-bottom:4px; }
+.stock-card .s-price { font-size:20px; font-weight:700; color:#111; margin-bottom:2px; }
+.stock-card .s-change { font-size:12px; font-weight:500; }
+.stock-card .s-change.up { color:#c0392b; }
+.stock-card .s-change.down { color:#1a56db; }
+.stock-card .s-change.flat { color:#888; }
+.index-card { background:#fafafa; border:1px solid #eee; border-radius:10px; padding:10px 14px; flex:1; min-width:120px; }
+.index-card .i-name { font-size:11px; color:#888; margin-bottom:3px; }
+.index-card .i-val { font-size:16px; font-weight:700; color:#111; }
+.index-card .i-chg { font-size:11px; font-weight:500; margin-top:2px; }
+
 /* 모바일 */
 @media (max-width: 600px) {
   .sidebar { width: 60px; }
@@ -172,6 +186,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
         <span class="si-icon">🕐</span>
         <span class="si-label">활동 시간</span>
       </div>
+      <div class="sidebar-item" onclick="showTab('tab-stock')" id="si-stock">
+        <span class="si-icon">📈</span>
+        <span class="si-label">주식</span>
+      </div>
     </div>
     <div class="content">
 
@@ -208,6 +226,44 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
           <button onclick="analyzeUnfollow()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(45deg,#dc2743,#cc2366);color:#fff;font-size:14px;font-weight:500;cursor:pointer;margin-bottom:12px;">분석하기</button>
           <div class="result-box" id="unfollow-result" style="min-height:60px;">
             <span class="placeholder">파일 업로드 후 분석하기를 누르세요.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 주식 탭 -->
+      <div id="tab-stock" style="display:none;">
+        <div class="content-card">
+          <h3>📈 국내 주식 조회</h3>
+          <div class="desc">종목명 또는 종목코드를 입력하세요. (예: 삼성전자, 005930)</div>
+          <div class="search-row">
+            <input type="text" id="stock-input" placeholder="종목명 또는 코드 입력" onkeydown="if(event.key==='Enter')searchStock()">
+            <button onclick="searchStock()">조회</button>
+          </div>
+          <div id="stock-result" class="result-box">
+            <span class="placeholder">종목을 검색하세요.</span>
+          </div>
+        </div>
+        <div class="content-card" style="margin-top:1rem;">
+          <h3>📊 주요 지수</h3>
+          <div id="index-result" style="display:flex;gap:10px;flex-wrap:wrap;">
+            <div style="font-size:13px;color:#aaa;">불러오는 중...</div>
+          </div>
+        </div>
+        <div class="content-card" style="margin-top:1rem;">
+          <h3>🔥 인기 종목 바로가기</h3>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button onclick="quickStock('005930','삼성전자')" class="stock-quick-btn">삼성전자</button>
+            <button onclick="quickStock('000660','SK하이닉스')" class="stock-quick-btn">SK하이닉스</button>
+            <button onclick="quickStock('035420','NAVER')" class="stock-quick-btn">NAVER</button>
+            <button onclick="quickStock('005380','현대차')" class="stock-quick-btn">현대차</button>
+            <button onclick="quickStock('051910','LG화학')" class="stock-quick-btn">LG화학</button>
+            <button onclick="quickStock('006400','삼성SDI')" class="stock-quick-btn">삼성SDI</button>
+            <button onclick="quickStock('035720','카카오')" class="stock-quick-btn">카카오</button>
+            <button onclick="quickStock('003550','LG')" class="stock-quick-btn">LG</button>
+            <button onclick="quickStock('207940','삼성바이오로직스')" class="stock-quick-btn">삼성바이오</button>
+            <button onclick="quickStock('068270','셀트리온')" class="stock-quick-btn">셀트리온</button>
+            <button onclick="quickStock('000270','기아')" class="stock-quick-btn">기아</button>
+            <button onclick="quickStock('096770','SK이노베이션')" class="stock-quick-btn">SK이노베이션</button>
           </div>
         </div>
       </div>
@@ -334,13 +390,14 @@ function goToDash() {
   document.getElementById("page-terms").style.display="none";
   document.getElementById("page-dash").style.display="flex";
   document.getElementById("page-dash").style.flexDirection="column";
+  loadMarketIndex();
 }
 
 function showTab(id) {
-  ["tab-anon","tab-unfollow","tab-active"].forEach(t=>document.getElementById(t).style.display="none");
-  ["si-anon","si-unfollow","si-active"].forEach(s=>document.getElementById(s).classList.remove("active"));
+  ["tab-anon","tab-unfollow","tab-active","tab-stock"].forEach(t=>document.getElementById(t).style.display="none");
+  ["si-anon","si-unfollow","si-active","si-stock"].forEach(s=>document.getElementById(s).classList.remove("active"));
   document.getElementById(id).style.display="block";
-  const map={"tab-anon":"si-anon","tab-unfollow":"si-unfollow","tab-active":"si-active"};
+  const map={"tab-anon":"si-anon","tab-unfollow":"si-unfollow","tab-active":"si-active","tab-stock":"si-stock"};
   document.getElementById(map[id]).classList.add("active");
 }
 
@@ -452,6 +509,95 @@ function analyzeUnfollow() {
     r2.readAsText(f2.files[0]);
   };
   r1.readAsText(f1.files[0]);
+}
+
+function quickStock(code, name) {
+  document.getElementById("stock-input").value = name;
+  searchStock(code);
+}
+
+async function searchStock(code) {
+  const input = document.getElementById("stock-input").value.trim();
+  const box = document.getElementById("stock-result");
+  if(!input && !code) { box.innerHTML=`<span class="placeholder">종목명을 입력하세요.</span>`; return; }
+  box.innerHTML=`<span class="placeholder">조회 중...</span>`;
+
+  // 종목코드 매핑 (주요 종목)
+  const stockMap = {
+    "삼성전자":"005930","sk하이닉스":"000660","하이닉스":"000660","naver":"035420","네이버":"035420",
+    "현대차":"005380","현대자동차":"005380","lg화학":"051910","삼성sdi":"006400","카카오":"035720",
+    "lg":"003550","삼성바이오로직스":"207940","삼성바이오":"207940","셀트리온":"068270",
+    "기아":"000270","sk이노베이션":"096770","포스코":"005490","posco":"005490",
+    "kb금융":"105560","신한지주":"055550","하나금융지주":"086790","우리금융지주":"316140",
+    "삼성물산":"028260","현대모비스":"012330","lg전자":"066570","sk텔레콤":"017670","kt":"030200",
+    "카카오뱅크":"323410","카카오페이":"377300","크래프톤":"259960","하이브":"352820","sm":"041510",
+    "에코프로":"086520","에코프로비엠":"247540","포스코퓨처엠":"003670","엘앤에프":"066970",
+    "두산에너빌리티":"034020","한화솔루션":"009830","현대건설":"000720","삼성엔지니어링":"028050"
+  };
+
+  let stockCode = code;
+  if(!stockCode) {
+    const key = input.toLowerCase();
+    stockCode = stockMap[key] || (input.match(/^\d{6}$/) ? input : null);
+  }
+
+  if(!stockCode) {
+    box.innerHTML=`<div style="font-size:13px;color:#c0392b;">종목을 찾을 수 없습니다.<br><span style="color:#888;font-size:12px;">6자리 종목코드로 검색해보세요. (예: 005930)</span></div>`;
+    return;
+  }
+
+  const naverUrl = `https://finance.naver.com/item/main.nhn?code=${stockCode}`;
+  const apiUrl = `https://api.finance.naver.com/service/itemSummary.nhn?itemcode=${stockCode}`;
+
+  try {
+    const res = await fetch(`https://cors-anywhere.herokuapp.com/${apiUrl}`);
+    const d = await res.json();
+    const price = d.now?.toLocaleString() || "-";
+    const change = d.diff || 0;
+    const changeRate = d.rate || 0;
+    const changeClass = change > 0 ? "up" : change < 0 ? "down" : "flat";
+    const changeSign = change > 0 ? "▲" : change < 0 ? "▼" : "-";
+    const vol = d.quant?.toLocaleString() || "-";
+    const high = d.high?.toLocaleString() || "-";
+    const low = d.low?.toLocaleString() || "-";
+
+    box.className="result-box has-data";
+    box.innerHTML=`
+      <div class="stock-card" style="width:100%">
+        <div class="s-name">${d.itemname||input} (${stockCode})</div>
+        <div class="s-price">${price}원</div>
+        <div class="s-change ${changeClass}">${changeSign} ${Math.abs(change).toLocaleString()}원 (${changeRate}%)</div>
+        <div style="margin-top:10px;font-size:12px;color:#888;display:flex;gap:16px;flex-wrap:wrap;">
+          <span>고가: ${high}원</span>
+          <span>저가: ${low}원</span>
+          <span>거래량: ${vol}</span>
+        </div>
+        <a href="${naverUrl}" target="_blank" style="display:inline-block;margin-top:10px;font-size:12px;color:#1a56db;">네이버 금융에서 차트 보기 →</a>
+      </div>`;
+  } catch(e) {
+    // CORS 우회 실패시 네이버로 바로 이동
+    box.className="result-box has-data";
+    box.innerHTML=`
+      <div style="font-size:13px;color:#333;margin-bottom:8px;">종목코드: <b>${stockCode}</b></div>
+      <a href="${naverUrl}" target="_blank" style="padding:8px 16px;background:linear-gradient(45deg,#03c75a,#00a844);color:#fff;border-radius:8px;font-size:13px;text-decoration:none;font-weight:500;">📈 네이버 금융에서 보기</a>
+      <div style="margin-top:8px;font-size:11px;color:#aaa;">실시간 데이터는 네이버 금융에서 확인하세요.</div>`;
+  }
+}
+
+// 주요 지수 로드
+async function loadMarketIndex() {
+  const box = document.getElementById("index-result");
+  const indices = [
+    {name:"KOSPI", code:"KOSPI"},
+    {name:"KOSDAQ", code:"KOSDAQ"},
+    {name:"KOSPI200", code:"KPI200"}
+  ];
+  box.innerHTML = indices.map(i => `
+    <div class="index-card">
+      <div class="i-name">${i.name}</div>
+      <div class="i-val">-</div>
+      <div class="i-chg" style="color:#888;">로딩중</div>
+    </div>`).join("");
 }
 
 function searchActive() {
