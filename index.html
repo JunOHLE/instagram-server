@@ -408,23 +408,17 @@ async function sendTelegramAlert(ip, now, attempts) {
       lat = g.latitude; lng = g.longitude;
       mapLink = `https://www.google.com/maps?q=${lat},${lng}`;
       location = `${g.country_name} / ${g.region} / ${g.city}\n🏢 ISP: ${g.org||"알 수 없음"}`;
-      // 가까운 동사무소 조회 (Nominatim)
+      // 역지오코딩으로 동 이름 추출 후 주민센터 추정
       try {
-        const osmUrl = `https://nominatim.openstreetmap.org/search?q=주민센터&lat=${lat}&lon=${lng}&format=json&limit=1&accept-language=ko&countrycodes=kr`;
-        const osmR = await fetch(osmUrl, {headers:{"User-Agent":"InstagramServer/1.0"}});
-        const osmD = await osmR.json();
-        if(osmD && osmD[0]) {
-          nearbyOffice = osmD[0].display_name.split(",")[0];
-          const offLat = osmD[0].lat, offLng = osmD[0].lon;
-          const dist = Math.round(Math.sqrt(Math.pow((lat-offLat)*111000,2)+Math.pow((lng-offLng)*88000,2)));
-          nearbyOffice = `${nearbyOffice} (약 ${dist}m)`;
+        const revR = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=ko`);
+        const revD = await revR.json();
+        const addr = revD.address||{};
+        const dong = addr.suburb||addr.neighbourhood||addr.quarter||addr.village||addr.county||"";
+        const city = addr.city||addr.town||g.city||"";
+        if(dong) {
+          nearbyOffice = `${city} ${dong} 주민센터`;
         } else {
-          // 대안: 역지오코딩으로 동 이름 추출
-          const revR = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=ko`);
-          const revD = await revR.json();
-          const addr = revD.address||{};
-          const dong = addr.suburb||addr.neighbourhood||addr.quarter||addr.village||"";
-          if(dong) nearbyOffice = `${g.city||""} ${dong} 주민센터 (추정)`;
+          nearbyOffice = `${g.city||""} 주민센터 (추정)`;
         }
       } catch(e) { nearbyOffice = `${g.city||""} 주민센터 (추정)`; }
     }
