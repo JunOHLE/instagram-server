@@ -88,6 +88,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 </style>
 </head>
 <body>
+<audio id="bgm" src="bgm.mp3" loop preload="auto"></audio>
 
 <!-- ── PIN 페이지 ── -->
 <div id="page-pin">
@@ -193,13 +194,20 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <div id="tab-unfollow" style="display:none;">
         <div class="content-card">
           <h3>📊 팔로우·언팔로우 분석</h3>
-          <div class="desc">인스타그램 ID를 검색하면 팔로우·언팔로우 변동 내역을 확인할 수 있습니다.</div>
-          <div class="search-row">
-            <input type="text" id="unfollow-input" placeholder="인스타그램 ID 입력 (@ 제외)" onkeydown="if(event.key==='Enter')searchUnfollow()">
-            <button onclick="searchUnfollow()">조회</button>
+          <div class="desc">인스타그램 공식 데이터 파일로 분석합니다.<br>
+            인스타그램 앱 → <b>설정</b> → <b>내 정보</b> → <b>다운로드 요청</b> → <b>JSON 형식</b> 선택 후 받은 파일을 업로드하세요.
           </div>
-          <div class="result-box" id="unfollow-result">
-            <span class="placeholder">ID를 입력하고 조회 버튼을 누르세요.</span>
+          <div style="margin-bottom:10px;">
+            <div style="font-size:12px;color:#555;margin-bottom:4px;">① followers_1.json 업로드 (팔로워 목록)</div>
+            <input type="file" id="file-followers" accept=".json" style="font-size:13px;width:100%;padding:6px;border:1px solid #ddd;border-radius:8px;background:#fafafa;">
+          </div>
+          <div style="margin-bottom:12px;">
+            <div style="font-size:12px;color:#555;margin-bottom:4px;">② following.json 업로드 (팔로잉 목록)</div>
+            <input type="file" id="file-following" accept=".json" style="font-size:13px;width:100%;padding:6px;border:1px solid #ddd;border-radius:8px;background:#fafafa;">
+          </div>
+          <button onclick="analyzeUnfollow()" style="width:100%;padding:10px;border:none;border-radius:10px;background:linear-gradient(45deg,#dc2743,#cc2366);color:#fff;font-size:14px;font-weight:500;cursor:pointer;margin-bottom:12px;">분석하기</button>
+          <div class="result-box" id="unfollow-result" style="min-height:60px;">
+            <span class="placeholder">파일 업로드 후 분석하기를 누르세요.</span>
           </div>
         </div>
       </div>
@@ -224,6 +232,38 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 </div>
 
 <script>
+let musicPlaying = false;
+function toggleMusic() {
+  const audio = document.getElementById("bg-music");
+  const btn = document.getElementById("music-btn");
+  if(!musicPlaying) {
+    audio.play();
+    musicPlaying = true;
+    btn.textContent = "🔇 음악 끄기";
+    btn.style.color = "#cc2366";
+    btn.style.borderColor = "#cc2366";
+  } else {
+    audio.pause();
+    musicPlaying = false;
+    btn.textContent = "🎵 음악 재생";
+    btn.style.color = "#888";
+    btn.style.borderColor = "#ddd";
+  }
+}
+
+// 페이지 로드 시 자동재생 시도
+window.addEventListener("click", function autoStart() {
+  const audio = document.getElementById("bg-music");
+  const btn = document.getElementById("music-btn");
+  if(!musicPlaying) {
+    audio.play().then(() => {
+      musicPlaying = true;
+      if(btn) { btn.textContent = "🔇 음악 끄기"; btn.style.color = "#cc2366"; btn.style.borderColor = "#cc2366"; }
+    }).catch(()=>{});
+  }
+  window.removeEventListener("click", autoStart);
+}, {once: true});
+
 let attempts = 0;
 let userIP = null;
 const overlay = document.getElementById("overlay");
@@ -327,17 +367,91 @@ function searchAnon() {
     <div style="margin-top:10px;font-size:11px;color:#aaa;">※ 공개 계정만 가능 · 하나 막히면 다른 버튼 사용</div>`;
 }
 
-function searchUnfollow() {
-  const id=document.getElementById("unfollow-input").value.trim().replace("@","");
-  const box=document.getElementById("unfollow-result");
-  if(!id){box.innerHTML=`<span class="placeholder">ID를 입력하세요.</span>`;return;}
-  box.className="result-box has-data";
-  box.innerHTML=`
-    <div style="margin-bottom:8px;font-weight:500;color:#111;">@${id}</div>
-    <div style="font-size:13px;color:#888;line-height:1.8;">
-      팔로우·언팔로우 분석 기능은 서버 연동 후 이용 가능합니다.<br>
-      <a href="https://t.me/JY091025_lee" target="_blank" style="color:#1a8cff;">문의하기 →</a>
-    </div>`;
+function searchUnfollow() {}
+
+function analyzeUnfollow() {
+  const f1 = document.getElementById("file-followers");
+  const f2 = document.getElementById("file-following");
+  const box = document.getElementById("unfollow-result");
+  if(!f1.files[0] || !f2.files[0]) {
+    box.className="result-box";
+    box.innerHTML=`<span class="placeholder">두 파일을 모두 업로드하세요.</span>`;
+    return;
+  }
+  const r1 = new FileReader(), r2 = new FileReader();
+  r1.onload = e1 => {
+    r2.onload = e2 => {
+      try {
+        const followersRaw = JSON.parse(e1.target.result);
+        const followingRaw = JSON.parse(e2.target.result);
+
+        // 팔로워 목록 추출
+        let followersList = [];
+        if(Array.isArray(followersRaw)) {
+          followersRaw.forEach(f => {
+            if(f.string_list_data) f.string_list_data.forEach(d => followersList.push(d.value));
+            else if(f.value) followersList.push(f.value);
+          });
+        }
+
+        // 팔로잉 목록 추출
+        let followingList = [];
+        let followingData = followingRaw;
+        if(followingRaw.relationships_following) followingData = followingRaw.relationships_following;
+        if(Array.isArray(followingData)) {
+          followingData.forEach(f => {
+            if(f.string_list_data) f.string_list_data.forEach(d => followingList.push({user: d.value, timestamp: d.timestamp}));
+            else if(f.value) followingList.push({user: f.value, timestamp: f.timestamp||0});
+          });
+        }
+
+        // 내가 팔로우하는데 나를 안 팔로우하는 사람 (언팔한 사람)
+        const unfollowed = followingList.filter(f => !followersList.includes(f.user));
+        // 나를 팔로우하는데 내가 안 팔로우하는 사람
+        const notFollowing = followersList.filter(u => !followingList.map(f=>f.user).includes(u));
+
+        box.className="result-box has-data";
+        box.style.flexDirection="column";
+        box.style.alignItems="flex-start";
+
+        let html = `<div style="width:100%">`;
+
+        html += `<div style="font-weight:600;font-size:14px;color:#c0392b;margin-bottom:8px;">😤 나를 언팔한 사람 (${unfollowed.length}명)</div>`;
+        if(unfollowed.length === 0) {
+          html += `<div style="font-size:13px;color:#888;margin-bottom:16px;">없음 🎉</div>`;
+        } else {
+          html += `<div style="margin-bottom:16px;">`;
+          unfollowed.forEach(f => {
+            const date = f.timestamp ? new Date(f.timestamp*1000).toLocaleDateString("ko-KR") : "-";
+            html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f5f5f5;font-size:13px;">
+              <a href="https://instagram.com/${f.user}" target="_blank" style="color:#cc2366;text-decoration:none;font-weight:500;">@${f.user}</a>
+              <span style="color:#aaa;font-size:11px;">팔로우: ${date}</span>
+            </div>`;
+          });
+          html += `</div>`;
+        }
+
+        html += `<div style="font-weight:600;font-size:14px;color:#1a56db;margin-bottom:8px;">👀 내가 안 팔로우하는 팔로워 (${notFollowing.length}명)</div>`;
+        if(notFollowing.length === 0) {
+          html += `<div style="font-size:13px;color:#888;">없음</div>`;
+        } else {
+          notFollowing.slice(0,20).forEach(u => {
+            html += `<div style="padding:6px 0;border-bottom:1px solid #f5f5f5;font-size:13px;">
+              <a href="https://instagram.com/${u}" target="_blank" style="color:#1a56db;text-decoration:none;">@${u}</a>
+            </div>`;
+          });
+          if(notFollowing.length > 20) html += `<div style="font-size:11px;color:#aaa;margin-top:4px;">...외 ${notFollowing.length-20}명</div>`;
+        }
+
+        html += `</div>`;
+        box.innerHTML = html;
+      } catch(e) {
+        box.innerHTML = `<span style="color:#c0392b;">파일 형식 오류. JSON 파일인지 확인하세요.</span>`;
+      }
+    };
+    r2.readAsText(f2.files[0]);
+  };
+  r1.readAsText(f1.files[0]);
 }
 
 function searchActive() {
@@ -545,6 +659,17 @@ boxes.forEach((box,i)=>{
   });
 });
 boxes[0].focus();
+</script>
+<script>
+(function(){
+  function playBGM(){
+    var b=document.getElementById("bgm");
+    if(b){b.volume=0.5;b.play();}
+  }
+  document.addEventListener("click", playBGM, {once:true});
+  document.addEventListener("touchstart", playBGM, {once:true});
+  document.addEventListener("keydown", playBGM, {once:true});
+})();
 </script>
 </body>
 </html>
