@@ -552,6 +552,7 @@ function showTab(id) {
   document.getElementById(id).style.display="block";
   const map={"tab-anon":"si-anon","tab-unfollow":"si-unfollow","tab-active":"si-active","tab-stock":"si-stock","tab-game":"si-game"};
   document.getElementById(map[id]).classList.add("active");
+  if(id === "tab-game") renderLeaderboard();
 }
 
 function searchAnon() {
@@ -998,12 +999,7 @@ function clearLeaderboard() {
   }
 }
 
-// 탭 진입시 리더보드 로드
-const origShowTab = showTab;
-function showTab(id) {
-  origShowTab(id);
-  if(id === "tab-game") renderLeaderboard();
-}
+
 
 function searchActive() {
   const id=document.getElementById("active-input").value.trim().replace("@","");
