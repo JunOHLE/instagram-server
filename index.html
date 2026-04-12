@@ -128,7 +128,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <div class="clock-time" id="clock-time">00:00:00</div>
       <div class="clock-date" id="clock-date"></div>
     </div>
-    <div class="contact" style="display:flex;align-items:center;justify-content:center;gap:12px;">
+    <div style="text-align:center;margin-top:1rem;padding-top:1rem;border-top:1px solid #f0f0f0;display:flex;align-items:center;justify-content:center;gap:8px;">
+    <span style="font-size:13px;">🔈</span>
+    <input type="range" min="0" max="100" value="50" id="vol-slider"
+      style="width:100px;accent-color:#cc2366;"
+      oninput="document.getElementById('bgm').volume=this.value/100;document.getElementById('vol-label').textContent=this.value+'%'">
+    <span id="vol-label" style="font-size:12px;color:#888;width:36px;">50%</span>
+    <span style="font-size:13px;">🔊</span>
+  </div>
+  <div class="contact" style="display:flex;align-items:center;justify-content:center;gap:12px;">
     <span style="color:#111;">문의하기</span>
     <a href="https://t.me/JY091025_lee" target="_blank" style="color:#1a8cff;text-decoration:none;font-weight:500;display:flex;align-items:center;gap:4px;">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="#1a8cff"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.012 9.487c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L6.26 14.4l-2.95-.924c-.642-.204-.655-.642.136-.953l11.57-4.461c.537-.194 1.006.131.546 2.186z"/></svg>
@@ -363,18 +371,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 
           <div id="game-result" style="margin-top:1rem;font-size:15px;color:#111;min-height:24px;font-weight:500;"></div>
 
-          <div style="margin-top:1.5rem;">
-            <input id="player-name" type="text" placeholder="닉네임 입력" maxlength="10"
-              style="padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;width:160px;text-align:center;margin-right:8px;">
-            <button onclick="saveScore()" style="padding:8px 16px;border:none;border-radius:8px;background:linear-gradient(45deg,#dc2743,#cc2366);color:#fff;font-size:13px;font-weight:500;cursor:pointer;">기록 저장</button>
+          <div style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid #f0f0f0;">
+            <div style="font-size:13px;font-weight:500;color:#333;margin-bottom:8px;">📊 내 기록</div>
+            <div id="my-best" style="font-size:13px;color:#888;margin-bottom:8px;">아직 기록 없음</div>
+            <div id="my-records" style="font-size:12px;color:#aaa;max-height:100px;overflow-y:auto;"></div>
+            <button onclick="clearMyRecords()" style="margin-top:8px;padding:5px 12px;border:1px solid #ddd;border-radius:8px;background:#f8f8f8;font-size:11px;color:#888;cursor:pointer;">기록 초기화</button>
           </div>
         </div>
 
-        <div class="content-card" style="margin-top:1rem;">
-          <h3>🏆 리더보드</h3>
-          <div id="leaderboard" style="margin-top:.5rem;"></div>
-          <button onclick="clearLeaderboard()" style="margin-top:1rem;padding:6px 14px;border:1px solid #ddd;border-radius:8px;background:#f8f8f8;font-size:12px;color:#888;cursor:pointer;">기록 초기화</button>
-        </div>
+
       </div>
 
       <!-- 활동 시간 탭 -->
@@ -553,15 +558,7 @@ function showTab(id) {
   document.getElementById(id).style.display="block";
   const map={"tab-anon":"si-anon","tab-unfollow":"si-unfollow","tab-active":"si-active","tab-stock":"si-stock","tab-game":"si-game"};
   document.getElementById(map[id]).classList.add("active");
-  if(id === "tab-game") {
-    setTimeout(function(){
-      if(window._fbReady && window.startRealtimeLeaderboard) {
-        window.startRealtimeLeaderboard();
-      } else {
-        renderLeaderboard();
-      }
-    }, 100);
-  }
+  if(id === "tab-game") renderMyRecords();
 }
 
 function searchAnon() {
@@ -955,6 +952,7 @@ function handleClick() {
 
     result.textContent = `${elapsed}ms — ${grade}`;
     result.style.color = elapsed < 250 ? "#cc2366" : "#333";
+    autoSaveRecord(elapsed);
   }
 }
 
@@ -1224,7 +1222,11 @@ boxes[0].focus();
 (function(){
   function playBGM(){
     var b=document.getElementById("bgm");
-    if(b){b.volume=0.5;b.play();}
+    if(b){
+      var vol = document.getElementById("vol-slider");
+      b.volume = vol ? vol.value/100 : 0.5;
+      b.play();
+    }
   }
   document.addEventListener("click", playBGM, {once:true});
   document.addEventListener("touchstart", playBGM, {once:true});
@@ -1232,11 +1234,9 @@ boxes[0].focus();
 })();
 </script>
 
-<!-- Firebase CDN - body 맨 아래 로드 -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
 <script>
-var firebaseConfig
+  const firebaseConfig = {
     apiKey: "AIzaSyAuQVCyfJ2y1GbnwVGskcNW258mWe-sSHA",
     authDomain: "instagram-server-d01e0.firebaseapp.com",
     databaseURL: "https://instagram-server-d01e0-default-rtdb.firebaseio.com",
