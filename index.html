@@ -105,6 +105,24 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 <body>
 <audio id="bgm" src="bgm.mp3" loop preload="auto"></audio>
 
+<!-- 점검 오버레이 -->
+<div id="maint-overlay" style="display:none;position:fixed;inset:0;background:#111;z-index:9999;align-items:center;justify-content:center;flex-direction:column;">
+  <div style="text-align:center;color:#fff;padding:2rem;">
+    <div style="font-size:48px;margin-bottom:1rem;">🔧</div>
+    <div id="maint-overlay-title" style="font-size:24px;font-weight:700;margin-bottom:.75rem;">점검 중</div>
+    <div id="maint-overlay-content" style="font-size:15px;color:#aaa;line-height:1.7;margin-bottom:2rem;white-space:pre-wrap;"></div>
+    <div style="font-size:13px;color:#666;">잠시 후 다시 접속해주세요.</div>
+  </div>
+</div>
+
+<!-- 공지 토스트 -->
+<div id="notice-toast" style="display:none;position:fixed;bottom:2rem;left:1.5rem;max-width:320px;background:#fff;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.18);padding:1.25rem 1.5rem;z-index:8000;border-left:4px solid #1a56db;">
+  <div style="font-size:11px;color:#1a56db;font-weight:600;margin-bottom:4px;">공지사항</div>
+  <div id="toast-title" style="font-size:15px;font-weight:700;color:#111;margin-bottom:6px;"></div>
+  <div id="toast-content" style="font-size:13px;color:#555;line-height:1.6;white-space:pre-wrap;"></div>
+  <button onclick="document.getElementById('notice-toast').style.display='none'" style="position:absolute;top:10px;right:12px;background:none;border:none;font-size:18px;color:#aaa;cursor:pointer;">×</button>
+</div>
+
 <!-- ── PIN 페이지 ── -->
 <div id="page-pin">
   <div class="pin-card" id="main-card">
@@ -115,12 +133,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <div class="sub">비공개 서버입니다. PIN 6자리를 입력하세요.</div>
     <div id="warn-badge" style="text-align:center;display:none;"></div>
     <div class="pin-row">
-      <input class="pin-box" maxlength="1" type="password" inputmode="numeric">
-      <input class="pin-box" maxlength="1" type="password" inputmode="numeric">
-      <input class="pin-box" maxlength="1" type="password" inputmode="numeric">
-      <input class="pin-box" maxlength="1" type="password" inputmode="numeric">
-      <input class="pin-box" maxlength="1" type="password" inputmode="numeric">
-      <input class="pin-box" maxlength="1" type="password" inputmode="numeric">
+      <input class="pin-box" id="p0" maxlength="1" type="password" inputmode="numeric" oninput="pinInput(this,0)" onkeydown="pinKey(event,0)">
+      <input class="pin-box" id="p1" maxlength="1" type="password" inputmode="numeric" oninput="pinInput(this,1)" onkeydown="pinKey(event,1)">
+      <input class="pin-box" id="p2" maxlength="1" type="password" inputmode="numeric" oninput="pinInput(this,2)" onkeydown="pinKey(event,2)">
+      <input class="pin-box" id="p3" maxlength="1" type="password" inputmode="numeric" oninput="pinInput(this,3)" onkeydown="pinKey(event,3)">
+      <input class="pin-box" id="p4" maxlength="1" type="password" inputmode="numeric" oninput="pinInput(this,4)" onkeydown="pinKey(event,4)">
+      <input class="pin-box" id="p5" maxlength="1" type="password" inputmode="numeric" oninput="pinInput(this,5)" onkeydown="pinKey(event,5)">
     </div>
     <div class="err" id="err-msg"></div>
     <button class="btn" onclick="checkPin()">확인</button>
@@ -266,6 +284,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
         <span class="si-icon">⚡</span>
         <span class="si-label">반응속도</span>
       </div>
+      <div class="sidebar-item" onclick="showTab('tab-notice')" id="si-notice">
+        <span class="si-icon">📢</span>
+        <span class="si-label">공지사항</span>
+      </div>
     </div>
     <div class="content">
 
@@ -382,6 +404,64 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 
       </div>
 
+      <!-- 공지사항 탭 -->
+      <div id="tab-notice" style="display:none;">
+
+        <!-- 관리자 전용 작성 패널 -->
+        <div class="content-card" id="notice-admin-panel" style="display:none;margin-bottom:1rem;">
+          <h3 style="margin-bottom:1rem;">관리자 공지 패널</h3>
+
+          <!-- 공지사항 -->
+          <div style="margin-bottom:1.25rem;padding:1rem;background:#fafafa;border-radius:10px;border:1px solid #eee;">
+            <div style="font-size:13px;font-weight:600;color:#111;margin-bottom:8px;">공지사항</div>
+            <input type="text" id="notice-title" placeholder="제목" maxlength="50"
+              style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;margin-bottom:6px;box-sizing:border-box;">
+            <textarea id="notice-content" placeholder="내용" rows="3"
+              style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;resize:vertical;box-sizing:border-box;font-family:inherit;"></textarea>
+            <button onclick="postNotice('공지사항')" style="margin-top:6px;width:100%;padding:8px;border:none;border-radius:8px;background:#1a56db;color:#fff;font-size:13px;font-weight:500;cursor:pointer;">공지 게시</button>
+          </div>
+
+          <!-- 점검 -->
+          <div style="margin-bottom:1.25rem;padding:1rem;background:#fafafa;border-radius:10px;border:1px solid #eee;">
+            <div style="font-size:13px;font-weight:600;color:#111;margin-bottom:8px;">점검</div>
+            <input type="text" id="maint-title" placeholder="점검 제목" maxlength="50"
+              style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;margin-bottom:6px;box-sizing:border-box;">
+            <textarea id="maint-content" placeholder="점검 내용" rows="3"
+              style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;resize:vertical;box-sizing:border-box;font-family:inherit;"></textarea>
+            <div style="display:flex;gap:6px;margin-top:6px;">
+              <button onclick="startMaintenance()" style="flex:1;padding:8px;border:none;border-radius:8px;background:#a32d2d;color:#fff;font-size:13px;font-weight:500;cursor:pointer;">점검 시작</button>
+              <button onclick="endMaintenance()" style="flex:1;padding:8px;border:1px solid #ddd;border-radius:8px;background:#f0f0f0;color:#333;font-size:13px;font-weight:500;cursor:pointer;">점검 완료</button>
+            </div>
+          </div>
+
+          <!-- 패치노트 -->
+          <div style="padding:1rem;background:#fafafa;border-radius:10px;border:1px solid #eee;">
+            <div style="font-size:13px;font-weight:600;color:#111;margin-bottom:8px;">패치노트</div>
+            <input type="text" id="patch-version" placeholder="버전 (예: v1.2)" maxlength="20"
+              style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;margin-bottom:6px;box-sizing:border-box;">
+            <textarea id="patch-content" placeholder="패치 내용 (줄바꿈으로 항목 구분)" rows="4"
+              style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;resize:vertical;box-sizing:border-box;font-family:inherit;"></textarea>
+            <button onclick="postPatch()" style="margin-top:6px;width:100%;padding:8px;border:none;border-radius:8px;background:#1e7e34;color:#fff;font-size:13px;font-weight:500;cursor:pointer;">패치노트 게시</button>
+          </div>
+        </div>
+
+        <!-- 공지사항 목록 -->
+        <div class="content-card" style="margin-bottom:1rem;">
+          <h3>공지사항</h3>
+          <div id="notice-list" style="margin-top:.75rem;">
+            <div style="font-size:13px;color:#aaa;text-align:center;padding:1.5rem;">공지사항이 없습니다.</div>
+          </div>
+        </div>
+
+        <!-- 패치노트 목록 -->
+        <div class="content-card">
+          <h3>패치노트</h3>
+          <div id="patch-list" style="margin-top:.75rem;">
+            <div style="font-size:13px;color:#aaa;text-align:center;padding:1.5rem;">패치노트가 없습니다.</div>
+          </div>
+        </div>
+      </div>
+
       <!-- 활동 시간 탭 -->
       <div id="tab-active" style="display:none;">
         <div class="content-card">
@@ -478,6 +558,19 @@ function updateClock() {
 }
 updateClock(); setInterval(updateClock,1000);
 
+function pinInput(el, i) {
+  el.value = el.value.replace(/[^0-9]/g,'').slice(-1);
+  if(el.value && i < 5) document.getElementById("p"+(i+1)).focus();
+  if(i === 5 && el.value) checkPin();
+}
+function pinKey(e, i) {
+  if(e.key==="Backspace" && !document.getElementById("p"+i).value && i > 0) {
+    document.getElementById("p"+(i-1)).focus();
+    document.getElementById("p"+(i-1)).value="";
+  }
+  if(e.key==="Enter") checkPin();
+}
+
 function verifyPin(input) { return btoa(unescape(encodeURIComponent(input)))==="MTk4MjM1"; }
 function verifyAdminPin(input) { return btoa(unescape(encodeURIComponent(input)))==="MDA5MjM0"; }
 function getPin() { return [...document.querySelectorAll(".pin-box")].map(b=>b.value).join(""); }
@@ -509,9 +602,9 @@ function enterAsDeveloper() {
     avatarImg: null,
     role: "developer"
   }));
+  sessionStorage.setItem("isAdmin", "true");
   document.getElementById("page-pin").style.display="none";
   goToDash();
-  // 개발자 배지 표시
   setTimeout(() => {
     const navName = document.getElementById("nav-name");
     if(navName) navName.innerHTML = `개발자 <span style="background:#cc2366;color:#fff;font-size:10px;padding:1px 6px;border-radius:99px;margin-left:3px;">DEV</span>`;
@@ -550,15 +643,24 @@ function goToDash() {
   document.getElementById("page-dash").style.flexDirection="column";
   loadMarketIndex();
   loadUserProfile();
+  setTimeout(()=>{
+    checkMaintenance();
+    checkPendingToast();
+  }, 500);
 }
 
 function showTab(id) {
-  ["tab-anon","tab-unfollow","tab-active","tab-stock","tab-game"].forEach(t=>document.getElementById(t).style.display="none");
-  ["si-anon","si-unfollow","si-active","si-stock","si-game"].forEach(s=>document.getElementById(s).classList.remove("active"));
+  ["tab-anon","tab-unfollow","tab-active","tab-stock","tab-game","tab-notice"].forEach(t=>document.getElementById(t).style.display="none");
+  ["si-anon","si-unfollow","si-active","si-stock","si-game","si-notice"].forEach(s=>document.getElementById(s).classList.remove("active"));
   document.getElementById(id).style.display="block";
-  const map={"tab-anon":"si-anon","tab-unfollow":"si-unfollow","tab-active":"si-active","tab-stock":"si-stock","tab-game":"si-game"};
+  const map={"tab-anon":"si-anon","tab-unfollow":"si-unfollow","tab-active":"si-active","tab-stock":"si-stock","tab-game":"si-game","tab-notice":"si-notice"};
   document.getElementById(map[id]).classList.add("active");
   if(id === "tab-game") renderMyRecords();
+  if(id === "tab-notice") {
+    loadNotices();
+    loadPatches();
+    if(isAdminSession()) document.getElementById("notice-admin-panel").style.display="block";
+  }
 }
 
 function searchAnon() {
@@ -1012,6 +1114,127 @@ function clearLeaderboard() {
 
 
 
+// 공지사항
+function isAdminSession() {
+  return sessionStorage.getItem("isAdmin") === "true";
+}
+
+function loadNotices() {
+  const notices = JSON.parse(localStorage.getItem("notices") || "[]");
+  const box = document.getElementById("notice-list");
+  if(!notices.length) { box.innerHTML=`<div style="font-size:13px;color:#aaa;text-align:center;padding:1.5rem;">공지사항이 없습니다.</div>`; return; }
+  box.innerHTML = notices.map((n,i)=>`
+    <div style="padding:12px 0;border-bottom:1px solid #f5f5f5;">
+      <div style="display:flex;align-items:center;margin-bottom:4px;">
+        <span style="font-size:11px;color:#aaa;">${n.date}</span>
+        ${isAdminSession()?`<button onclick="deleteNotice(${i})" style="margin-left:auto;padding:2px 8px;border:1px solid #f5c6c6;border-radius:6px;background:#fde8e8;color:#a32d2d;font-size:11px;cursor:pointer;">삭제</button>`:""}
+      </div>
+      <div style="font-size:14px;font-weight:600;color:#111;margin-bottom:4px;">${n.title}</div>
+      <div style="font-size:13px;color:#555;line-height:1.6;white-space:pre-wrap;">${n.content}</div>
+    </div>`).join("");
+}
+
+function loadPatches() {
+  const patches = JSON.parse(localStorage.getItem("patches") || "[]");
+  const box = document.getElementById("patch-list");
+  if(!patches.length) { box.innerHTML=`<div style="font-size:13px;color:#aaa;text-align:center;padding:1.5rem;">패치노트가 없습니다.</div>`; return; }
+  box.innerHTML = patches.map((p,i)=>`
+    <div style="padding:12px 0;border-bottom:1px solid #f5f5f5;">
+      <div style="display:flex;align-items:center;margin-bottom:6px;">
+        <span style="font-size:12px;font-weight:700;color:#1e7e34;background:#e6f4ea;padding:2px 10px;border-radius:99px;">${p.version}</span>
+        <span style="font-size:11px;color:#aaa;margin-left:8px;">${p.date}</span>
+        ${isAdminSession()?`<button onclick="deletePatch(${i})" style="margin-left:auto;padding:2px 8px;border:1px solid #f5c6c6;border-radius:6px;background:#fde8e8;color:#a32d2d;font-size:11px;cursor:pointer;">삭제</button>`:""}
+      </div>
+      <ul style="margin:0;padding-left:1.25rem;">
+        ${p.items.map(item=>`<li style="font-size:13px;color:#555;line-height:1.8;">${item}</li>`).join("")}
+      </ul>
+    </div>`).join("");
+}
+
+function postNotice(type) {
+  const title = document.getElementById("notice-title").value.trim();
+  const cnt = document.getElementById("notice-content").value.trim();
+  if(!title||!cnt){alert("제목과 내용을 입력하세요.");return;}
+  const notices = JSON.parse(localStorage.getItem("notices")||"[]");
+  notices.unshift({title,content:cnt,date:new Date().toLocaleString("ko-KR",{timeZone:"Asia/Seoul"})});
+  localStorage.setItem("notices",JSON.stringify(notices));
+  document.getElementById("notice-title").value="";
+  document.getElementById("notice-content").value="";
+  loadNotices();
+  // 토스트 표시
+  showNoticeToast(title, cnt);
+  alert("공지가 게시됐어요!");
+}
+
+function showNoticeToast(title, content) {
+  localStorage.setItem("pendingToast", JSON.stringify({title, content}));
+}
+
+function checkPendingToast() {
+  if(isAdminSession()) return;
+  const t = localStorage.getItem("pendingToast");
+  if(!t) return;
+  const d = JSON.parse(t);
+  document.getElementById("toast-title").textContent = d.title;
+  document.getElementById("toast-content").textContent = d.content;
+  document.getElementById("notice-toast").style.display = "block";
+}
+
+function startMaintenance() {
+  const title = document.getElementById("maint-title").value.trim() || "서버 점검 중";
+  const cnt = document.getElementById("maint-content").value.trim() || "잠시 후 다시 접속해주세요.";
+  localStorage.setItem("maintenance", JSON.stringify({active:true, title, content:cnt}));
+  alert("점검 시작됐어요!");
+}
+
+function endMaintenance() {
+  localStorage.removeItem("maintenance");
+  alert("점검 완료!");
+}
+
+function checkMaintenance() {
+  if(isAdminSession()) return;
+  const m = localStorage.getItem("maintenance");
+  if(!m) return;
+  const d = JSON.parse(m);
+  if(!d.active) return;
+  document.getElementById("maint-overlay-title").textContent = d.title;
+  document.getElementById("maint-overlay-content").textContent = d.content;
+  const ol = document.getElementById("maint-overlay");
+  ol.style.display = "flex";
+}
+
+function postPatch() {
+  const version = document.getElementById("patch-version").value.trim();
+  const cnt = document.getElementById("patch-content").value.trim();
+  if(!version||!cnt){alert("버전과 내용을 입력하세요.");return;}
+  const items = cnt.split("
+").filter(l=>l.trim());
+  const patches = JSON.parse(localStorage.getItem("patches")||"[]");
+  patches.unshift({version, items, date:new Date().toLocaleString("ko-KR",{timeZone:"Asia/Seoul"})});
+  localStorage.setItem("patches",JSON.stringify(patches));
+  document.getElementById("patch-version").value="";
+  document.getElementById("patch-content").value="";
+  loadPatches();
+  alert("패치노트가 게시됐어요!");
+}
+
+function deleteNotice(idx) {
+  if(!confirm("삭제할까요?")) return;
+  const notices = JSON.parse(localStorage.getItem("notices")||"[]");
+  notices.splice(idx,1);
+  localStorage.setItem("notices",JSON.stringify(notices));
+  loadNotices();
+}
+
+function deletePatch(idx) {
+  if(!confirm("삭제할까요?")) return;
+  const patches = JSON.parse(localStorage.getItem("patches")||"[]");
+  patches.splice(idx,1);
+  localStorage.setItem("patches",JSON.stringify(patches));
+  loadPatches();
+}
+
 function searchActive() {
   const id=document.getElementById("active-input").value.trim().replace("@","");
   const box=document.getElementById("active-result");
@@ -1204,19 +1427,7 @@ function tryUnlock() {
   }
 }
 
-const boxes=document.querySelectorAll(".pin-box");
-boxes.forEach((box,i)=>{
-  box.addEventListener("input",()=>{
-    box.value=box.value.replace(/[^0-9]/g,'').slice(-1);
-    if(box.value&&i<boxes.length-1) boxes[i+1].focus();
-    if(i===boxes.length-1&&box.value) checkPin();
-  });
-  box.addEventListener("keydown",e=>{
-    if(e.key==="Backspace"&&!box.value&&i>0){boxes[i-1].focus();boxes[i-1].value="";}
-    if(e.key==="Enter") checkPin();
-  });
-});
-boxes[0].focus();
+document.getElementById("p0").focus();
 </script>
 <script>
 (function(){
