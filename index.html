@@ -122,8 +122,6 @@ function pinKey(e, i) {
   if (e.key === 'Enter') { checkPin(); }
 }
 </script>
-<script src="https://cdn.jsdelivr.net/npm/firebase@9.23.0/firebase-app-compat.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/firebase@9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
 <audio id="bgm" src="bgm.mp3?v=3" loop preload="auto"></audio>
@@ -1347,51 +1345,25 @@ function checkPendingToast() {
   document.getElementById("notice-toast").style.display = "block";
 }
 
-function waitForDb(cb) {
-  if(window._db) { cb(); return; }
-  let tries = 0;
-  const t = setInterval(() => {
-    tries++;
-    if(window._db) { clearInterval(t); cb(); }
-    else if(tries > 20) { clearInterval(t); alert("Firebase 연결 실패. 새로고침 후 다시 시도하세요."); }
-  }, 200);
-}
-
-function startMaintenance() {
+async function startMaintenance() {
   const title = document.getElementById("maint-title").value.trim() || "서버 점검 중";
   const cnt = document.getElementById("maint-content").value.trim() || "잠시 후 다시 접속해주세요.";
-  waitForDb(() => {
-    window._db.ref("maintenance").set({active: true, title, content: cnt})
-      .then(() => alert("점검 시작됐어요! 모든 기기에 적용됩니다."))
-      .catch(e => alert("오류: " + e));
-  });
+  try {
+    await fbSet("maintenance", {active: true, title, content: cnt});
+    alert("점검 시작됐어요! 모든 기기에 적용됩니다.");
+  } catch(e) { alert("오류: " + e); }
 }
 
-function endMaintenance() {
-  waitForDb(() => {
-    window._db.ref("maintenance").set({active: false, title: "", content: ""})
-      .then(() => alert("점검 완료!"))
-      .catch(e => alert("오류: " + e));
-  });
+async function endMaintenance() {
+  try {
+    await fbSet("maintenance", {active: false, title: "", content: ""});
+    alert("점검 완료!");
+  } catch(e) { alert("오류: " + e); }
 }
 
 function checkMaintenance() {
-  if(!window._db) return;
-  // 실시간 리스너로 점검 상태 감지 (모든 기기 즉시 반영)
-  window._db.ref("maintenance").on("value", function(snap) {
-    const d = snap.val();
-    const ol = document.getElementById("maint-overlay");
-    if(!ol) return;
-    if(d && d.active) {
-      // 개발자는 점검 오버레이 안 뜸
-      if(isAdminSession()) return;
-      document.getElementById("maint-overlay-title").textContent = d.title || "점검 중";
-      document.getElementById("maint-overlay-content").textContent = d.content || "";
-      ol.style.display = "flex";
-    } else {
-      ol.style.display = "none";
-    }
-  });
+  // 폴링 방식으로 점검 상태 감지
+  if(window._startMaintPoll) window._startMaintPoll();
 }
 
 function postPatch() {
@@ -2067,51 +2039,76 @@ function dos2Stop() {
 
 
 <script>
-  function initFirebase() {
-    if(typeof firebase === 'undefined') {
-      setTimeout(initFirebase, 200);
-      return;
-    }
-    if(window._fbReady) return;
-    const firebaseConfig = {
-      apiKey: "AIzaSyAuQVCyfJ2y1GbnwVGskcNW258mWe-sSHA",
-      authDomain: "instagram-server-d01e0.firebaseapp.com",
-      databaseURL: "https://instagram-server-d01e0-default-rtdb.firebaseio.com",
-      projectId: "instagram-server-d01e0",
-      storageBucket: "instagram-server-d01e0.firebasestorage.app",
-      messagingSenderId: "317207599974",
-      appId: "1:317207599974:web:056aff9ea6034418ab06a7"
-    };
-    if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-    var _db = firebase.database();
-    window._db = _db;
-    window._fbReady = true;
+// ── Firebase REST API (SDK 없이 fetch로 직접 통신) ──
+const FB_URL = "https://instagram-server-d01e0-default-rtdb.firebaseio.com";
+window._fbReady = true;
+window._db = true; // waitForDb() 통과용
 
-    window.startRealtimeLeaderboard = function() {
-      _db.ref("reactionScores").orderByChild("score").limitToFirst(5).on("value", function(snapshot) {
-        var data = snapshot.val();
-        if(!data) { renderFirebaseLeaderboard([]); return; }
-        var arr = Object.values(data).sort(function(a,b){return a.score-b.score;}).slice(0,5);
-        renderFirebaseLeaderboard(arr);
-      });
-    };
+// Firebase REST: 읽기
+async function fbGet(path) {
+  const r = await fetch(`${FB_URL}/${path}.json`);
+  return r.json();
+}
 
-    window.saveScoreToFirebase = function(name, score) {
-      return new Promise(function(resolve) {
-        var key = name.replace(/[.#$\[\]]/g, "_");
-        _db.ref("reactionScores/" + key).once("value").then(function(snap) {
-          if(snap.exists() && snap.val().score <= score) { resolve(false); return; }
-          _db.ref("reactionScores/" + key).set({
-            name: name, score: score,
-            date: new Date().toLocaleDateString("ko-KR")
-          }).then(function(){ resolve(true); });
-        });
-      });
-    };
+// Firebase REST: 쓰기
+async function fbSet(path, data) {
+  await fetch(`${FB_URL}/${path}.json`, {
+    method: "PUT",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(data)
+  });
+}
 
-    window.startRealtimeLeaderboard();
-  }
-  initFirebase();
+// Firebase REST: 삭제
+async function fbDelete(path) {
+  await fetch(`${FB_URL}/${path}.json`, { method: "DELETE" });
+}
+
+// 점검 상태 실시간 폴링 (SSE 대신 1초마다 체크)
+let _maintPollTimer = null;
+window._startMaintPoll = function() {
+  if(_maintPollTimer) return;
+  _maintPollTimer = setInterval(async () => {
+    try {
+      const d = await fbGet("maintenance");
+      const ol = document.getElementById("maint-overlay");
+      if(!ol) return;
+      if(d && d.active) {
+        if(isAdminSession()) return;
+        document.getElementById("maint-overlay-title").textContent = d.title || "점검 중";
+        document.getElementById("maint-overlay-content").textContent = d.content || "";
+        ol.style.display = "flex";
+      } else {
+        ol.style.display = "none";
+      }
+    } catch(e) {}
+  }, 2000);
+};
+
+// 리더보드
+window.startRealtimeLeaderboard = async function() {
+  try {
+    const data = await fbGet("reactionScores");
+    if(!data) { renderFirebaseLeaderboard([]); return; }
+    const arr = Object.values(data).sort((a,b) => a.score - b.score).slice(0,5);
+    renderFirebaseLeaderboard(arr);
+  } catch(e) {}
+};
+
+window.saveScoreToFirebase = async function(name, score) {
+  try {
+    const key = name.replace(/[.#$[\]]/g, "_");
+    const existing = await fbGet("reactionScores/" + key);
+    if(existing && existing.score <= score) return false;
+    await fbSet("reactionScores/" + key, {
+      name, score,
+      date: new Date().toLocaleDateString("ko-KR")
+    });
+    return true;
+  } catch(e) { return false; }
+};
+
+window.startRealtimeLeaderboard();
 </script>
 <!-- DoS Tool PIN 모달 -->
 <div id="dos-pin-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:10000;align-items:center;justify-content:center;">
