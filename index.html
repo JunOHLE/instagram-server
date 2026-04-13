@@ -262,7 +262,7 @@ function pinKey(e, i) {
     </div>
     <div style="display:flex;align-items:center;gap:12px;font-size:13px;">
       <div id="nav-profile" onclick="openProfileEdit()" style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:4px 10px;border-radius:99px;border:1px solid #eee;background:#fafafa;">
-        <span id="nav-avatar" style="font-size:18px;">😊</span>
+        <div id="nav-avatar" style="width:26px;height:26px;border-radius:50%;overflow:hidden;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">😊</div>
         <span id="nav-name" style="font-size:12px;font-weight:500;color:#333;">프로필</span>
       </div>
       <a href="https://t.me/JY091025_lee" target="_blank" style="color:#1a8cff;text-decoration:none;font-weight:500;display:flex;align-items:center;gap:4px;">
@@ -595,19 +595,25 @@ function toggleTermsBtn() {
 }
 
 function enterAsDeveloper() {
-  localStorage.setItem("userProfile", JSON.stringify({
-    name: "개발자",
-    avatar: "👑",
-    avatarImg: null,
-    role: "developer"
-  }));
   sessionStorage.setItem("isAdmin", "true");
+  // 기존 프로필 유지, role만 developer로 업데이트
+  const saved = localStorage.getItem("userProfile");
+  if(saved) {
+    const p = JSON.parse(saved);
+    p.role = "developer";
+    localStorage.setItem("userProfile", JSON.stringify(p));
+  } else {
+    localStorage.setItem("userProfile", JSON.stringify({name:"개발자", avatar:"👑", avatarImg:null, role:"developer"}));
+  }
   document.getElementById("page-pin").style.display="none";
   goToDash();
+  // DEV 배지만 추가 (이름/사진은 loadUserProfile이 처리)
   setTimeout(() => {
     const navName = document.getElementById("nav-name");
-    if(navName) navName.innerHTML = `개발자 <span style="background:#cc2366;color:#fff;font-size:10px;padding:1px 6px;border-radius:99px;margin-left:3px;">DEV</span>`;
-  }, 300);
+    if(navName && !navName.innerHTML.includes("DEV")) {
+      navName.innerHTML = navName.textContent + ` <span style="background:#cc2366;color:#fff;font-size:10px;padding:1px 6px;border-radius:99px;margin-left:3px;">DEV</span>`;
+    }
+  }, 600);
 }
 
 async function checkAdminAndGo() {
@@ -937,7 +943,9 @@ function selectAvatar(av) {
 function updatePreview() {
   const name = document.getElementById("nickname-input").value.trim() || "닉네임";
   document.getElementById("preview-name").textContent = name;
-  document.getElementById("preview-avatar").textContent = selectedAvatar;
+  if(!avatarDataURL) {
+    document.getElementById("preview-avatar").textContent = selectedAvatar;
+  }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -962,7 +970,7 @@ function loadUserProfile() {
   const p = JSON.parse(saved);
   const navAv = document.getElementById("nav-avatar");
   if(p.avatarImg) {
-    navAv.innerHTML = `<img src="${p.avatarImg}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;">`;
+    navAv.innerHTML = `<img src="${p.avatarImg}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;display:block;">`;
   } else {
     navAv.textContent = p.avatar || "😊";
   }
