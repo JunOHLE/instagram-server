@@ -116,7 +116,7 @@ function pinKey(e, i) {
 </script>
 </head>
 <body>
-<audio id="bgm" src="bgm.mp3?v=2" loop preload="auto"></audio>
+<audio id="bgm" src="bgm.mp3?v=3" loop preload="auto"></audio>
 
 <!-- 점검 오버레이 -->
 <div id="maint-overlay" style="display:none;position:fixed;inset:0;background:#111;z-index:9999;align-items:center;justify-content:center;flex-direction:column;">
@@ -525,6 +525,19 @@ let attempts = 0;
 let userIP = null;
 const overlay = document.getElementById("overlay");
 
+// 페이지 로드시 로그인 상태 확인 (새로고침 유지)
+window.addEventListener("load", () => {
+  const loginType = sessionStorage.getItem("loginType");
+  if(loginType === "dev") {
+    enterAsDeveloper();
+    return;
+  } else if(loginType === "user") {
+    document.getElementById("page-pin").style.display="none";
+    goToDash();
+    return;
+  }
+});
+
 // 페이지 로드시 차단 상태 확인
 window.addEventListener("load", () => {
   if(localStorage.getItem("blocked") === "true") {
@@ -578,8 +591,8 @@ function clearPin() { [0,1,2,3,4,5].forEach(i=>{const el=document.getElementById
 function checkPin() {
   const pin=getPin();
   if(pin.length<6){document.getElementById("err-msg").textContent="PIN 6자리를 모두 입력하세요.";return;}
-  if(verifyAdminPin(pin)){overlay.classList.remove("show");enterAsDeveloper();return;}
-  if(verifyPin(pin)){overlay.classList.remove("show");goToTerms();return;}
+  if(verifyAdminPin(pin)){overlay.classList.remove("show");sessionStorage.setItem("loginType","dev");enterAsDeveloper();return;}
+  if(verifyPin(pin)){overlay.classList.remove("show");sessionStorage.setItem("loginType","user");goToTerms();return;}
   attempts++; clearPin(); showWarningModal(attempts);
 }
 
