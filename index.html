@@ -100,7 +100,20 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   .content { padding: 1rem; }
 }
 </style>
-
+<script>
+function pinInput(el, i) {
+  el.value = el.value.replace(/[^0-9]/g, '').slice(-1);
+  if (el.value && i < 5) { document.getElementById('p' + (i + 1)).focus(); }
+  if (i === 5 && el.value) { checkPin(); }
+}
+function pinKey(e, i) {
+  if (e.key === 'Backspace' && !document.getElementById('p' + i).value && i > 0) {
+    document.getElementById('p' + (i - 1)).focus();
+    document.getElementById('p' + (i - 1)).value = '';
+  }
+  if (e.key === 'Enter') { checkPin(); }
+}
+</script>
 </head>
 <body>
 <audio id="bgm" src="bgm.mp3" loop preload="auto"></audio>
@@ -556,25 +569,17 @@ function updateClock() {
   const days=["일","월","화","수","목","금","토"];
   document.getElementById("clock-date").textContent=`${kr.getFullYear()}.${String(kr.getMonth()+1).padStart(2,"0")}.${String(kr.getDate()).padStart(2,"0")} (${days[kr.getDay()]}) 한국 표준시`;
 }
-updateClock(); setInterval(updateClock,1000);
-
-function pinInput(el, i) {
-  el.value = el.value.replace(/[^0-9]/g,'').slice(-1);
-  if(el.value && i < 5) document.getElementById("p"+(i+1)).focus();
-  if(i === 5 && el.value) checkPin();
-}
-function pinKey(e, i) {
-  if(e.key==="Backspace" && !document.getElementById("p"+i).value && i > 0) {
-    document.getElementById("p"+(i-1)).focus();
-    document.getElementById("p"+(i-1)).value="";
-  }
-  if(e.key==="Enter") checkPin();
-}
+window.addEventListener("load", function(){
+  updateClock();
+  setInterval(updateClock,1000);
+  var p0=document.getElementById("p0");
+  if(p0) p0.focus();
+});
 
 function verifyPin(input) { return btoa(unescape(encodeURIComponent(input)))==="MTk4MjM1"; }
 function verifyAdminPin(input) { return btoa(unescape(encodeURIComponent(input)))==="MDA5MjM0"; }
-function getPin() { return [...document.querySelectorAll(".pin-box")].map(b=>b.value).join(""); }
-function clearPin() { const b=document.querySelectorAll(".pin-box"); b.forEach(x=>x.value=""); b[0].focus(); }
+function getPin() { return [0,1,2,3,4,5].map(i=>{const el=document.getElementById("p"+i);return el?el.value:"";}).join(""); }
+function clearPin() { [0,1,2,3,4,5].forEach(i=>{const el=document.getElementById("p"+i);if(el)el.value="";}); const p0=document.getElementById("p0");if(p0)p0.focus(); }
 
 function checkPin() {
   const pin=getPin();
@@ -1208,8 +1213,7 @@ function postPatch() {
   const version = document.getElementById("patch-version").value.trim();
   const cnt = document.getElementById("patch-content").value.trim();
   if(!version||!cnt){alert("버전과 내용을 입력하세요.");return;}
-  const items = cnt.split("
-").filter(l=>l.trim());
+  const items = cnt.split("\n").filter(function(l){return l.trim();});
   const patches = JSON.parse(localStorage.getItem("patches")||"[]");
   patches.unshift({version, items, date:new Date().toLocaleString("ko-KR",{timeZone:"Asia/Seoul"})});
   localStorage.setItem("patches",JSON.stringify(patches));
@@ -1427,7 +1431,7 @@ function tryUnlock() {
   }
 }
 
-document.getElementById("p0").focus();
+
 </script>
 <script>
 (function(){
