@@ -94,10 +94,18 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .index-card .i-chg { font-size:11px; font-weight:500; margin-top:2px; }
 
 /* 모바일 */
-@media (max-width: 600px) {
-  .sidebar { width: 60px; }
-  .sidebar-item span.si-label { display: none; }
-  .content { padding: 1rem; }
+@media (max-width: 700px) {
+  /* 사이드바 숨기고 하단 탭바로 대체 */
+  .sidebar { display: none !important; }
+  .dash-body { flex-direction: column; }
+  .content { padding: .75rem; max-width: 100%; width: 100%; }
+  .content-card { padding: 1rem; border-radius: 10px; }
+  .search-row input { font-size: 13px; }
+  /* 하단 탭바 */
+  #mobile-tabbar { display: flex !important; }
+}
+@media (min-width: 701px) {
+  #mobile-tabbar { display: none !important; }
 }
 </style>
 <script>
@@ -260,8 +268,8 @@ function pinKey(e, i) {
 </div>
 
 <!-- ── 프로필 설정 페이지 ── -->
-<div id="page-profile" style="display:none;align-items:center;justify-content:center;min-height:100vh;padding:1rem;">
-  <div class="terms-card" style="max-width:420px;">
+<div id="page-profile" style="display:none;align-items:flex-start;justify-content:center;min-height:100vh;padding:1rem;overflow-y:auto;">
+  <div class="terms-card" style="max-width:420px;margin:1rem auto;">
     <h2 style="margin-bottom:.5rem;">👤 프로필 설정</h2>
     <div class="terms-sub">닉네임과 프로필 아바타를 설정하세요.</div>
 
@@ -534,6 +542,28 @@ function pinKey(e, i) {
 
     </div>
   </div>
+
+  <!-- 모바일 하단 탭바 -->
+  <div id="mobile-tabbar" style="display:none;position:fixed;bottom:0;left:0;right:0;height:56px;background:#fff;border-top:1px solid #e0e0e0;z-index:200;align-items:center;justify-content:space-around;padding:0 4px;">
+    <button onclick="showTab('tab-anon')" id="mb-anon" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 2px;border:none;background:none;cursor:pointer;font-size:18px;color:#888;">
+      <span>👁️</span><span style="font-size:9px;color:#888;">익명</span>
+    </button>
+    <button onclick="showTab('tab-unfollow')" id="mb-unfollow" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 2px;border:none;background:none;cursor:pointer;font-size:18px;color:#888;">
+      <span>📊</span><span style="font-size:9px;color:#888;">팔로우</span>
+    </button>
+    <button onclick="showTab('tab-active')" id="mb-active" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 2px;border:none;background:none;cursor:pointer;font-size:18px;color:#888;">
+      <span>🕐</span><span style="font-size:9px;color:#888;">활동</span>
+    </button>
+    <button onclick="showTab('tab-stock')" id="mb-stock" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 2px;border:none;background:none;cursor:pointer;font-size:18px;color:#888;">
+      <span>📈</span><span style="font-size:9px;color:#888;">주식</span>
+    </button>
+    <button onclick="showTab('tab-game')" id="mb-game" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 2px;border:none;background:none;cursor:pointer;font-size:18px;color:#888;">
+      <span>⚡</span><span style="font-size:9px;color:#888;">반응</span>
+    </button>
+    <button onclick="showTab('tab-notice')" id="mb-notice" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 2px;border:none;background:none;cursor:pointer;font-size:18px;color:#888;">
+      <span>📢</span><span style="font-size:9px;color:#888;">공지</span>
+    </button>
+  </div>
 </div>
 
 <script>
@@ -716,13 +746,28 @@ function goToDash() {
   document.getElementById("page-dash").style.flexDirection="column";
   loadMarketIndex();
   loadUserProfile();
+  // Firebase 준비되면 점검 체크 (모바일 타이밍 대응)
+  function waitAndCheck(retry) {
+    if(window._fbReady && window._db) {
+      checkMaintenance();
+      checkPendingToast();
+    } else if(retry > 0) {
+      setTimeout(() => waitAndCheck(retry - 1), 300);
+    }
+  }
   setTimeout(()=>{
-    checkMaintenance();
-    checkPendingToast();
+    waitAndCheck(10);
     // Show DoS sidebar for DEV
     if(isAdminSession()) {
       const dosSi = document.getElementById("si-dos");
       if(dosSi) dosSi.style.display = "flex";
+    }
+    // 모바일 탭바 첫 탭 active
+    if(window.innerWidth <= 700) {
+      const firstMb = document.getElementById("mb-anon");
+      if(firstMb) { firstMb.style.color="#cc2366"; firstMb.querySelectorAll("span").forEach(s=>s.style.color="#cc2366"); }
+      const contentEl = document.querySelector(".content");
+      if(contentEl) contentEl.style.paddingBottom = "68px";
     }
   }, 500);
 }
@@ -739,6 +784,17 @@ function showTab(id) {
     loadPatches();
     if(isAdminSession()) document.getElementById("notice-admin-panel").style.display="block";
   }
+  // 모바일 탭바 active 처리
+  const mbMap = {"tab-anon":"mb-anon","tab-unfollow":"mb-unfollow","tab-active":"mb-active","tab-stock":"mb-stock","tab-game":"mb-game","tab-notice":"mb-notice"};
+  ["mb-anon","mb-unfollow","mb-active","mb-stock","mb-game","mb-notice"].forEach(b=>{
+    const el=document.getElementById(b); if(el){el.style.color="#888";const sp=el.querySelectorAll("span");sp.forEach(s=>s.style.color="#888");}
+  });
+  if(mbMap[id]){
+    const active=document.getElementById(mbMap[id]); if(active){active.style.color="#cc2366";const sp=active.querySelectorAll("span");sp.forEach(s=>s.style.color="#cc2366");}
+  }
+  // 모바일에서 콘텐츠 하단 패딩 (탭바 높이)
+  const contentEl = document.querySelector(".content");
+  if(contentEl && window.innerWidth <= 700) contentEl.style.paddingBottom = "68px";
 }
 
 function searchAnon() {
@@ -1032,9 +1088,15 @@ function saveProfile() {
   if(!name) { err.textContent = "닉네임을 입력하세요."; return; }
   if(name.length < 2) { err.textContent = "닉네임은 2자 이상이어야 해요."; return; }
   err.textContent = "";
-  const profile = {name, avatar: selectedAvatar, avatarImg: avatarDataURL||null};
+  // 기존 프로필에서 role 등 유지
+  const existing = localStorage.getItem("userProfile");
+  const base = existing ? JSON.parse(existing) : {};
+  const profile = {...base, name, avatar: selectedAvatar, avatarImg: avatarDataURL || base.avatarImg || null};
   localStorage.setItem("userProfile", JSON.stringify(profile));
+  document.getElementById("page-profile").style.display = "none";
   goToDash();
+  // 저장 후 즉시 네비 프로필 업데이트
+  setTimeout(loadUserProfile, 100);
 }
 
 function loadUserProfile() {
@@ -1286,25 +1348,36 @@ function checkPendingToast() {
 function startMaintenance() {
   const title = document.getElementById("maint-title").value.trim() || "서버 점검 중";
   const cnt = document.getElementById("maint-content").value.trim() || "잠시 후 다시 접속해주세요.";
-  localStorage.setItem("maintenance", JSON.stringify({active:true, title, content:cnt}));
-  alert("점검 시작됐어요!");
+  if(!window._db) { alert("Firebase 연결 안됨"); return; }
+  window._db.ref("maintenance").set({active: true, title, content: cnt})
+    .then(() => alert("점검 시작됐어요! 모든 기기에 적용됩니다."))
+    .catch(e => alert("오류: " + e));
 }
 
 function endMaintenance() {
-  localStorage.removeItem("maintenance");
-  alert("점검 완료!");
+  if(!window._db) { alert("Firebase 연결 안됨"); return; }
+  window._db.ref("maintenance").set({active: false, title: "", content: ""})
+    .then(() => alert("점검 완료!"))
+    .catch(e => alert("오류: " + e));
 }
 
 function checkMaintenance() {
-  if(isAdminSession()) return;
-  const m = localStorage.getItem("maintenance");
-  if(!m) return;
-  const d = JSON.parse(m);
-  if(!d.active) return;
-  document.getElementById("maint-overlay-title").textContent = d.title;
-  document.getElementById("maint-overlay-content").textContent = d.content;
-  const ol = document.getElementById("maint-overlay");
-  ol.style.display = "flex";
+  if(!window._db) return;
+  // 실시간 리스너로 점검 상태 감지 (모든 기기 즉시 반영)
+  window._db.ref("maintenance").on("value", function(snap) {
+    const d = snap.val();
+    const ol = document.getElementById("maint-overlay");
+    if(!ol) return;
+    if(d && d.active) {
+      // 개발자는 점검 오버레이 안 뜸
+      if(isAdminSession()) return;
+      document.getElementById("maint-overlay-title").textContent = d.title || "점검 중";
+      document.getElementById("maint-overlay-content").textContent = d.content || "";
+      ol.style.display = "flex";
+    } else {
+      ol.style.display = "none";
+    }
+  });
 }
 
 function postPatch() {
