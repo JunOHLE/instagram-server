@@ -615,10 +615,17 @@ function enterAsDeveloper() {
     const p = JSON.parse(saved);
     p.role = "developer";
     localStorage.setItem("userProfile", JSON.stringify(p));
-  } else {
-    localStorage.setItem("userProfile", JSON.stringify({name:"개발자", avatar:"👑", avatarImg:null, role:"developer"}));
   }
+  // 프로필 없으면 프로필 설정 페이지로 (왕관 강제 설정 제거)
   document.getElementById("page-pin").style.display="none";
+  const hasSaved = !!localStorage.getItem("userProfile");
+  if(!hasSaved) {
+    const profilePage = document.getElementById("page-profile");
+    profilePage.style.display="flex";
+    profilePage.style.flexDirection="column";
+    initAvatarGrid();
+    return;
+  }
   goToDash();
   // DEV 배지만 추가 (이름/사진은 loadUserProfile이 처리)
   setTimeout(() => {
@@ -1005,6 +1012,11 @@ function openProfileEdit() {
     document.getElementById("nickname-input").value = p.name || "";
     selectedAvatar = p.avatar || "😊";
     selectAvatar(selectedAvatar);
+    // 기존 사진이 있으면 미리보기 복원
+    if(p.avatarImg) {
+      avatarDataURL = p.avatarImg;
+      setAvatarPreview(p.avatarImg, true);
+    }
     updatePreview();
   }
   // 저장 후 대시보드로
@@ -1014,11 +1026,29 @@ function openProfileEdit() {
     if(!name) { err.textContent = "닉네임을 입력하세요."; return; }
     if(name.length < 2) { err.textContent = "닉네임은 2자 이상이어야 해요."; return; }
     err.textContent = "";
-    localStorage.setItem("userProfile", JSON.stringify({name, avatar: selectedAvatar}));
+    // 기존 role 유지, avatarImg 반드시 포함해서 저장
+    const existingSaved = localStorage.getItem("userProfile");
+    const existing = existingSaved ? JSON.parse(existingSaved) : {};
+    const newProfile = {
+      ...existing,
+      name,
+      avatar: selectedAvatar,
+      avatarImg: avatarDataURL || existing.avatarImg || null
+    };
+    localStorage.setItem("userProfile", JSON.stringify(newProfile));
     profilePage.style.display="none";
     document.getElementById("page-dash").style.display="flex";
     document.getElementById("page-dash").style.flexDirection="column";
     loadUserProfile();
+    // DEV 배지 유지
+    if(sessionStorage.getItem("isAdmin") === "true") {
+      setTimeout(() => {
+        const navName = document.getElementById("nav-name");
+        if(navName && !navName.innerHTML.includes("DEV")) {
+          navName.innerHTML = navName.textContent + ` <span style="background:#cc2366;color:#fff;font-size:10px;padding:1px 6px;border-radius:99px;margin-left:3px;">DEV</span>`;
+        }
+      }, 100);
+    }
   };
 }
 
