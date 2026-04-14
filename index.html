@@ -125,6 +125,7 @@ function pinKey(e, i) {
 </head>
 <body style="visibility:hidden;">
 <audio id="bgm" src="bgm.mp3?v=3" loop preload="auto"></audio>
+<audio id="maint-bgm" src="maint_bgm.mp3.mp3" loop preload="auto"></audio>
 
 <script>
 // ── 페이지 로드 즉시 점검 여부 확인 ──
@@ -146,35 +147,29 @@ function pinKey(e, i) {
 
     // 점검 BGM 재생
     function playMaintBgm() {
-      // 기존 BGM 전부 정지
       const bgm = document.getElementById("bgm");
       if(bgm) { bgm.pause(); bgm.currentTime = 0; }
       const dosBgm = document.getElementById("dos-bgm");
       if(dosBgm) { dosBgm.pause(); dosBgm.currentTime = 0; }
-
-      let mbgm = document.getElementById("maint-bgm");
-      if(!mbgm) {
-        mbgm = document.createElement("audio");
-        mbgm.id = "maint-bgm";
-        mbgm.src = "maint_bgm.mp3";
-        mbgm.loop = true;
-        mbgm.volume = 0.5;
-        document.body.appendChild(mbgm);
-      }
-
-      // 자동재생 시도, 실패하면 클릭할 때마다 계속 시도
+      const mbgm = document.getElementById("maint-bgm");
+      if(!mbgm) return;
+      mbgm.volume = 0.5;
+      mbgm.currentTime = 0;
+      // 자동재생 시도
+      mbgm.play().catch(()=>{});
+      // 아무 클릭/터치마다 재생 시도 (재생될 때까지)
       function tryPlay() {
+        if(!mbgm.paused) return;
         mbgm.play().catch(()=>{});
       }
-      tryPlay();
-      // once 없이 계속 리슨 → 아무 클릭해도 재생 시도
       document.addEventListener("click", tryPlay);
       document.addEventListener("touchstart", tryPlay);
-      // 재생 성공하면 이벤트 제거
-      mbgm.addEventListener("playing", function onPlaying() {
+      document.addEventListener("keydown", tryPlay);
+      mbgm.addEventListener("playing", function once() {
         document.removeEventListener("click", tryPlay);
         document.removeEventListener("touchstart", tryPlay);
-        mbgm.removeEventListener("playing", onPlaying);
+        document.removeEventListener("keydown", tryPlay);
+        mbgm.removeEventListener("playing", once);
       });
     }
 
