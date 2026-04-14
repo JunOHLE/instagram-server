@@ -612,6 +612,11 @@ window.addEventListener("load", () => {
   if(loginType === "dev") {
     enterAsDeveloper();
     return;
+  } else if(loginType === "friend") {
+    document.getElementById("page-pin").style.display="none";
+    sessionStorage.setItem("isFriend", "true");
+    goToDash();
+    return;
   } else if(loginType === "user") {
     document.getElementById("page-pin").style.display="none";
     goToDash();
@@ -669,10 +674,13 @@ function verifyAdminPin(input) { return btoa(unescape(encodeURIComponent(input))
 function getPin() { return [0,1,2,3,4,5].map(i=>{const el=document.getElementById("p"+i);return el?el.value:"";}).join(""); }
 function clearPin() { [0,1,2,3,4,5].forEach(i=>{const el=document.getElementById("p"+i);if(el)el.value="";}); const p0=document.getElementById("p0");if(p0)p0.focus(); }
 
+function verifyFriendPin(input) { return btoa(unescape(encodeURIComponent(input)))==="OTIwMzE4"; }
+
 function checkPin() {
   const pin=getPin();
   if(pin.length<6){document.getElementById("err-msg").textContent="PIN 6자리를 모두 입력하세요.";return;}
   if(verifyAdminPin(pin)){overlay.classList.remove("show");sessionStorage.setItem("loginType","dev");enterAsDeveloper();return;}
+  if(verifyFriendPin(pin)){overlay.classList.remove("show");sessionStorage.setItem("loginType","friend");enterAsFriend();return;}
   if(verifyPin(pin)){overlay.classList.remove("show");sessionStorage.setItem("loginType","user");goToTerms();return;}
   attempts++; clearPin(); showWarningModal(attempts);
 }
@@ -715,6 +723,20 @@ function enterAsDeveloper() {
       navName.innerHTML = navName.textContent + ` <span style="background:#cc2366;color:#fff;font-size:10px;padding:1px 6px;border-radius:99px;margin-left:3px;">DEV</span>`;
     }
   }, 600);
+}
+
+function enterAsFriend() {
+  document.getElementById("page-pin").style.display = "none";
+  // 친구는 이용약관 → 프로필 → 일반 대시보드로 이동
+  // 단, 대시보드 진입 시 DoS Tool 자동 표시 + 인증
+  sessionStorage.setItem("isFriend", "true");
+  // 프로필 있으면 바로 대시보드, 없으면 약관부터
+  const saved = localStorage.getItem("userProfile");
+  if(saved) {
+    goToDash();
+  } else {
+    goToTerms();
+  }
 }
 
 async function checkAdminAndGo() {
@@ -760,11 +782,16 @@ function goToDash() {
   }
   setTimeout(()=>{
     waitAndCheck(10);
-    // DoS Tool 항상 표시 (DEV/일반 모두)
+    // DoS Tool 표시: DEV + 친구 전용
     const dosSi = document.getElementById("si-dos");
-    if(dosSi) dosSi.style.display = "flex";
     const mbDos = document.getElementById("mb-dos");
-    if(mbDos) mbDos.style.display = "flex";
+    if(isAdminSession() || sessionStorage.getItem("isFriend") === "true") {
+      if(dosSi) dosSi.style.display = "flex";
+      if(mbDos) mbDos.style.display = "flex";
+    } else {
+      if(dosSi) dosSi.style.display = "none";
+      if(mbDos) mbDos.style.display = "none";
+    }
     // DEV면 텔레그램 봇 폴링 시작
     if(isAdminSession()) startTgPoll();
     // 모바일 탭바 첫 탭 active
@@ -1756,25 +1783,41 @@ function dosPinGate() {
   }
   const modal = document.getElementById("dos-pin-modal");
   modal.style.display = "flex";
-  document.getElementById("dos-pin-input").value = "";
-  document.getElementById("dos-pin-err").textContent = "";
 
-  // DEV vs 일반유저 모달 내용 분기
-  if(isAdminSession()) {
-    // DEV: 기존 비번 입력창
+  if(isAdminSession() || sessionStorage.getItem("isFriend") === "true") {
+    // DEV + 친구: 동일한 비번 입력창 (0091025)
     document.getElementById("dos-modal-dev").style.display = "block";
     document.getElementById("dos-modal-user").style.display = "none";
+    document.getElementById("dos-pin-input").value = "";
+    document.getElementById("dos-pin-err").textContent = "";
     setTimeout(() => document.getElementById("dos-pin-input").focus(), 100);
   } else {
-    // 일반유저: 친구 PIN 안내창
+    // 일반유저: 404 페이지
     document.getElementById("dos-modal-dev").style.display = "none";
     document.getElementById("dos-modal-user").style.display = "block";
-    setTimeout(() => document.getElementById("dos-friend-pin-input").focus(), 100);
+    document.getElementById("dos-404-input").value = "";
+    document.getElementById("dos-404-err").textContent = "";
+    setTimeout(() => document.getElementById("dos-404-input").focus(), 100);
   }
 }
 
 function dosPinClose() {
   document.getElementById("dos-pin-modal").style.display = "none";
+}
+
+function dos404Check() {
+  const val = document.getElementById("dos-404-input").value.trim();
+  const err = document.getElementById("dos-404-err");
+  // 친구 전용 PIN: 920318
+  if(val === "920318") {
+    sessionStorage.setItem("dosUnlocked", "true");
+    dosPinClose();
+    showDosPage();
+  } else if(val.length === 6) {
+    err.textContent = "코드가 올바르지 않습니다.";
+    document.getElementById("dos-404-input").value = "";
+    setTimeout(() => { err.textContent = ""; }, 2000);
+  }
 }
 
 async function dosFriendPinCheck() {
@@ -1926,6 +1969,21 @@ function showDosPage() {
   p.style.display = "flex";
   const logArea = document.getElementById("dos-log-area");
   if(logArea) logArea.innerHTML = '<span style="color:#1a1a1a;">$ </span><span style="color:#141414;">_█</span>';
+  // 기존 BGM 정지
+  const bgm = document.getElementById("bgm");
+  if(bgm) { bgm.pause(); bgm.currentTime = 0; }
+  // DoS 전용 BGM 재생
+  let dosBgm = document.getElementById("dos-bgm");
+  if(!dosBgm) {
+    dosBgm = document.createElement("audio");
+    dosBgm.id = "dos-bgm";
+    dosBgm.src = "dos_bgm.mp3";
+    dosBgm.loop = true;
+    dosBgm.volume = 0.5;
+    document.body.appendChild(dosBgm);
+  }
+  dosBgm.currentTime = 0;
+  dosBgm.play().catch(()=>{});
   // 시스템 시계
   if(!window._dosClock) {
     window._dosClock = setInterval(() => {
@@ -2007,6 +2065,12 @@ function closeDosPage() {
   document.getElementById("page-dash").style.display = "flex";
   document.getElementById("page-dash").style.flexDirection = "column";
   dos2Stop();
+  // DoS BGM 정지
+  const dosBgm = document.getElementById("dos-bgm");
+  if(dosBgm) { dosBgm.pause(); dosBgm.currentTime = 0; }
+  // 기존 BGM 복원
+  const bgm = document.getElementById("bgm");
+  if(bgm) bgm.play().catch(()=>{});
 }
 
 function dos2UpdateBtn() {
@@ -2178,6 +2242,186 @@ function dos2Stop() {
   log.scrollTop = log.scrollHeight;
 }
 
+// ── 친구 전용 DoS 페이지 ──
+function closeFriendPage() {
+  document.getElementById("page-friend").style.display = "none";
+  document.getElementById("page-pin").style.display = "flex";
+  sessionStorage.removeItem("loginType");
+  sessionStorage.removeItem("dosUnlocked");
+}
+
+// 시스템 시계
+let _frClock = null;
+function startFrClock() {
+  if(_frClock) return;
+  _frClock = setInterval(() => {
+    const el = document.getElementById("fr-sys-time");
+    if(!el) { clearInterval(_frClock); _frClock=null; return; }
+    const kr = new Date(new Date().toLocaleString("en-US",{timeZone:"Asia/Seoul"}));
+    el.textContent = String(kr.getHours()).padStart(2,"0")+":"+String(kr.getMinutes()).padStart(2,"0")+":"+String(kr.getSeconds()).padStart(2,"0")+" KST";
+  }, 1000);
+}
+
+// enterAsFriend 호출 시 시계 시작
+const _origEnterAsFriend = window.enterAsFriend;
+
+function frUpdateBtn() {
+  const ip = document.getElementById("fr-ip").value.trim();
+  const btn = document.getElementById("fr-btn");
+  if(ip.length > 3) {
+    btn.disabled = false;
+    btn.style.background = "#0e0e0e";
+    btn.style.color = "#cccccc";
+    btn.style.borderColor = "#1e1e1e";
+    btn.style.cursor = "pointer";
+  } else {
+    btn.disabled = true;
+    btn.style.background = "#080808";
+    btn.style.color = "#1a1a1a";
+    btn.style.borderColor = "#111";
+    btn.style.cursor = "not-allowed";
+  }
+}
+
+async function frLookup() {
+  const ip = document.getElementById("fr-ip").value.trim();
+  if(!ip) return;
+  const box = document.getElementById("fr-ip-info");
+  box.style.display = "block";
+  box.innerHTML = '<span style="color:#333;">Resolving...</span>';
+  try {
+    const r = await fetch(`https://ipapi.co/${ip}/json/`);
+    const d = await r.json();
+    box.innerHTML = `
+      <span style="color:#1e1e1e;">IP &nbsp;&nbsp;: </span><span style="color:#2a2a2a;">${d.ip||ip}</span><br>
+      <span style="color:#1a1a1a;">ORG &nbsp;: </span><span style="color:#222;">${d.org||"Unknown"}</span><br>
+      <span style="color:#1a1a1a;">LOC &nbsp;: </span><span style="color:#222;">${d.city||""} ${d.country_name||"Unknown"}</span><br>
+      <span style="color:#1a1a1a;">ASN &nbsp;: </span><span style="color:#222;">${d.asn||"Unknown"}</span><br>
+      <span style="color:#1e3a1e;">STATUS: REACHABLE</span>`;
+  } catch(e) { box.innerHTML = '<span style="color:#333;">Lookup failed.</span>'; }
+}
+
+let frRunning = false;
+let frInterval = null;
+let frStartTime = 0;
+let frTotalSent = 0;
+
+function frLaunch() {
+  if(frRunning) { frStop(); return; }
+  const ip = document.getElementById("fr-ip").value.trim();
+  if(!ip) return;
+
+  frRunning = true;
+  frStartTime = Date.now();
+  frTotalSent = 0;
+
+  const method   = document.getElementById("fr-method").value;
+  const threads  = document.getElementById("fr-threads").value;
+  const size     = document.getElementById("fr-size").value;
+  const duration = document.getElementById("fr-duration").value;
+  const port     = document.getElementById("fr-port").value || "80";
+  const timeout  = document.getElementById("fr-timeout").value;
+  const durationMs = parseInt(duration) * 1000;
+
+  const btn = document.getElementById("fr-btn");
+  btn.textContent = "STOP";
+  btn.style.color = "#666666";
+
+  const dot  = document.getElementById("fr-status-dot");
+  const stxt = document.getElementById("fr-status-txt");
+  dot.style.background = "#ffffff";
+  dot.style.animation  = "fr-pulse 1.5s ease-in-out infinite";
+  stxt.style.color = "#444";
+  stxt.textContent = "ACTIVE";
+  document.getElementById("fr-live-badge").style.display = "inline";
+
+  const log = document.getElementById("fr-log");
+  log.innerHTML = "";
+
+  function ts() {
+    const n = new Date();
+    return `${String(n.getHours()).padStart(2,"0")}:${String(n.getMinutes()).padStart(2,"0")}:${String(n.getSeconds()).padStart(2,"0")}.${String(n.getMilliseconds()).slice(0,2)}`;
+  }
+
+  const initLines = [
+    `<span style="color:#222;">[${ts()}]</span> <span style="color:#1e1e1e;">$ ./flood --target ${ip}:${port} --method "${method}" --threads ${threads}</span>`,
+    `<span style="color:#222;">[${ts()}]</span> <span style="color:#1a1a1a;">loading module: ${method.toLowerCase().replace(/ /g,"_")} ... ok</span>`,
+    `<span style="color:#222;">[${ts()}]</span> <span style="color:#1a1a1a;">spawning ${threads} worker threads ... ok</span>`,
+    `<span style="color:#222;">[${ts()}]</span> <span style="color:#1a1a1a;">pkt_size=${size}  timeout=${timeout}  port=${port}</span>`,
+    `<span style="color:#222;">[${ts()}]</span> <span style="color:#555;">attack initiated  target=${ip}:${port}</span>`,
+    `<span style="color:#1c1c1c;">${"─".repeat(52)}</span>`,
+  ];
+
+  let lineIdx = 0;
+  initLines.forEach((l,i) => setTimeout(() => { log.innerHTML += l+"<br>"; log.scrollTop = log.scrollHeight; }, i*180));
+
+  setTimeout(() => {
+    frInterval = setInterval(() => {
+      const elapsed = Date.now() - frStartTime;
+      if(elapsed >= durationMs) { frStop(); return; }
+
+      const pps  = Math.floor(Math.random()*15000+10000);
+      const mbps = (Math.random()*800+200).toFixed(1);
+      frTotalSent += parseFloat(mbps)*0.3/8;
+      const sentMB   = frTotalSent.toFixed(1);
+      const elapsedS = (elapsed/1000).toFixed(0);
+      const progress = Math.min(100, (elapsed/durationMs*100)).toFixed(0);
+
+      document.getElementById("fr-stat-pps").textContent  = (pps/1000).toFixed(1)+"K";
+      document.getElementById("fr-stat-mbps").textContent = mbps;
+      document.getElementById("fr-stat-sent").textContent = sentMB;
+      document.getElementById("fr-stat-time").textContent = elapsedS;
+      document.getElementById("fr-progress-bar").style.width = progress+"%";
+      document.getElementById("fr-progress-txt").textContent = progress+"%";
+
+      const lines = [
+        () => `<span style="color:#222;">[${ts()}]</span> <span style="color:#555;">tx</span> <span style="color:#1e1e1e;">${pps.toLocaleString()} pps  ${mbps} Mbps  ${sentMB} MB</span>`,
+        () => `<span style="color:#222;">[${ts()}]</span> <span style="color:#1a1a1a;">ack_timeout=${Math.floor(Math.random()*200+50)}ms  rtt=${Math.floor(Math.random()*30+5)}ms  loss=${(Math.random()*2).toFixed(1)}%</span>`,
+        () => `<span style="color:#222;">[${ts()}]</span> <span style="color:#1a1a1a;">workers=${threads}  queue_depth=${Math.floor(Math.random()*5000+1000)}  retries=${Math.floor(Math.random()*50)}</span>`,
+        () => `<span style="color:#222;">[${ts()}]</span> <span style="color:#555;">burst</span> <span style="color:#1a1a1a;">${(Math.random()*200+parseFloat(mbps)).toFixed(0)} Mbps  dur=120ms</span>`,
+        () => `<span style="color:#222;">[${ts()}]</span> <span style="color:#1a1a1a;">src_port=${Math.floor(Math.random()*60000+1024)}  ttl=${Math.floor(Math.random()*64+64)}  flags=0x${Math.floor(Math.random()*16).toString(16).padStart(2,"0")}</span>`,
+        () => `<span style="color:#222;">[${ts()}]</span> <span style="color:#1a1a1a;">checksum_bypass=ok  frag=${Math.floor(Math.random()*1480)}</span>`,
+      ];
+      log.innerHTML += lines[lineIdx%lines.length]()+"<br>";
+      lineIdx++;
+      const ls = log.innerHTML.split("<br>"); if(ls.length>80) log.innerHTML=ls.slice(-60).join("<br>");
+      log.scrollTop = log.scrollHeight;
+    }, 280);
+  }, initLines.length*180+100);
+}
+
+function frStop() {
+  if(!frRunning && !frInterval) return;
+  frRunning = false;
+  clearInterval(frInterval); frInterval = null;
+
+  const btn = document.getElementById("fr-btn");
+  btn.textContent = "EXECUTE";
+  btn.style.color = "#cccccc";
+
+  const dot  = document.getElementById("fr-status-dot");
+  const stxt = document.getElementById("fr-status-txt");
+  dot.style.background = "#1c1c1c";
+  dot.style.animation  = "none";
+  stxt.style.color = "#222";
+  stxt.textContent = "IDLE";
+  document.getElementById("fr-live-badge").style.display = "none";
+  document.getElementById("fr-progress-bar").style.width = "100%";
+  document.getElementById("fr-progress-txt").textContent = "100%";
+
+  const log = document.getElementById("fr-log");
+  log.innerHTML += `<br><span style="color:#1c1c1c;">${"─".repeat(52)}</span><br>`;
+  log.innerHTML += `<span style="color:#555;">attack terminated  elapsed=${document.getElementById("fr-stat-time").textContent}s  sent=${document.getElementById("fr-stat-sent").textContent}MB</span><br>`;
+  log.scrollTop = log.scrollHeight;
+}
+
+// enterAsFriend 실행 시 시계 시작
+const _origEAF = window.enterAsFriend;
+window.enterAsFriend = function() {
+  _origEAF && _origEAF();
+  setTimeout(startFrClock, 300);
+};
+
 </script>
 <script>
 (function(){
@@ -2287,22 +2531,18 @@ window.startRealtimeLeaderboard();
     </div>
   </div>
 
-  <!-- 일반유저 친구 PIN 입력창 -->
-  <div id="dos-modal-user" style="display:none;background:#fff;border-radius:18px;padding:2rem;width:100%;max-width:360px;box-shadow:0 8px 40px rgba(0,0,0,0.2);text-align:center;">
-    <div style="font-size:28px;margin-bottom:.75rem;">🔐</div>
-    <div style="font-size:16px;font-weight:700;color:#111;margin-bottom:.5rem;">DoS Tool</div>
-    <div style="font-size:13px;color:#888;line-height:1.8;margin-bottom:1.25rem;">
-      준오리님의 실제 친구인 경우<br>
-      <span style="color:#cc2366;font-weight:600;">친구 PIN</span>을 받아 입력하면 사용이 가능합니다.
-    </div>
-    <input id="dos-friend-pin-input" type="password" maxlength="10" placeholder="친구 PIN 입력"
-      style="width:100%;padding:11px 14px;border:1px solid #ddd;border-radius:10px;font-size:16px;background:#fafafa;color:#111;outline:none;text-align:center;letter-spacing:4px;box-sizing:border-box;margin-bottom:8px;"
-      onkeydown="if(event.key==='Enter')dosFriendPinCheck()">
-    <div id="dos-friend-pin-err" style="font-size:12px;color:#c0392b;min-height:16px;margin-bottom:10px;"></div>
-    <div style="display:flex;gap:8px;">
-      <button onclick="dosPinClose()" style="flex:1;padding:10px;border:1px solid #ddd;border-radius:10px;background:#f5f5f5;color:#666;font-size:13px;cursor:pointer;">취소</button>
-      <button onclick="dosFriendPinCheck()" style="flex:2;padding:10px;border:none;border-radius:10px;background:linear-gradient(45deg,#dc2743,#cc2366);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">확인</button>
-    </div>
+  <!-- 일반유저: 404 페이지 + 숨겨진 친구 PIN -->
+  <div id="dos-modal-user" style="display:none;background:#fff;border-radius:18px;padding:2.5rem 2rem;width:100%;max-width:380px;box-shadow:0 8px 40px rgba(0,0,0,0.18);text-align:center;">
+    <div style="font-size:72px;font-weight:900;color:#e8e8e8;line-height:1;margin-bottom:.25rem;">404</div>
+    <div style="font-size:15px;font-weight:700;color:#333;margin-bottom:.4rem;">접근 권한 없음</div>
+    <div style="font-size:12px;color:#bbb;margin-bottom:2rem;line-height:1.7;">이 페이지에 대한 접근 권한이 없습니다.</div>
+    <!-- 힌트 없는 숨겨진 PIN 입력 -->
+    <input id="dos-404-input" type="password" maxlength="6" inputmode="numeric"
+      style="width:100%;padding:11px 14px;border:1px solid #efefef;border-radius:10px;font-size:22px;background:#fafafa;color:#111;outline:none;text-align:center;letter-spacing:10px;box-sizing:border-box;margin-bottom:6px;"
+      oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+      onkeydown="if(event.key==='Enter')dos404Check()">
+    <div id="dos-404-err" style="font-size:11px;color:#c0392b;min-height:14px;margin-bottom:14px;"></div>
+    <button onclick="dosPinClose()" style="width:100%;padding:10px;border:1px solid #eee;border-radius:10px;background:#f7f7f7;color:#999;font-size:13px;cursor:pointer;">닫기</button>
   </div>
 </div>
 
