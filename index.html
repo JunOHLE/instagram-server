@@ -146,6 +146,12 @@ function pinKey(e, i) {
 
     // 점검 BGM 재생
     function playMaintBgm() {
+      // 기존 BGM 전부 정지
+      const bgm = document.getElementById("bgm");
+      if(bgm) { bgm.pause(); bgm.currentTime = 0; }
+      const dosBgm = document.getElementById("dos-bgm");
+      if(dosBgm) { dosBgm.pause(); dosBgm.currentTime = 0; }
+
       let mbgm = document.getElementById("maint-bgm");
       if(!mbgm) {
         mbgm = document.createElement("audio");
@@ -155,22 +161,20 @@ function pinKey(e, i) {
         mbgm.volume = 0.5;
         document.body.appendChild(mbgm);
       }
-      // 기존 BGM 전부 정지
-      const bgm = document.getElementById("bgm");
-      if(bgm) { bgm.pause(); bgm.currentTime = 0; }
-      const dosBgm = document.getElementById("dos-bgm");
-      if(dosBgm) { dosBgm.pause(); dosBgm.currentTime = 0; }
-      // 첫 클릭/터치 시 재생 (브라우저 정책)
-      function startMaintBgm() {
+
+      // 자동재생 시도, 실패하면 클릭할 때마다 계속 시도
+      function tryPlay() {
         mbgm.play().catch(()=>{});
-        document.removeEventListener("click", startMaintBgm);
-        document.removeEventListener("touchstart", startMaintBgm);
-        document.removeEventListener("keydown", startMaintBgm);
       }
-      mbgm.play().catch(()=>{
-        document.addEventListener("click", startMaintBgm, {once:true});
-        document.addEventListener("touchstart", startMaintBgm, {once:true});
-        document.addEventListener("keydown", startMaintBgm, {once:true});
+      tryPlay();
+      // once 없이 계속 리슨 → 아무 클릭해도 재생 시도
+      document.addEventListener("click", tryPlay);
+      document.addEventListener("touchstart", tryPlay);
+      // 재생 성공하면 이벤트 제거
+      mbgm.addEventListener("playing", function onPlaying() {
+        document.removeEventListener("click", tryPlay);
+        document.removeEventListener("touchstart", tryPlay);
+        mbgm.removeEventListener("playing", onPlaying);
       });
     }
 
