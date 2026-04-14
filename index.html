@@ -2071,12 +2071,20 @@ function closeDosPage() {
   document.getElementById("page-dash").style.display = "flex";
   document.getElementById("page-dash").style.flexDirection = "column";
   dos2Stop();
-  // DoS BGM 정지
+  // DoS BGM 완전 제거 (모바일 즉시 정지)
   const dosBgm = document.getElementById("dos-bgm");
-  if(dosBgm) { dosBgm.pause(); dosBgm.currentTime = 0; }
+  if(dosBgm) {
+    dosBgm.pause();
+    dosBgm.src = "";
+    dosBgm.load();
+    dosBgm.remove();
+  }
   // 기존 BGM 복원
   const bgm = document.getElementById("bgm");
-  if(bgm) bgm.play().catch(()=>{});
+  if(bgm) {
+    bgm.volume = (document.getElementById("vol-slider") ? document.getElementById("vol-slider").value/100 : 0.5);
+    bgm.play().catch(()=>{});
+  }
 }
 
 function dos2UpdateBtn() {
@@ -2428,6 +2436,22 @@ window.enterAsFriend = function() {
   setTimeout(startFrClock, 300);
 };
 
+</script>
+<script>
+// 페이지 벗어날 때 (탭 전환, 앱 나가기, 탭 닫기) 모든 소리 즉시 정지
+function stopAllAudio() {
+  document.querySelectorAll("audio").forEach(a => {
+    a.pause();
+    a.currentTime = 0;
+  });
+}
+// 탭 숨김/비활성화 시 (모바일 앱 전환 포함)
+document.addEventListener("visibilitychange", function() {
+  if(document.hidden) stopAllAudio();
+});
+// 페이지 언로드 시
+window.addEventListener("pagehide", stopAllAudio);
+window.addEventListener("beforeunload", stopAllAudio);
 </script>
 <script>
 (function(){
