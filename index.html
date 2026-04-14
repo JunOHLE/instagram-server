@@ -2453,19 +2453,22 @@ function restoreAudio() {
     if(bgm && !bgm.paused === false) bgm.play().catch(()=>{});
   }
 }
+const _isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
 document.addEventListener("visibilitychange", function() {
-  // 모바일에서만 적용 (PC는 창 전환해도 소리 유지)
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  if(!isMobile) return;
-  if(document.hidden) {
-    stopAllAudio();
-  } else {
-    restoreAudio();
-  }
+  // 모바일만: 앱 나가면 정지, 돌아오면 복원
+  if(!_isMobile) return;
+  if(document.hidden) { stopAllAudio(); } else { restoreAudio(); }
 });
+
 window.addEventListener("pagehide", function() {
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  if(isMobile) stopAllAudio();
+  // 모바일만: 페이지 숨김 시 정지
+  if(_isMobile) stopAllAudio();
+});
+
+window.addEventListener("beforeunload", function() {
+  // PC만: 창/탭 닫을 때 정지
+  if(!_isMobile) stopAllAudio();
 });
 </script>
 <script>
