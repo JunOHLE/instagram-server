@@ -2438,20 +2438,29 @@ window.enterAsFriend = function() {
 
 </script>
 <script>
-// 페이지 벗어날 때 (탭 전환, 앱 나가기, 탭 닫기) 모든 소리 즉시 정지
+// 페이지 벗어날 때 소리 끄고, 돌아올 때 복원
 function stopAllAudio() {
-  document.querySelectorAll("audio").forEach(a => {
-    a.pause();
-    a.currentTime = 0;
-  });
+  document.querySelectorAll("audio").forEach(a => { a.pause(); });
 }
-// 탭 숨김/비활성화 시 (모바일 앱 전환 포함)
+function restoreAudio() {
+  // DoS 페이지 열려있으면 DoS BGM 복원, 아니면 기존 BGM 복원
+  const dosPage = document.getElementById("page-dos");
+  if(dosPage && dosPage.style.display === "flex") {
+    const dosBgm = document.getElementById("dos-bgm");
+    if(dosBgm) dosBgm.play().catch(()=>{});
+  } else {
+    const bgm = document.getElementById("bgm");
+    if(bgm && !bgm.paused === false) bgm.play().catch(()=>{});
+  }
+}
 document.addEventListener("visibilitychange", function() {
-  if(document.hidden) stopAllAudio();
+  if(document.hidden) {
+    stopAllAudio();
+  } else {
+    restoreAudio();
+  }
 });
-// 페이지 언로드 시
 window.addEventListener("pagehide", stopAllAudio);
-window.addEventListener("beforeunload", stopAllAudio);
 </script>
 <script>
 (function(){
