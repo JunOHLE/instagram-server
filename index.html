@@ -591,6 +591,9 @@ function toggleMusic() {
 
 // 페이지 로드 시 자동재생 시도
 window.addEventListener("click", function autoStart() {
+  // DoS 페이지 열려있으면 기존 BGM 재생 안 함
+  const dosPage = document.getElementById("page-dos");
+  if(dosPage && dosPage.style.display === "flex") return;
   const audio = document.getElementById("bg-music");
   const btn = document.getElementById("music-btn");
   if(!musicPlaying) {
@@ -1969,9 +1972,12 @@ function showDosPage() {
   p.style.display = "flex";
   const logArea = document.getElementById("dos-log-area");
   if(logArea) logArea.innerHTML = '<span style="color:#1a1a1a;">$ </span><span style="color:#141414;">_█</span>';
-  // 기존 BGM 정지
+  // 기존 BGM 완전 정지
   const bgm = document.getElementById("bgm");
   if(bgm) { bgm.pause(); bgm.currentTime = 0; }
+  const bgMusic = document.getElementById("bg-music");
+  if(bgMusic) { bgMusic.pause(); bgMusic.currentTime = 0; }
+  musicPlaying = false;
   // DoS 전용 BGM 재생
   let dosBgm = document.getElementById("dos-bgm");
   if(!dosBgm) {
@@ -2426,6 +2432,9 @@ window.enterAsFriend = function() {
 <script>
 (function(){
   function playBGM(){
+    // DoS 페이지 열려있으면 기존 BGM 재생 안 함
+    const dosPage = document.getElementById("page-dos");
+    if(dosPage && dosPage.style.display === "flex") return;
     var b=document.getElementById("bgm");
     if(b){
       var vol = document.getElementById("vol-slider");
