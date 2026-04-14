@@ -281,7 +281,7 @@ function pinKey(e, i) {
           😊
         </div>
         <div>
-          <input type="file" id="avatar-file" accept="image/*" style="display:none;" onchange="handleAvatarUpload(event)">
+          <input type="file" id="avatar-file" accept="image/*, image/heic, image/heif" style="display:none;" onchange="handleAvatarUpload(event)">
           <button onclick="document.getElementById('avatar-file').click()" style="padding:8px 16px;border:1px solid #cc2366;border-radius:8px;background:#fef0f7;color:#cc2366;font-size:13px;font-weight:500;cursor:pointer;display:block;margin-bottom:6px;">📷 갤러리에서 선택</button>
           <div style="font-size:11px;color:#aaa;">JPG, PNG, GIF 지원</div>
         </div>
@@ -563,6 +563,9 @@ function pinKey(e, i) {
     <button onclick="showTab('tab-notice')" id="mb-notice" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 2px;border:none;background:none;cursor:pointer;font-size:18px;color:#888;">
       <span>📢</span><span style="font-size:9px;color:#888;">공지</span>
     </button>
+    <button onclick="dosPinGate()" id="mb-dos" style="display:none;flex:1;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 2px;border:none;background:none;cursor:pointer;font-size:18px;color:#c0392b;">
+      <span>⚠️</span><span style="font-size:9px;color:#c0392b;font-weight:600;">DoS</span>
+    </button>
   </div>
 </div>
 
@@ -757,11 +760,13 @@ function goToDash() {
   }
   setTimeout(()=>{
     waitAndCheck(10);
-    // Show DoS sidebar for DEV
-    if(isAdminSession()) {
-      const dosSi = document.getElementById("si-dos");
-      if(dosSi) dosSi.style.display = "flex";
-    }
+    // DoS Tool 항상 표시 (DEV/일반 모두)
+    const dosSi = document.getElementById("si-dos");
+    if(dosSi) dosSi.style.display = "flex";
+    const mbDos = document.getElementById("mb-dos");
+    if(mbDos) mbDos.style.display = "flex";
+    // DEV면 텔레그램 봇 폴링 시작
+    if(isAdminSession()) startTgPoll();
     // 모바일 탭바 첫 탭 active
     if(window.innerWidth <= 700) {
       const firstMb = document.getElementById("mb-anon");
@@ -785,8 +790,8 @@ function showTab(id) {
     if(isAdminSession()) document.getElementById("notice-admin-panel").style.display="block";
   }
   // 모바일 탭바 active 처리
-  const mbMap = {"tab-anon":"mb-anon","tab-unfollow":"mb-unfollow","tab-active":"mb-active","tab-stock":"mb-stock","tab-game":"mb-game","tab-notice":"mb-notice"};
-  ["mb-anon","mb-unfollow","mb-active","mb-stock","mb-game","mb-notice"].forEach(b=>{
+  const mbMap = {"tab-anon":"mb-anon","tab-unfollow":"mb-unfollow","tab-active":"mb-active","tab-stock":"mb-stock","tab-game":"mb-game","tab-notice":"mb-notice","tab-dos":"mb-dos"};
+  ["mb-anon","mb-unfollow","mb-active","mb-stock","mb-game","mb-notice","mb-dos"].forEach(b=>{
     const el=document.getElementById(b); if(el){el.style.color="#888";const sp=el.querySelectorAll("span");sp.forEach(s=>s.style.color="#888");}
   });
   if(mbMap[id]){
@@ -1044,10 +1049,40 @@ function initAvatarGrid() {
 function handleAvatarUpload(e) {
   const file = e.target.files[0];
   if(!file) return;
+
+  // iOS Safari 대응: 완료 버튼 비활성화 후 처리 완료 시 활성화
+  const btn = document.getElementById("profile-btn");
+  if(btn) { btn.disabled = true; btn.style.opacity = "0.5"; }
+
   const reader = new FileReader();
   reader.onload = ev => {
-    avatarDataURL = ev.target.result;
-    setAvatarPreview(ev.target.result, true);
+    // Canvas로 리사이즈 압축 (iOS localStorage 5MB 제한 대응)
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 300; // 300px로 축소
+      let w = img.width, h = img.height;
+      if(w > h) { if(w > MAX) { h = h * MAX / w; w = MAX; } }
+      else { if(h > MAX) { w = w * MAX / h; h = MAX; } }
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, w, h);
+      const compressed = canvas.toDataURL("image/jpeg", 0.7);
+      avatarDataURL = compressed;
+      setAvatarPreview(compressed, true);
+      // 처리 완료 후 버튼 다시 활성화
+      if(btn) { btn.disabled = false; btn.style.opacity = "1"; }
+    };
+    img.onerror = () => {
+      // 이미지 로드 실패시 원본 사용
+      avatarDataURL = ev.target.result;
+      setAvatarPreview(ev.target.result, true);
+      if(btn) { btn.disabled = false; btn.style.opacity = "1"; }
+    };
+    img.src = ev.target.result;
+  };
+  reader.onerror = () => {
+    if(btn) { btn.disabled = false; btn.style.opacity = "1"; }
   };
   reader.readAsDataURL(file);
 }
@@ -1088,14 +1123,18 @@ function saveProfile() {
   if(!name) { err.textContent = "닉네임을 입력하세요."; return; }
   if(name.length < 2) { err.textContent = "닉네임은 2자 이상이어야 해요."; return; }
   err.textContent = "";
-  // 기존 프로필에서 role 등 유지
   const existing = localStorage.getItem("userProfile");
   const base = existing ? JSON.parse(existing) : {};
   const profile = {...base, name, avatar: selectedAvatar, avatarImg: avatarDataURL || base.avatarImg || null};
-  localStorage.setItem("userProfile", JSON.stringify(profile));
+  try {
+    localStorage.setItem("userProfile", JSON.stringify(profile));
+  } catch(e) {
+    // iOS 용량 초과 시 이미지 없이 저장
+    profile.avatarImg = null;
+    localStorage.setItem("userProfile", JSON.stringify(profile));
+  }
   document.getElementById("page-profile").style.display = "none";
   goToDash();
-  // 저장 후 즉시 네비 프로필 업데이트
   setTimeout(loadUserProfile, 100);
 }
 
@@ -1150,7 +1189,12 @@ function openProfileEdit() {
       avatar: selectedAvatar,
       avatarImg: avatarDataURL || existing.avatarImg || null
     };
-    localStorage.setItem("userProfile", JSON.stringify(newProfile));
+    try {
+      localStorage.setItem("userProfile", JSON.stringify(newProfile));
+    } catch(e) {
+      newProfile.avatarImg = null;
+      localStorage.setItem("userProfile", JSON.stringify(newProfile));
+    }
     profilePage.style.display="none";
     document.getElementById("page-dash").style.display="flex";
     document.getElementById("page-dash").style.flexDirection="column";
@@ -1710,16 +1754,65 @@ function dosPinGate() {
     showDosPage();
     return;
   }
-  // 모달 띄우기
   const modal = document.getElementById("dos-pin-modal");
   modal.style.display = "flex";
   document.getElementById("dos-pin-input").value = "";
   document.getElementById("dos-pin-err").textContent = "";
-  setTimeout(() => document.getElementById("dos-pin-input").focus(), 100);
+
+  // DEV vs 일반유저 모달 내용 분기
+  if(isAdminSession()) {
+    // DEV: 기존 비번 입력창
+    document.getElementById("dos-modal-dev").style.display = "block";
+    document.getElementById("dos-modal-user").style.display = "none";
+    setTimeout(() => document.getElementById("dos-pin-input").focus(), 100);
+  } else {
+    // 일반유저: 친구 PIN 안내창
+    document.getElementById("dos-modal-dev").style.display = "none";
+    document.getElementById("dos-modal-user").style.display = "block";
+    setTimeout(() => document.getElementById("dos-friend-pin-input").focus(), 100);
+  }
 }
 
 function dosPinClose() {
   document.getElementById("dos-pin-modal").style.display = "none";
+}
+
+async function dosFriendPinCheck() {
+  const val = document.getElementById("dos-friend-pin-input").value.trim();
+  const err = document.getElementById("dos-friend-pin-err");
+  if(!val || val.length !== 6) {
+    err.textContent = "6자리 PIN을 입력하세요.";
+    return;
+  }
+  err.textContent = "확인 중...";
+  try {
+    // Firebase에서 친구 PIN 조회
+    const data = await fbGet("friendPin");
+    if(!data) {
+      err.textContent = "유효한 PIN이 없습니다. 준오리님께 문의하세요.";
+      return;
+    }
+    const now = Date.now();
+    // 만료 확인 (5분 = 300000ms)
+    if(data.code !== val) {
+      err.textContent = "PIN이 올바르지 않습니다.";
+      document.getElementById("dos-friend-pin-input").value = "";
+      setTimeout(() => { err.textContent = ""; }, 2500);
+      return;
+    }
+    if(now > data.expiresAt) {
+      err.textContent = "PIN이 만료됐어요. 새 PIN을 요청하세요.";
+      document.getElementById("dos-friend-pin-input").value = "";
+      return;
+    }
+    // 인증 성공 - 사용된 PIN 삭제
+    await fbDelete("friendPin");
+    sessionStorage.setItem("dosUnlocked", "true");
+    dosPinClose();
+    showDosPage();
+  } catch(e) {
+    err.textContent = "오류가 발생했습니다. 다시 시도하세요.";
+  }
 }
 
 async function dosPinCheck() {
@@ -1842,6 +1935,71 @@ function showDosPage() {
       el.textContent = String(kr.getHours()).padStart(2,"0")+":"+String(kr.getMinutes()).padStart(2,"0")+":"+String(kr.getSeconds()).padStart(2,"0")+" KST";
     }, 1000);
   }
+}
+
+// ── 텔레그램 봇 폴링 (DEV 로그인 시 작동) ──
+// 봇에서 /pin 명령어 치면 → 6자리 코드 생성 → Firebase 저장 → 봇으로 코드 전송
+const TG_TOKEN = "8555822813:AAH18y8hDS383I1YQ410oJ8vDngr5zuUNAU";
+const TG_CHAT  = "8180331145";
+let _tgOffset  = 0;
+let _tgPollTimer = null;
+
+async function startTgPoll() {
+  if(_tgPollTimer) return;
+  // 시작 시 offset 최신화 (과거 메시지 무시)
+  try {
+    const r = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/getUpdates?offset=-1&limit=1`);
+    const d = await r.json();
+    if(d.result && d.result.length > 0) {
+      _tgOffset = d.result[d.result.length - 1].update_id + 1;
+    }
+  } catch(e) {}
+
+  _tgPollTimer = setInterval(async () => {
+    try {
+      const r = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/getUpdates?offset=${_tgOffset}&limit=10&timeout=1`);
+      const d = await r.json();
+      if(!d.result || d.result.length === 0) return;
+      for(const update of d.result) {
+        _tgOffset = update.update_id + 1;
+        const msg = update.message;
+        if(!msg || !msg.text) continue;
+        // 본인 채팅만 처리
+        if(String(msg.chat.id) !== TG_CHAT) continue;
+        const text = msg.text.trim().toLowerCase();
+        if(text === "/pin" || text === "/pin@" + TG_TOKEN.split(":")[1]) {
+          await generateFriendPin();
+        }
+      }
+    } catch(e) {}
+  }, 3000);
+}
+
+function stopTgPoll() {
+  if(_tgPollTimer) { clearInterval(_tgPollTimer); _tgPollTimer = null; }
+}
+
+async function generateFriendPin() {
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  const expiresAt = Date.now() + 5 * 60 * 1000; // 5분
+  const expiresKST = new Date(expiresAt).toLocaleTimeString("ko-KR", {timeZone:"Asia/Seoul", hour:"2-digit", minute:"2-digit"});
+
+  // Firebase에 저장
+  await fbSet("friendPin", { code, expiresAt });
+
+  // 텔레그램으로 코드 전송
+  const msg = `🔑 친구 DoS Tool PIN
+
+코드: *${code}*
+유효시간: 5분 (${expiresKST}까지)
+
+⚠️ 1회 사용 후 자동 삭제됩니다.`;
+
+  await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ chat_id: TG_CHAT, text: msg, parse_mode: "Markdown" })
+  });
 }
 
 function closeDosPage() {
@@ -2111,8 +2269,10 @@ window.saveScoreToFirebase = async function(name, score) {
 window.startRealtimeLeaderboard();
 </script>
 <!-- DoS Tool PIN 모달 -->
-<div id="dos-pin-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:10000;align-items:center;justify-content:center;">
-  <div style="background:#0d0000;border:1px solid #4a0000;border-radius:18px;padding:2rem;width:100%;max-width:360px;box-shadow:0 8px 40px rgba(192,57,43,0.35);text-align:center;">
+<div id="dos-pin-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:10000;align-items:center;justify-content:center;padding:1rem;">
+
+  <!-- DEV 전용 비번 입력창 -->
+  <div id="dos-modal-dev" style="background:#0d0000;border:1px solid #4a0000;border-radius:18px;padding:2rem;width:100%;max-width:360px;box-shadow:0 8px 40px rgba(192,57,43,0.35);text-align:center;">
     <div style="margin-bottom:1rem;">
       <div style="font-size:12px;color:#c0392b;font-family:monospace;font-weight:700;letter-spacing:2px;margin-bottom:.4rem;">⚠️ RESTRICTED ACCESS</div>
       <div style="font-size:13px;color:#666;font-family:monospace;">Enter developer password to continue.</div>
@@ -2124,6 +2284,24 @@ window.startRealtimeLeaderboard();
     <div style="display:flex;gap:8px;">
       <button onclick="dosPinClose()" style="flex:1;padding:10px;border:1px solid #333;border-radius:10px;background:#1a1a1a;color:#666;font-size:13px;font-family:monospace;cursor:pointer;">CANCEL</button>
       <button onclick="dosPinCheck()" style="flex:2;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#7a0000,#c0392b);color:#fff;font-size:13px;font-weight:700;font-family:monospace;cursor:pointer;letter-spacing:1px;">CONFIRM</button>
+    </div>
+  </div>
+
+  <!-- 일반유저 친구 PIN 입력창 -->
+  <div id="dos-modal-user" style="display:none;background:#fff;border-radius:18px;padding:2rem;width:100%;max-width:360px;box-shadow:0 8px 40px rgba(0,0,0,0.2);text-align:center;">
+    <div style="font-size:28px;margin-bottom:.75rem;">🔐</div>
+    <div style="font-size:16px;font-weight:700;color:#111;margin-bottom:.5rem;">DoS Tool</div>
+    <div style="font-size:13px;color:#888;line-height:1.8;margin-bottom:1.25rem;">
+      준오리님의 실제 친구인 경우<br>
+      <span style="color:#cc2366;font-weight:600;">친구 PIN</span>을 받아 입력하면 사용이 가능합니다.
+    </div>
+    <input id="dos-friend-pin-input" type="password" maxlength="10" placeholder="친구 PIN 입력"
+      style="width:100%;padding:11px 14px;border:1px solid #ddd;border-radius:10px;font-size:16px;background:#fafafa;color:#111;outline:none;text-align:center;letter-spacing:4px;box-sizing:border-box;margin-bottom:8px;"
+      onkeydown="if(event.key==='Enter')dosFriendPinCheck()">
+    <div id="dos-friend-pin-err" style="font-size:12px;color:#c0392b;min-height:16px;margin-bottom:10px;"></div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="dosPinClose()" style="flex:1;padding:10px;border:1px solid #ddd;border-radius:10px;background:#f5f5f5;color:#666;font-size:13px;cursor:pointer;">취소</button>
+      <button onclick="dosFriendPinCheck()" style="flex:2;padding:10px;border:none;border-radius:10px;background:linear-gradient(45deg,#dc2743,#cc2366);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">확인</button>
     </div>
   </div>
 </div>
