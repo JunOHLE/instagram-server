@@ -123,8 +123,72 @@ function pinKey(e, i) {
 }
 </script>
 </head>
-<body>
+<body style="visibility:hidden;">
 <audio id="bgm" src="bgm.mp3?v=3" loop preload="auto"></audio>
+
+<script>
+// ── 페이지 로드 즉시 점검 여부 확인 ──
+(async function checkMaintOnLoad() {
+  const FB_URL = "https://instagram-server-d01e0-default-rtdb.firebaseio.com";
+  try {
+    const r = await fetch(FB_URL + "/maintenance.json");
+    const d = await r.json();
+    const now = Date.now();
+
+    // 점검 중이 아니거나 종료 시간 지났으면 → body 정상 표시
+    if(!d || !d.active || (d.endTs && now >= d.endTs)) {
+      document.body.style.visibility = "visible";
+      return;
+    }
+
+    // 점검 중 → 오버레이만 보이게
+    document.body.style.visibility = "visible";
+
+    // DOMContentLoaded 기다렸다가 오버레이 표시
+    function showMaint(data) {
+      ["page-pin","page-terms","page-profile","page-dash","page-dos"].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.style.display = "none";
+      });
+      const ol = document.getElementById("maint-overlay");
+      if(!ol) return;
+      document.getElementById("maint-overlay-title").textContent = data.title || "점검 중";
+      document.getElementById("maint-overlay-content").textContent = data.content || "";
+      ol.style.display = "flex";
+      if(typeof updateMaintProgress === "function") updateMaintProgress(data);
+    }
+
+    if(document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", () => showMaint(d));
+    } else {
+      showMaint(d);
+    }
+
+    // 1초마다 점검 상태 폴링
+    const timer = setInterval(async () => {
+      try {
+        const r2 = await fetch(FB_URL + "/maintenance.json");
+        const d2 = await r2.json();
+        const now2 = Date.now();
+        if(!d2 || !d2.active || (d2.endTs && now2 >= d2.endTs)) {
+          clearInterval(timer);
+          location.reload();
+          return;
+        }
+        if(typeof updateMaintProgress === "function") updateMaintProgress(d2);
+        const t = document.getElementById("maint-overlay-title");
+        const c = document.getElementById("maint-overlay-content");
+        if(t) t.textContent = d2.title || "점검 중";
+        if(c) c.textContent = d2.content || "";
+      } catch(e) {}
+    }, 1000);
+
+  } catch(e) {
+    // Firebase 오류 시 그냥 정상 표시
+    document.body.style.visibility = "visible";
+  }
+})();
+</script>
 
 <!-- 점검 오버레이 -->
 <div id="maint-overlay" style="display:none;position:fixed;inset:0;background:#0a0a0a;z-index:9999;align-items:center;justify-content:center;flex-direction:column;overflow:hidden;">
