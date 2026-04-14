@@ -530,8 +530,42 @@ function pinKey(e, i) {
 
       <!-- 접속자 관리 탭 (DEV 전용) -->
       <div id="tab-users" style="display:none;">
+
+        <!-- 직접 IP 차단 -->
+        <div class="content-card" style="margin-bottom:1rem;">
+          <h3>🚫 IP 직접 차단</h3>
+          <div class="desc" style="margin-bottom:1rem;">IP 주소와 차단 시간을 직접 입력해서 차단할 수 있습니다.</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+            <input id="manual-ban-ip" type="text" placeholder="IP 주소 (예: 123.456.789.0)" maxlength="45"
+              style="flex:2;min-width:160px;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;background:#fafafa;outline:none;"
+              onfocus="this.style.borderColor='#c0392b'" onblur="this.style.borderColor='#ddd'">
+            <input id="manual-ban-name" type="text" placeholder="이름/메모 (선택)" maxlength="20"
+              style="flex:1;min-width:100px;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;background:#fafafa;outline:none;"
+              onfocus="this.style.borderColor='#c0392b'" onblur="this.style.borderColor='#ddd'">
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <select id="manual-ban-time" style="padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;background:#fafafa;outline:none;cursor:pointer;">
+              <option value="30">30분</option>
+              <option value="60">1시간</option>
+              <option value="90">1시간 30분</option>
+              <option value="120">2시간</option>
+              <option value="180">3시간</option>
+              <option value="240">4시간</option>
+              <option value="300">5시간</option>
+              <option value="360">6시간</option>
+              <option value="420">7시간</option>
+              <option value="480">8시간</option>
+              <option value="540">9시간</option>
+              <option value="600">10시간 (최대)</option>
+            </select>
+            <button onclick="manualBanIP()" style="padding:9px 20px;border:none;border-radius:8px;background:#c0392b;color:#fff;font-size:13px;font-weight:600;cursor:pointer;">🚫 차단</button>
+          </div>
+          <div id="manual-ban-msg" style="font-size:12px;margin-top:8px;min-height:16px;color:#c0392b;"></div>
+        </div>
+
+        <!-- 유저 목록 -->
         <div class="content-card">
-          <h3>👥 접속자 관리</h3>
+          <h3>👥 접속자 목록</h3>
           <div class="desc">프로필을 설정한 유저 목록입니다. 차단 시 해당 IP는 일정 시간 접속이 불가합니다.</div>
           <button onclick="loadUsers()" style="margin-bottom:1rem;padding:7px 16px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;color:#333;font-size:13px;cursor:pointer;">🔄 새로고침</button>
           <div id="users-list">
@@ -2615,6 +2649,36 @@ async function deleteUser(key) {
     await fbDelete("bans/" + key);
     loadUsers();
   } catch(e) { alert("오류: "+e); }
+}
+
+async function manualBanIP() {
+  const ip = document.getElementById("manual-ban-ip").value.trim();
+  const name = document.getElementById("manual-ban-name").value.trim() || "직접차단";
+  const banMin = parseInt(document.getElementById("manual-ban-time").value);
+  const msg = document.getElementById("manual-ban-msg");
+
+  if(!ip) { msg.textContent = "IP를 입력하세요."; msg.style.color="#c0392b"; return; }
+  // 간단한 IP 형식 체크
+  if(!/^[\d\.a-fA-F:]+$/.test(ip)) { msg.textContent = "올바른 IP 형식이 아닙니다."; msg.style.color="#c0392b"; return; }
+
+  try {
+    const key = ip.replace(/[\.:]/g, "_");
+    const existing = await fbGet("bans/" + key) || {};
+    const totalMin = Math.min((existing.totalMin || 0) + banMin, 600);
+    const until = Date.now() + banMin * 60 * 1000;
+    const kr = new Date(until).toLocaleString("ko-KR", {timeZone:"Asia/Seoul"});
+    await fbSet("bans/" + key, {
+      ip, name, until, totalMin,
+      reason: "관리자 직접 차단",
+      bannedAt: new Date().toLocaleString("ko-KR", {timeZone:"Asia/Seoul"})
+    });
+    msg.style.color = "#2e7d32";
+    msg.textContent = `✅ ${ip} 차단 완료 (${banMin}분 / ${kr}까지)`;
+    document.getElementById("manual-ban-ip").value = "";
+    document.getElementById("manual-ban-name").value = "";
+    setTimeout(() => { msg.textContent = ""; }, 4000);
+    loadUsers();
+  } catch(e) { msg.style.color="#c0392b"; msg.textContent = "오류: " + e; }
 }
 
 </script>
