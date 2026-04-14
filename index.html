@@ -144,6 +144,36 @@ function pinKey(e, i) {
     // 점검 중 → 오버레이만 보이게
     document.body.style.visibility = "visible";
 
+    // 점검 BGM 재생
+    function playMaintBgm() {
+      let mbgm = document.getElementById("maint-bgm");
+      if(!mbgm) {
+        mbgm = document.createElement("audio");
+        mbgm.id = "maint-bgm";
+        mbgm.src = "maint_bgm.mp3";
+        mbgm.loop = true;
+        mbgm.volume = 0.5;
+        document.body.appendChild(mbgm);
+      }
+      // 기존 BGM 전부 정지
+      const bgm = document.getElementById("bgm");
+      if(bgm) { bgm.pause(); bgm.currentTime = 0; }
+      const dosBgm = document.getElementById("dos-bgm");
+      if(dosBgm) { dosBgm.pause(); dosBgm.currentTime = 0; }
+      // 첫 클릭/터치 시 재생 (브라우저 정책)
+      function startMaintBgm() {
+        mbgm.play().catch(()=>{});
+        document.removeEventListener("click", startMaintBgm);
+        document.removeEventListener("touchstart", startMaintBgm);
+        document.removeEventListener("keydown", startMaintBgm);
+      }
+      mbgm.play().catch(()=>{
+        document.addEventListener("click", startMaintBgm, {once:true});
+        document.addEventListener("touchstart", startMaintBgm, {once:true});
+        document.addEventListener("keydown", startMaintBgm, {once:true});
+      });
+    }
+
     // DOMContentLoaded 기다렸다가 오버레이 표시
     function showMaint(data) {
       ["page-pin","page-terms","page-profile","page-dash","page-dos"].forEach(id => {
@@ -156,6 +186,7 @@ function pinKey(e, i) {
       document.getElementById("maint-overlay-content").textContent = data.content || "";
       ol.style.display = "flex";
       if(typeof updateMaintProgress === "function") updateMaintProgress(data);
+      playMaintBgm();
     }
 
     if(document.readyState === "loading") {
@@ -172,6 +203,8 @@ function pinKey(e, i) {
         const now2 = Date.now();
         if(!d2 || !d2.active || (d2.endTs && now2 >= d2.endTs)) {
           clearInterval(timer);
+          const mbgm = document.getElementById("maint-bgm");
+          if(mbgm) { mbgm.pause(); mbgm.currentTime = 0; }
           location.reload();
           return;
         }
