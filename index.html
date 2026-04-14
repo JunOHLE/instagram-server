@@ -777,9 +777,11 @@ function toggleMusic() {
 
 // 페이지 로드 시 자동재생 시도
 window.addEventListener("click", function autoStart() {
-  // DoS 페이지 열려있으면 기존 BGM 재생 안 함
+  // DoS 페이지 또는 점검 오버레이 떠있으면 기존 BGM 재생 안 함
   const dosPage = document.getElementById("page-dos");
   if(dosPage && dosPage.style.display === "flex") return;
+  const maintOl = document.getElementById("maint-overlay");
+  if(maintOl && maintOl.style.display === "flex") return;
   const audio = document.getElementById("bg-music");
   const btn = document.getElementById("music-btn");
   if(!musicPlaying) {
@@ -2920,9 +2922,12 @@ async function manualBanIP() {
 <script>
 (function(){
   function playBGM(){
-    // DoS 페이지 열려있으면 기존 BGM 재생 안 함
+    // DoS 페이지 열려있으면 재생 안 함
     const dosPage = document.getElementById("page-dos");
     if(dosPage && dosPage.style.display === "flex") return;
+    // 점검 오버레이 떠있으면 재생 안 함
+    const maintOl = document.getElementById("maint-overlay");
+    if(maintOl && maintOl.style.display === "flex") return;
     var b=document.getElementById("bgm");
     if(b){
       var vol = document.getElementById("vol-slider");
