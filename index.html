@@ -1614,13 +1614,32 @@ function updateMaintProgress(d) {
   const olStart = document.getElementById("maint-ol-start");
   const olEnd  = document.getElementById("maint-ol-end");
   const olRemain = document.getElementById("maint-ol-remain");
-  if(olBar) { olBar.style.animation = "none"; olBar.style.width = pct + "%"; }
-  if(olPct) olPct.textContent = pct + "%";
+  if(olBar) {
+    olBar.style.animation = "none";
+    olBar.style.width = pct + "%";
+    // 90% 이상이면 초록색으로
+    if(pct >= 90) {
+      olBar.style.background = "linear-gradient(90deg,#1e7e34,#27ae60)";
+    } else {
+      olBar.style.background = "linear-gradient(90deg,#dc2743,#cc2366)";
+    }
+  }
+  if(olPct) {
+    olPct.textContent = pct + "%";
+    olPct.style.color = pct >= 90 ? "#27ae60" : "#cc2366";
+  }
   if(olStart) olStart.textContent = fmt(startTs);
   if(olEnd)  olEnd.textContent  = fmt(endTs);
-  if(olRemain) olRemain.textContent = remainMs > 0
-    ? `종료까지 ${remainMin}분 ${remainSec}초`
-    : "점검이 완료됐습니다!";
+  const remainHour = Math.floor(remainMs / 3600000);
+  const remainMinLeft = Math.floor((remainMs % 3600000) / 60000);
+  const remainSecLeft = Math.floor((remainMs % 60000) / 1000);
+  let remainStr = "점검이 완료됐습니다!";
+  if(remainMs > 0) {
+    if(remainHour > 0) remainStr = `종료까지 ${remainHour}시간 ${remainMinLeft}분 ${remainSecLeft}초`;
+    else if(remainMinLeft > 0) remainStr = `종료까지 ${remainMinLeft}분 ${remainSecLeft}초`;
+    else remainStr = `종료까지 ${remainSecLeft}초`;
+  }
+  if(olRemain) olRemain.textContent = remainStr;
 
   // DEV 패널 진행률
   const devBar = document.getElementById("maint-progress-bar");
@@ -1630,7 +1649,16 @@ function updateMaintProgress(d) {
   const devEnd   = document.getElementById("maint-end-label");
   if(devBar) devBar.style.width = pct + "%";
   if(devPct) devPct.textContent = pct + "%";
-  if(devRemain) devRemain.textContent = remainMs > 0 ? `${remainMin}분 ${remainSec}초 남음` : "완료";
+  const dRemainHour = Math.floor(remainMs / 3600000);
+  const dRemainMin = Math.floor((remainMs % 3600000) / 60000);
+  const dRemainSec = Math.floor((remainMs % 60000) / 1000);
+  let dRemainStr = "완료";
+  if(remainMs > 0) {
+    if(dRemainHour > 0) dRemainStr = `${dRemainHour}시간 ${dRemainMin}분 ${dRemainSec}초 남음`;
+    else if(dRemainMin > 0) dRemainStr = `${dRemainMin}분 ${dRemainSec}초 남음`;
+    else dRemainStr = `${dRemainSec}초 남음`;
+  }
+  if(devRemain) devRemain.textContent = dRemainStr;
   if(devStart) devStart.textContent = fmt(startTs);
   if(devEnd)   devEnd.textContent   = fmt(endTs);
 }
