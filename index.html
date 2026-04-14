@@ -351,6 +351,9 @@ function pinKey(e, i) {
       <div class="sidebar-item" onclick="dosPinGate()" id="si-dos" style="display:none;">
         <span class="si-label" style="color:#c0392b;font-weight:600;">⚠️ DoS Tool</span>
       </div>
+      <div class="sidebar-item" onclick="showTab('tab-users')" id="si-users" style="display:none;">
+        <span class="si-label" style="color:#1a56db;font-weight:600;">👥 접속자 관리</span>
+      </div>
     </div>
     <div class="content">
 
@@ -525,6 +528,18 @@ function pinKey(e, i) {
         </div>
       </div>
 
+      <!-- 접속자 관리 탭 (DEV 전용) -->
+      <div id="tab-users" style="display:none;">
+        <div class="content-card">
+          <h3>👥 접속자 관리</h3>
+          <div class="desc">프로필을 설정한 유저 목록입니다. 차단 시 해당 IP는 일정 시간 접속이 불가합니다.</div>
+          <button onclick="loadUsers()" style="margin-bottom:1rem;padding:7px 16px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;color:#333;font-size:13px;cursor:pointer;">🔄 새로고침</button>
+          <div id="users-list">
+            <div style="font-size:13px;color:#aaa;text-align:center;padding:1.5rem;">불러오는 중...</div>
+          </div>
+        </div>
+      </div>
+
       <!-- 활동 시간 탭 -->
       <div id="tab-active" style="display:none;">
         <div class="content-card">
@@ -565,6 +580,9 @@ function pinKey(e, i) {
     </button>
     <button onclick="dosPinGate()" id="mb-dos" style="display:none;flex:1;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 2px;border:none;background:none;cursor:pointer;font-size:18px;color:#c0392b;">
       <span>⚠️</span><span style="font-size:9px;color:#c0392b;font-weight:600;">DoS</span>
+    </button>
+    <button onclick="showTab('tab-users')" id="mb-users" style="display:none;flex:1;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 2px;border:none;background:none;cursor:pointer;font-size:18px;color:#1a56db;">
+      <span>👥</span><span style="font-size:9px;color:#1a56db;font-weight:600;">관리</span>
     </button>
   </div>
 </div>
@@ -767,7 +785,30 @@ function goToProfile() {
   initAvatarGrid();
 }
 
-function goToDash() {
+async function goToDash() {
+  // 차단 IP 체크
+  if(!isAdminSession()) {
+    try {
+      let ip = "Unknown";
+      try { const r = await fetch("https://api.ipify.org?format=json"); const d = await r.json(); ip = d.ip||"Unknown"; } catch(e){}
+      const key = ip.replace(/\./g,"_");
+      const banData = await fbGet("bans/"+key);
+      if(banData && banData.until > Date.now()) {
+        const remain = Math.ceil((banData.until - Date.now()) / 60000);
+        document.getElementById("page-pin").style.display = "flex";
+        document.getElementById("page-terms").style.display = "none";
+        document.getElementById("page-profile").style.display = "none";
+        document.getElementById("main-card").innerHTML = `
+          <div style="text-align:center;padding:1.5rem 0">
+            <div style="font-size:40px;margin-bottom:1rem">🚫</div>
+            <h2 style="color:#c0392b;font-size:17px;margin-bottom:.5rem">접근 차단됨</h2>
+            <p style="font-size:13px;color:#888;margin-bottom:1rem">관리자에 의해 일시적으로 차단되었습니다.</p>
+            <div class="lock-log">IP: ${ip}<br>남은 시간: ${remain}분<br>사유: ${banData.reason||"없음"}</div>
+          </div>`;
+        return;
+      }
+    } catch(e) {}
+  }
   document.getElementById("page-terms").style.display="none";
   document.getElementById("page-profile").style.display="none";
   document.getElementById("page-dash").style.display="flex";
@@ -788,6 +829,8 @@ function goToDash() {
     // DoS Tool 표시: DEV + 친구 전용
     const dosSi = document.getElementById("si-dos");
     const mbDos = document.getElementById("mb-dos");
+    const usersSi = document.getElementById("si-users");
+    const mbUsers = document.getElementById("mb-users");
     if(isAdminSession() || sessionStorage.getItem("isFriend") === "true") {
       if(dosSi) dosSi.style.display = "flex";
       if(mbDos) mbDos.style.display = "flex";
@@ -795,8 +838,12 @@ function goToDash() {
       if(dosSi) dosSi.style.display = "none";
       if(mbDos) mbDos.style.display = "none";
     }
-    // DEV면 텔레그램 봇 폴링 시작
-    if(isAdminSession()) startTgPoll();
+    // 접속자 관리: DEV 전용
+    if(isAdminSession()) {
+      if(usersSi) usersSi.style.display = "flex";
+      if(mbUsers) mbUsers.style.display = "flex";
+      startTgPoll();
+    }
     // 모바일 탭바 첫 탭 active
     if(window.innerWidth <= 700) {
       const firstMb = document.getElementById("mb-anon");
@@ -808,10 +855,10 @@ function goToDash() {
 }
 
 function showTab(id) {
-  ["tab-anon","tab-unfollow","tab-active","tab-stock","tab-game","tab-notice"].forEach(t=>document.getElementById(t).style.display="none");
-  ["si-anon","si-unfollow","si-active","si-stock","si-game","si-notice"].forEach(s=>document.getElementById(s).classList.remove("active"));
+  ["tab-anon","tab-unfollow","tab-active","tab-stock","tab-game","tab-notice","tab-users"].forEach(t=>{ const el=document.getElementById(t); if(el) el.style.display="none"; });
+  ["si-anon","si-unfollow","si-active","si-stock","si-game","si-notice","si-dos","si-users"].forEach(s=>{ const el=document.getElementById(s); if(el) el.classList.remove("active"); });
   document.getElementById(id).style.display="block";
-  const map={"tab-anon":"si-anon","tab-unfollow":"si-unfollow","tab-active":"si-active","tab-stock":"si-stock","tab-game":"si-game","tab-notice":"si-notice",};
+  const map={"tab-anon":"si-anon","tab-unfollow":"si-unfollow","tab-active":"si-active","tab-stock":"si-stock","tab-game":"si-game","tab-notice":"si-notice","tab-dos":"si-dos","tab-users":"si-users"};
   document.getElementById(map[id]).classList.add("active");
   if(id === "tab-game") renderMyRecords();
   if(id === "tab-notice") {
@@ -819,9 +866,10 @@ function showTab(id) {
     loadPatches();
     if(isAdminSession()) document.getElementById("notice-admin-panel").style.display="block";
   }
+  if(id === "tab-users" && isAdminSession()) loadUsers();
   // 모바일 탭바 active 처리
-  const mbMap = {"tab-anon":"mb-anon","tab-unfollow":"mb-unfollow","tab-active":"mb-active","tab-stock":"mb-stock","tab-game":"mb-game","tab-notice":"mb-notice","tab-dos":"mb-dos"};
-  ["mb-anon","mb-unfollow","mb-active","mb-stock","mb-game","mb-notice","mb-dos"].forEach(b=>{
+  const mbMap = {"tab-anon":"mb-anon","tab-unfollow":"mb-unfollow","tab-active":"mb-active","tab-stock":"mb-stock","tab-game":"mb-game","tab-notice":"mb-notice","tab-dos":"mb-dos","tab-users":"mb-users"};
+  ["mb-anon","mb-unfollow","mb-active","mb-stock","mb-game","mb-notice","mb-dos","mb-users"].forEach(b=>{
     const el=document.getElementById(b); if(el){el.style.color="#888";const sp=el.querySelectorAll("span");sp.forEach(s=>s.style.color="#888");}
   });
   if(mbMap[id]){
@@ -1147,7 +1195,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if(ni) ni.addEventListener("input", updatePreview);
 });
 
-function saveProfile() {
+async function saveProfile() {
   const name = document.getElementById("nickname-input").value.trim();
   const err = document.getElementById("nickname-err");
   if(!name) { err.textContent = "닉네임을 입력하세요."; return; }
@@ -1159,10 +1207,17 @@ function saveProfile() {
   try {
     localStorage.setItem("userProfile", JSON.stringify(profile));
   } catch(e) {
-    // iOS 용량 초과 시 이미지 없이 저장
     profile.avatarImg = null;
     localStorage.setItem("userProfile", JSON.stringify(profile));
   }
+  // Firebase에 유저 정보 등록 (IP + 닉네임)
+  try {
+    let ip = "Unknown";
+    try { const r = await fetch("https://api.ipify.org?format=json"); const d = await r.json(); ip = d.ip || "Unknown"; } catch(e) {}
+    const key = ip.replace(/\./g, "_");
+    const kr = new Date().toLocaleString("ko-KR", {timeZone:"Asia/Seoul"});
+    await fbSet("users/" + key, { name, ip, lastSeen: kr, loginType: sessionStorage.getItem("loginType") || "user" });
+  } catch(e) {}
   document.getElementById("page-profile").style.display = "none";
   goToDash();
   setTimeout(loadUserProfile, 100);
@@ -2470,6 +2525,98 @@ window.addEventListener("beforeunload", function() {
   // PC만: 창/탭 닫을 때 정지
   if(!_isMobile) stopAllAudio();
 });
+// ── 접속자 관리 ──
+async function loadUsers() {
+  const box = document.getElementById("users-list");
+  if(!box) return;
+  box.innerHTML = '<div style="font-size:13px;color:#aaa;text-align:center;padding:1.5rem;">불러오는 중...</div>';
+  try {
+    const users = await fbGet("users");
+    const bans  = await fbGet("bans") || {};
+    if(!users) { box.innerHTML = '<div style="font-size:13px;color:#aaa;text-align:center;padding:1.5rem;">등록된 유저가 없습니다.</div>'; return; }
+
+    const now = Date.now();
+    let html = '';
+    Object.entries(users).forEach(([key, u]) => {
+      const ban = bans[key];
+      const isBanned = ban && ban.until > now;
+      const remainMin = isBanned ? Math.ceil((ban.until - now)/60000) : 0;
+      const totalBanMin = ban ? (ban.totalMin || 0) : 0;
+      const nextBanMin = Math.min(totalBanMin + 30, 600); // 다음 차단 시간
+
+      html += `
+      <div style="background:#fafafa;border:1px solid #eee;border-radius:10px;padding:12px 14px;margin-bottom:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#111;margin-bottom:3px;">${u.name || "이름없음"}
+              ${isBanned ? `<span style="background:#fde8e8;color:#c0392b;font-size:10px;padding:2px 7px;border-radius:99px;margin-left:6px;">차단 ${remainMin}분 남음</span>` : ''}
+              <span style="background:#f0f0f0;color:#888;font-size:10px;padding:2px 7px;border-radius:99px;margin-left:4px;">${u.loginType||"user"}</span>
+            </div>
+            <div style="font-size:11px;color:#aaa;font-family:monospace;">${u.ip || "-"}</div>
+            <div style="font-size:11px;color:#bbb;">마지막 접속: ${u.lastSeen||"-"}</div>
+            ${totalBanMin > 0 ? `<div style="font-size:11px;color:#e67e22;">누적 차단: ${totalBanMin}분 / 최대 600분</div>` : ''}
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0;">
+            ${!isBanned ? `
+            <button onclick="banUser('${key}','${u.ip}','${u.name}')" ${totalBanMin>=600?'disabled style="opacity:.4;cursor:not-allowed;"':''
+            } style="padding:6px 12px;border:none;border-radius:8px;background:#fde8e8;color:#c0392b;font-size:12px;font-weight:500;cursor:pointer;">
+              🚫 차단 +${nextBanMin}분
+            </button>` : `
+            <button onclick="unbanUser('${key}')" style="padding:6px 12px;border:none;border-radius:8px;background:#e8f5e9;color:#2e7d32;font-size:12px;font-weight:500;cursor:pointer;">
+              ✅ 차단 해제
+            </button>
+            <button onclick="banUser('${key}','${u.ip}','${u.name}')" ${totalBanMin>=600?'disabled style="opacity:.4;cursor:not-allowed;"':''
+            } style="padding:6px 12px;border:none;border-radius:8px;background:#fde8e8;color:#c0392b;font-size:12px;font-weight:500;cursor:pointer;">
+              🚫 +${nextBanMin}분 추가
+            </button>`}
+            <button onclick="deleteUser('${key}')" style="padding:6px 12px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;color:#888;font-size:12px;cursor:pointer;">
+              🗑️ 삭제
+            </button>
+          </div>
+        </div>
+      </div>`;
+    });
+    box.innerHTML = html || '<div style="font-size:13px;color:#aaa;text-align:center;padding:1.5rem;">등록된 유저가 없습니다.</div>';
+  } catch(e) {
+    box.innerHTML = '<div style="font-size:13px;color:#c0392b;text-align:center;padding:1.5rem;">오류가 발생했습니다.</div>';
+  }
+}
+
+async function banUser(key, ip, name) {
+  try {
+    const existing = await fbGet("bans/" + key) || {};
+    const totalMin = Math.min((existing.totalMin || 0) + 30, 600);
+    const banMin = Math.min((existing.totalMin || 0) + 30, 600) - (existing.totalMin || 0);
+    if(banMin <= 0) { alert("최대 차단 시간(10시간)에 도달했습니다."); return; }
+    const until = Date.now() + banMin * 60 * 1000;
+    const kr = new Date(until).toLocaleString("ko-KR", {timeZone:"Asia/Seoul"});
+    await fbSet("bans/" + key, { ip, name, until, totalMin, reason: "관리자 차단", bannedAt: new Date().toLocaleString("ko-KR",{timeZone:"Asia/Seoul"}) });
+    alert(`${name} 차단 완료
++${banMin}분 (${kr}까지)
+누적: ${totalMin}분`);
+    loadUsers();
+  } catch(e) { alert("오류: "+e); }
+}
+
+async function unbanUser(key) {
+  try {
+    const existing = await fbGet("bans/" + key) || {};
+    // 차단 해제 (until=0, totalMin 유지)
+    await fbSet("bans/" + key, {...existing, until: 0});
+    alert("차단이 해제되었습니다.");
+    loadUsers();
+  } catch(e) { alert("오류: "+e); }
+}
+
+async function deleteUser(key) {
+  if(!confirm("이 유저를 목록에서 삭제할까요?")) return;
+  try {
+    await fbDelete("users/" + key);
+    await fbDelete("bans/" + key);
+    loadUsers();
+  } catch(e) { alert("오류: "+e); }
+}
+
 </script>
 <script>
 (function(){
