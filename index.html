@@ -164,14 +164,23 @@ function pinKey(e, i) {
     <!-- 제목 -->
     <div id="maint-overlay-title" style="font-size:26px;font-weight:800;margin-bottom:.5rem;letter-spacing:-0.5px;background:linear-gradient(135deg,#fff 30%,#cc2366);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">점검 중</div>
     <!-- 내용 -->
-    <div id="maint-overlay-content" style="font-size:14px;color:#888;line-height:1.85;margin-bottom:1.75rem;white-space:pre-wrap;max-width:320px;"></div>
-    <!-- 로딩 바 -->
-    <div style="width:220px;height:3px;background:rgba(255,255,255,0.08);border-radius:99px;margin:0 auto 1.25rem;overflow:hidden;">
-      <div style="height:100%;background:linear-gradient(90deg,#dc2743,#cc2366);border-radius:99px;animation:maint-bar 2.5s ease-in-out infinite;"></div>
+    <div id="maint-overlay-content" style="font-size:14px;color:#888;line-height:1.85;margin-bottom:1.25rem;white-space:pre-wrap;max-width:320px;"></div>
+    <!-- 진행률 바 -->
+    <div style="width:260px;margin:0 auto 6px;">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#444;margin-bottom:6px;">
+        <span id="maint-ol-start">--:--</span>
+        <span id="maint-ol-pct" style="color:#cc2366;font-weight:700;">0%</span>
+        <span id="maint-ol-end">--:--</span>
+      </div>
+      <div style="height:4px;background:rgba(255,255,255,0.06);border-radius:99px;overflow:hidden;">
+        <div id="maint-ol-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#dc2743,#cc2366);border-radius:99px;transition:width .8s ease;"></div>
+      </div>
+      <div id="maint-ol-remain" style="font-size:11px;color:#444;text-align:center;margin-top:6px;">
+        잠시 후 다시 접속해주세요
+      </div>
     </div>
     <!-- 하단 문구 -->
-    <div style="font-size:12px;color:#444;display:flex;align-items:center;justify-content:center;gap:4px;">
-      잠시 후 다시 접속해주세요
+    <div style="font-size:12px;color:#333;display:flex;align-items:center;justify-content:center;gap:4px;margin-top:1rem;">
       <span style="display:inline-flex;gap:2px;">
         <span style="animation:maint-dot 1.4s 0s infinite;">.</span>
         <span style="animation:maint-dot 1.4s 0.2s infinite;">.</span>
@@ -489,12 +498,40 @@ function pinKey(e, i) {
 
           <!-- 점검 -->
           <div style="margin-bottom:1.25rem;padding:1rem;background:#fafafa;border-radius:10px;border:1px solid #eee;">
-            <div style="font-size:13px;font-weight:600;color:#111;margin-bottom:8px;">점검</div>
+            <div style="font-size:13px;font-weight:600;color:#111;margin-bottom:10px;">🔧 점검 설정</div>
             <input type="text" id="maint-title" placeholder="점검 제목" maxlength="50"
               style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;margin-bottom:6px;box-sizing:border-box;">
-            <textarea id="maint-content" placeholder="점검 내용" rows="3"
-              style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;resize:vertical;box-sizing:border-box;font-family:inherit;"></textarea>
-            <div style="display:flex;gap:6px;margin-top:6px;">
+            <textarea id="maint-content" placeholder="점검 내용" rows="2"
+              style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;resize:vertical;box-sizing:border-box;font-family:inherit;margin-bottom:8px;"></textarea>
+            <!-- 시간 설정 -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
+              <div>
+                <div style="font-size:11px;color:#888;margin-bottom:4px;">시작 시간 (한국)</div>
+                <input type="datetime-local" id="maint-start"
+                  style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:8px;font-size:12px;box-sizing:border-box;background:#fff;">
+              </div>
+              <div>
+                <div style="font-size:11px;color:#888;margin-bottom:4px;">종료 시간 (한국)</div>
+                <input type="datetime-local" id="maint-end"
+                  style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:8px;font-size:12px;box-sizing:border-box;background:#fff;">
+              </div>
+            </div>
+            <!-- 현재 점검 상태 표시 -->
+            <div id="maint-status-box" style="display:none;background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:#856404;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                <span>⏳ 점검 진행중</span>
+                <span id="maint-remain-txt"></span>
+              </div>
+              <div style="background:#e0e0e0;border-radius:99px;height:6px;overflow:hidden;">
+                <div id="maint-progress-bar" style="height:100%;background:linear-gradient(90deg,#f09433,#cc2366);border-radius:99px;transition:width .5s;width:0%;"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:11px;color:#aaa;">
+                <span id="maint-start-label"></span>
+                <span id="maint-progress-pct">0%</span>
+                <span id="maint-end-label"></span>
+              </div>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:2px;">
               <button onclick="startMaintenance()" style="flex:1;padding:8px;border:none;border-radius:8px;background:#a32d2d;color:#fff;font-size:13px;font-weight:500;cursor:pointer;">점검 시작</button>
               <button onclick="endMaintenance()" style="flex:1;padding:8px;border:1px solid #ddd;border-radius:8px;background:#f0f0f0;color:#333;font-size:13px;font-weight:500;cursor:pointer;">점검 완료</button>
             </div>
@@ -1511,21 +1548,94 @@ function checkPendingToast() {
 async function startMaintenance() {
   const title = document.getElementById("maint-title").value.trim() || "서버 점검 중";
   const cnt = document.getElementById("maint-content").value.trim() || "잠시 후 다시 접속해주세요.";
+  const startInput = document.getElementById("maint-start").value;
+  const endInput = document.getElementById("maint-end").value;
+
+  // 한국 시간 → UTC 타임스탬프 변환
+  let startTs = null, endTs = null;
+  if(startInput) startTs = new Date(startInput).getTime();
+  if(endInput) endTs = new Date(endInput).getTime();
+
+  if(startTs && endTs && endTs <= startTs) {
+    alert("종료 시간이 시작 시간보다 늦어야 해요!"); return;
+  }
+
   try {
-    await fbSet("maintenance", {active: true, title, content: cnt});
+    await fbSet("maintenance", {
+      active: true, title, content: cnt,
+      startTs: startTs || Date.now(),
+      endTs: endTs || null
+    });
     alert("점검 시작됐어요! 모든 기기에 적용됩니다.");
   } catch(e) { alert("오류: " + e); }
 }
 
 async function endMaintenance() {
   try {
-    await fbSet("maintenance", {active: false, title: "", content: ""});
+    await fbSet("maintenance", {active: false, title: "", content: "", startTs: null, endTs: null});
     alert("점검 완료!");
   } catch(e) { alert("오류: " + e); }
 }
 
+let _maintProgressTimer = null;
+
+function updateMaintProgress(d) {
+  const now = Date.now();
+  const startTs = d.startTs || now;
+  const endTs = d.endTs;
+
+  // DEV 관리 패널 상태 표시
+  const statusBox = document.getElementById("maint-status-box");
+  if(statusBox) statusBox.style.display = "block";
+
+  if(!endTs) {
+    // 종료 시간 없으면 무한 애니메이션 유지
+    const olBar = document.getElementById("maint-ol-bar");
+    if(olBar) olBar.style.animation = "maint-bar 2.5s ease-in-out infinite";
+    const olPct = document.getElementById("maint-ol-pct");
+    if(olPct) olPct.textContent = "진행 중";
+    const olRemain = document.getElementById("maint-ol-remain");
+    if(olRemain) olRemain.textContent = "잠시 후 다시 접속해주세요.";
+    return;
+  }
+
+  const total = endTs - startTs;
+  const elapsed = now - startTs;
+  const pct = Math.min(100, Math.max(0, Math.floor(elapsed / total * 100)));
+  const remainMs = Math.max(0, endTs - now);
+  const remainMin = Math.floor(remainMs / 60000);
+  const remainSec = Math.floor((remainMs % 60000) / 1000);
+
+  const fmt = (ts) => new Date(ts).toLocaleTimeString("ko-KR", {timeZone:"Asia/Seoul", hour:"2-digit", minute:"2-digit"});
+
+  // 오버레이 업데이트
+  const olBar  = document.getElementById("maint-ol-bar");
+  const olPct  = document.getElementById("maint-ol-pct");
+  const olStart = document.getElementById("maint-ol-start");
+  const olEnd  = document.getElementById("maint-ol-end");
+  const olRemain = document.getElementById("maint-ol-remain");
+  if(olBar) { olBar.style.animation = "none"; olBar.style.width = pct + "%"; }
+  if(olPct) olPct.textContent = pct + "%";
+  if(olStart) olStart.textContent = fmt(startTs);
+  if(olEnd)  olEnd.textContent  = fmt(endTs);
+  if(olRemain) olRemain.textContent = remainMs > 0
+    ? `종료까지 ${remainMin}분 ${remainSec}초`
+    : "점검이 완료됐습니다!";
+
+  // DEV 패널 진행률
+  const devBar = document.getElementById("maint-progress-bar");
+  const devPct = document.getElementById("maint-progress-pct");
+  const devRemain = document.getElementById("maint-remain-txt");
+  const devStart = document.getElementById("maint-start-label");
+  const devEnd   = document.getElementById("maint-end-label");
+  if(devBar) devBar.style.width = pct + "%";
+  if(devPct) devPct.textContent = pct + "%";
+  if(devRemain) devRemain.textContent = remainMs > 0 ? `${remainMin}분 ${remainSec}초 남음` : "완료";
+  if(devStart) devStart.textContent = fmt(startTs);
+  if(devEnd)   devEnd.textContent   = fmt(endTs);
+}
+
 function checkMaintenance() {
-  // 폴링 방식으로 점검 상태 감지
   if(window._startMaintPoll) window._startMaintPoll();
 }
 
@@ -2737,16 +2847,33 @@ window._startMaintPoll = function() {
       const d = await fbGet("maintenance");
       const ol = document.getElementById("maint-overlay");
       if(!ol) return;
+
+      const now = Date.now();
+
+      // 종료 시간 지나면 자동 해제
+      if(d && d.active && d.endTs && now >= d.endTs) {
+        await fbSet("maintenance", {...d, active: false});
+        ol.style.display = "none";
+        const sb = document.getElementById("maint-status-box");
+        if(sb) sb.style.display = "none";
+        return;
+      }
+
       if(d && d.active) {
-        if(isAdminSession()) return;
+        // 진행률 업데이트 (DEV 포함 모두)
+        updateMaintProgress(d);
+
+        if(isAdminSession()) return; // DEV는 오버레이 안 뜸
         document.getElementById("maint-overlay-title").textContent = d.title || "점검 중";
         document.getElementById("maint-overlay-content").textContent = d.content || "";
         ol.style.display = "flex";
       } else {
         ol.style.display = "none";
+        const sb = document.getElementById("maint-status-box");
+        if(sb) sb.style.display = "none";
       }
     } catch(e) {}
-  }, 2000);
+  }, 1000); // 1초마다 (진행률 부드럽게)
 };
 
 // 리더보드
