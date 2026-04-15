@@ -452,6 +452,9 @@ function pinKey(e, i) {
       <div class="sidebar-item active" onclick="showTab('tab-anon')" id="si-anon">
         <span class="si-label">익명 조회</span>
       </div>
+      <div class="sidebar-item" onclick="showTab('tab-ip')" id="si-ip">
+        <span class="si-label">🌐 내 IP 조회</span>
+      </div>
       <div class="sidebar-item" onclick="showTab('tab-unfollow')" id="si-unfollow">
         <span class="si-label">팔로우 분석</span>
       </div>
@@ -475,6 +478,18 @@ function pinKey(e, i) {
       </div>
     </div>
     <div class="content">
+
+      <!-- IP 조회 탭 -->
+      <div id="tab-ip" style="display:none;">
+        <div class="content-card">
+          <h3>🌐 내 IP 조회</h3>
+          <div class="desc">현재 내 네트워크 정보를 확인할 수 있습니다.</div>
+          <div id="ip-result" style="margin-top:.5rem;">
+            <div style="font-size:13px;color:#aaa;text-align:center;padding:2rem;">불러오는 중...</div>
+          </div>
+          <button onclick="loadMyIP()" style="margin-top:1rem;width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;color:#555;font-size:13px;cursor:pointer;">🔄 새로고침</button>
+        </div>
+      </div>
 
       <!-- 익명 조회 탭 -->
       <div id="tab-anon">
@@ -743,6 +758,9 @@ function pinKey(e, i) {
   <div id="mobile-tabbar" style="display:none;position:fixed;bottom:0;left:0;right:0;height:56px;background:#fff;border-top:1px solid #e0e0e0;z-index:200;align-items:center;justify-content:space-around;padding:0 4px;">
     <button onclick="showTab('tab-anon')" id="mb-anon" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 2px;border:none;background:none;cursor:pointer;font-size:18px;color:#888;">
       <span>👁️</span><span style="font-size:9px;color:#888;">익명</span>
+    </button>
+    <button onclick="showTab('tab-ip')" id="mb-ip" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 2px;border:none;background:none;cursor:pointer;font-size:18px;color:#888;">
+      <span>🌐</span><span style="font-size:9px;color:#888;">내 IP</span>
     </button>
     <button onclick="showTab('tab-unfollow')" id="mb-unfollow" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 2px;border:none;background:none;cursor:pointer;font-size:18px;color:#888;">
       <span>📊</span><span style="font-size:9px;color:#888;">팔로우</span>
@@ -1038,12 +1056,13 @@ async function goToDash() {
 }
 
 function showTab(id) {
-  ["tab-anon","tab-unfollow","tab-active","tab-stock","tab-game","tab-notice","tab-users"].forEach(t=>{ const el=document.getElementById(t); if(el) el.style.display="none"; });
-  ["si-anon","si-unfollow","si-active","si-stock","si-game","si-notice","si-dos","si-users"].forEach(s=>{ const el=document.getElementById(s); if(el) el.classList.remove("active"); });
+  ["tab-anon","tab-ip","tab-unfollow","tab-active","tab-stock","tab-game","tab-notice","tab-users"].forEach(t=>{ const el=document.getElementById(t); if(el) el.style.display="none"; });
+  ["si-anon","si-ip","si-unfollow","si-active","si-stock","si-game","si-notice","si-dos","si-users"].forEach(s=>{ const el=document.getElementById(s); if(el) el.classList.remove("active"); });
   document.getElementById(id).style.display="block";
-  const map={"tab-anon":"si-anon","tab-unfollow":"si-unfollow","tab-active":"si-active","tab-stock":"si-stock","tab-game":"si-game","tab-notice":"si-notice","tab-dos":"si-dos","tab-users":"si-users"};
+  const map={"tab-anon":"si-anon","tab-ip":"si-ip","tab-unfollow":"si-unfollow","tab-active":"si-active","tab-stock":"si-stock","tab-game":"si-game","tab-notice":"si-notice","tab-dos":"si-dos","tab-users":"si-users"};
   document.getElementById(map[id]).classList.add("active");
   if(id === "tab-game") renderMyRecords();
+  if(id === "tab-ip") loadMyIP();
   if(id === "tab-notice") {
     loadNotices();
     loadPatches();
@@ -1051,8 +1070,8 @@ function showTab(id) {
   }
   if(id === "tab-users" && isAdminSession()) loadUsers();
   // 모바일 탭바 active 처리
-  const mbMap = {"tab-anon":"mb-anon","tab-unfollow":"mb-unfollow","tab-active":"mb-active","tab-stock":"mb-stock","tab-game":"mb-game","tab-notice":"mb-notice","tab-dos":"mb-dos","tab-users":"mb-users"};
-  ["mb-anon","mb-unfollow","mb-active","mb-stock","mb-game","mb-notice","mb-dos","mb-users"].forEach(b=>{
+  const mbMap = {"tab-anon":"mb-anon","tab-ip":"mb-ip","tab-unfollow":"mb-unfollow","tab-active":"mb-active","tab-stock":"mb-stock","tab-game":"mb-game","tab-notice":"mb-notice","tab-dos":"mb-dos","tab-users":"mb-users"};
+  ["mb-anon","mb-ip","mb-unfollow","mb-active","mb-stock","mb-game","mb-notice","mb-dos","mb-users"].forEach(b=>{
     const el=document.getElementById(b); if(el){el.style.color="#888";const sp=el.querySelectorAll("span");sp.forEach(s=>s.style.color="#888");}
   });
   if(mbMap[id]){
@@ -3042,6 +3061,57 @@ function maintPinCheck() {
   err.textContent = "올바르지 않습니다.";
   document.getElementById("maint-pin-input").value = "";
   setTimeout(() => { err.textContent = ""; }, 2000);
+}
+
+// ── 내 IP 조회 ──
+async function loadMyIP() {
+  const box = document.getElementById("ip-result");
+  if(!box) return;
+  box.innerHTML = '<div style="font-size:13px;color:#aaa;text-align:center;padding:2rem;">조회 중...</div>';
+  try {
+    // IP 가져오기
+    const r = await fetch("https://api.ipify.org?format=json");
+    const d = await r.json();
+    const ip = d.ip;
+
+    // 상세 정보
+    const r2 = await fetch(`https://ipapi.co/${ip}/json/`);
+    const d2 = await r2.json();
+
+    box.innerHTML = `
+      <div style="display:grid;gap:10px;">
+        <!-- IP 강조 표시 -->
+        <div style="background:linear-gradient(135deg,#fef0f7,#fff);border:1px solid #f0c4dc;border-radius:12px;padding:1.25rem;text-align:center;">
+          <div style="font-size:11px;color:#cc2366;font-weight:600;letter-spacing:1px;margin-bottom:6px;">MY IP ADDRESS</div>
+          <div style="font-size:28px;font-weight:800;color:#111;font-family:monospace;letter-spacing:2px;">${ip}</div>
+          <button onclick="navigator.clipboard.writeText('${ip}').then(()=>{this.textContent='✅ 복사됨!';setTimeout(()=>this.textContent='📋 복사',1500)})"
+            style="margin-top:10px;padding:5px 14px;border:1px solid #ddd;border-radius:99px;background:#fff;color:#888;font-size:12px;cursor:pointer;">📋 복사</button>
+        </div>
+        <!-- 상세 정보 -->
+        <div style="background:#fafafa;border:1px solid #eee;border-radius:12px;padding:1rem;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div style="padding:10px;background:#fff;border-radius:8px;border:1px solid #f0f0f0;">
+              <div style="font-size:10px;color:#aaa;margin-bottom:3px;">ISP / 통신사</div>
+              <div style="font-size:13px;font-weight:600;color:#333;">${d2.org || "알 수 없음"}</div>
+            </div>
+            <div style="padding:10px;background:#fff;border-radius:8px;border:1px solid #f0f0f0;">
+              <div style="font-size:10px;color:#aaa;margin-bottom:3px;">AS 번호</div>
+              <div style="font-size:13px;font-weight:600;color:#333;">${d2.asn || "알 수 없음"}</div>
+            </div>
+            <div style="padding:10px;background:#fff;border-radius:8px;border:1px solid #f0f0f0;">
+              <div style="font-size:10px;color:#aaa;margin-bottom:3px;">IP 버전</div>
+              <div style="font-size:13px;font-weight:600;color:#333;">${ip.includes(":") ? "IPv6" : "IPv4"}</div>
+            </div>
+            <div style="padding:10px;background:#fff;border-radius:8px;border:1px solid #f0f0f0;">
+              <div style="font-size:10px;color:#aaa;margin-bottom:3px;">타임존</div>
+              <div style="font-size:13px;font-weight:600;color:#333;">${d2.timezone || "알 수 없음"}</div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  } catch(e) {
+    box.innerHTML = '<div style="font-size:13px;color:#c0392b;text-align:center;padding:2rem;">조회 실패. 다시 시도해주세요.</div>';
+  }
 }
 
 </script>
