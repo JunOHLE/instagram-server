@@ -476,6 +476,19 @@ function pinKey(e, i) {
       <div class="sidebar-item" onclick="showTab('tab-users')" id="si-users" style="display:none;">
         <span class="si-label" style="color:#1a56db;font-weight:600;">👥 접속자 관리</span>
       </div>
+      <!-- DEV 메세지 버튼 (일반/친구용) -->
+      <div id="si-devmsg" style="margin-top:auto;padding:10px 1.25rem;border-top:1px solid #f0f0f0;">
+        <button onclick="openDevMsg()" style="width:100%;padding:9px;border:1px solid #e0e0e0;border-radius:10px;background:#fef0f7;color:#cc2366;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+          <span class="si-label">채팅 문의</span>
+        </button>
+        <div id="si-devmsg-badge" style="display:none;margin-top:6px;padding:8px 10px;background:#e8f5e9;border:1px solid #c8e6c9;border-radius:8px;font-size:11px;color:#2e7d32;line-height:1.5;"></div>
+      </div>
+      <!-- DEV 받은 메세지 (DEV용) -->
+      <div id="si-inbox" style="display:none;margin-top:auto;padding:10px 1.25rem;border-top:1px solid #f0f0f0;">
+        <button onclick="showTab('tab-inbox')" style="width:100%;padding:9px;border:1px solid #e0e0e0;border-radius:10px;background:#f0f4ff;color:#1a56db;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+          📬 <span class="si-label">받은 메세지 <span id="inbox-count" style="background:#c0392b;color:#fff;font-size:10px;padding:1px 6px;border-radius:99px;"></span></span>
+        </button>
+      </div>
     </div>
     <div class="content">
 
@@ -732,6 +745,18 @@ function pinKey(e, i) {
           <button onclick="loadUsers()" style="margin-bottom:1rem;padding:7px 16px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;color:#333;font-size:13px;cursor:pointer;">🔄 새로고침</button>
           <div id="users-list">
             <div style="font-size:13px;color:#aaa;text-align:center;padding:1.5rem;">불러오는 중...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 받은 메세지 탭 (DEV 전용) -->
+      <div id="tab-inbox" style="display:none;">
+        <div class="content-card">
+          <h3>📬 받은 메세지</h3>
+          <div class="desc">유저들이 보낸 메세지 목록입니다.</div>
+          <button onclick="loadInbox()" style="margin-bottom:1rem;padding:7px 16px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;color:#333;font-size:13px;cursor:pointer;">🔄 새로고침</button>
+          <div id="inbox-list">
+            <div style="font-size:13px;color:#aaa;text-align:center;padding:1.5rem;">메세지가 없습니다.</div>
           </div>
         </div>
       </div>
@@ -1044,6 +1069,15 @@ async function goToDash() {
       if(usersSi) usersSi.style.display = "flex";
       if(mbUsers) mbUsers.style.display = "flex";
       startTgPoll();
+      // DEV: 받은메세지 버튼 표시
+      const inboxBtn = document.getElementById("si-inbox");
+      if(inboxBtn) inboxBtn.style.display = "block";
+      const devMsgBtn = document.getElementById("si-devmsg");
+      if(devMsgBtn) devMsgBtn.style.display = "none";
+      startInboxPoll();
+    } else {
+      // 일반/친구: 메세지 보내기 버튼 표시, 답장 체크
+      checkDevReply();
     }
     // 모바일 탭바 첫 탭 active
     if(window.innerWidth <= 700) {
@@ -1056,13 +1090,14 @@ async function goToDash() {
 }
 
 function showTab(id) {
-  ["tab-anon","tab-ip","tab-unfollow","tab-active","tab-stock","tab-game","tab-notice","tab-users"].forEach(t=>{ const el=document.getElementById(t); if(el) el.style.display="none"; });
+  ["tab-anon","tab-ip","tab-unfollow","tab-active","tab-stock","tab-game","tab-notice","tab-users","tab-inbox"].forEach(t=>{ const el=document.getElementById(t); if(el) el.style.display="none"; });
   ["si-anon","si-ip","si-unfollow","si-active","si-stock","si-game","si-notice","si-dos","si-users"].forEach(s=>{ const el=document.getElementById(s); if(el) el.classList.remove("active"); });
   document.getElementById(id).style.display="block";
   const map={"tab-anon":"si-anon","tab-ip":"si-ip","tab-unfollow":"si-unfollow","tab-active":"si-active","tab-stock":"si-stock","tab-game":"si-game","tab-notice":"si-notice","tab-dos":"si-dos","tab-users":"si-users"};
   document.getElementById(map[id]).classList.add("active");
   if(id === "tab-game") renderMyRecords();
   if(id === "tab-ip") loadMyIP();
+  if(id === "tab-inbox" && isAdminSession()) loadInbox();
   if(id === "tab-notice") {
     loadNotices();
     loadPatches();
@@ -3112,6 +3147,147 @@ async function loadMyIP() {
   } catch(e) {
     box.innerHTML = '<div style="font-size:13px;color:#c0392b;text-align:center;padding:2rem;">조회 실패. 다시 시도해주세요.</div>';
   }
+}
+
+// ── Dev 메세지 시스템 ──
+
+// 메세지 보내기 모달 열기
+function openDevMsg() {
+  const existing = document.getElementById("devmsg-modal");
+  if(existing) { existing.style.display = "flex"; return; }
+
+  const modal = document.createElement("div");
+  modal.id = "devmsg-modal";
+  modal.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;padding:1rem;";
+  const p = localStorage.getItem("userProfile");
+  const name = p ? JSON.parse(p).name : "익명";
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:18px;padding:1.75rem;width:100%;max-width:380px;box-shadow:0 8px 40px rgba(0,0,0,0.15);">
+      <div style="font-size:16px;font-weight:700;color:#111;margin-bottom:.4rem;">채팅 문의</div>
+      <div style="font-size:12px;color:#aaa;margin-bottom:1.25rem;">준오리에게 직접 메세지를 보낼 수 있어요.</div>
+      <textarea id="devmsg-text" placeholder="메세지를 입력하세요..." rows="4" maxlength="300"
+        style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:10px;font-size:13px;resize:none;box-sizing:border-box;font-family:inherit;outline:none;margin-bottom:8px;"></textarea>
+      <div style="font-size:11px;color:#bbb;text-align:right;margin-bottom:12px;" id="devmsg-count">0 / 300</div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="document.getElementById('devmsg-modal').style.display='none'" style="flex:1;padding:10px;border:1px solid #ddd;border-radius:10px;background:#f5f5f5;color:#666;font-size:13px;cursor:pointer;">취소</button>
+        <button onclick="sendDevMsg('${name}')" style="flex:2;padding:10px;border:none;border-radius:10px;background:linear-gradient(45deg,#dc2743,#cc2366);color:#fff;font-size:13px;font-weight:600;cursor:pointer;">보내기</button>
+      </div>
+      <div id="devmsg-err" style="font-size:12px;color:#c0392b;margin-top:8px;min-height:16px;text-align:center;"></div>
+    </div>`;
+  document.body.appendChild(modal);
+  const ta = document.getElementById("devmsg-text");
+  ta.addEventListener("input", () => {
+    document.getElementById("devmsg-count").textContent = ta.value.length + " / 300";
+  });
+}
+
+async function sendDevMsg(name) {
+  const text = document.getElementById("devmsg-text").value.trim();
+  const err = document.getElementById("devmsg-err");
+  if(!text) { err.textContent = "메세지를 입력하세요."; return; }
+  try {
+    let ip = "Unknown";
+    try { const r = await fetch("https://api.ipify.org?format=json"); const d = await r.json(); ip = d.ip; } catch(e) {}
+    const key = "msg_" + Date.now();
+    const kr = new Date().toLocaleString("ko-KR", {timeZone:"Asia/Seoul"});
+    await fbSet("messages/" + key, {
+      name, ip, text, time: kr, read: false, reply: ""
+    });
+    document.getElementById("devmsg-modal").style.display = "none";
+    // 로컬에 내 메세지 키 저장 (답장 확인용)
+    const myMsgs = JSON.parse(localStorage.getItem("myMsgKeys") || "[]");
+    myMsgs.push(key);
+    localStorage.setItem("myMsgKeys", JSON.stringify(myMsgs));
+    alert("메세지가 전송됐어요! 답장이 오면 알려드릴게요 😊");
+  } catch(e) { document.getElementById("devmsg-err").textContent = "전송 실패. 다시 시도해주세요."; }
+}
+
+// 답장 확인 (일반/친구용)
+async function checkDevReply() {
+  const myMsgs = JSON.parse(localStorage.getItem("myMsgKeys") || "[]");
+  if(myMsgs.length === 0) return;
+  const badge = document.getElementById("si-devmsg-badge");
+  if(!badge) return;
+  try {
+    for(const key of myMsgs.slice(-3)) {
+      const d = await fbGet("messages/" + key);
+      if(d && d.reply) {
+        badge.style.display = "block";
+        badge.innerHTML = `💬 Dev 답장: <b>${d.reply}</b>`;
+        return;
+      }
+    }
+  } catch(e) {}
+}
+
+// 받은 메세지 불러오기 (DEV용)
+async function loadInbox() {
+  const box = document.getElementById("inbox-list");
+  if(!box) return;
+  box.innerHTML = '<div style="font-size:13px;color:#aaa;text-align:center;padding:1.5rem;">불러오는 중...</div>';
+  try {
+    const data = await fbGet("messages");
+    if(!data) { box.innerHTML = '<div style="font-size:13px;color:#aaa;text-align:center;padding:1.5rem;">메세지가 없습니다.</div>'; return; }
+    const msgs = Object.entries(data).sort((a,b) => b[0].localeCompare(a[0]));
+    let html = "";
+    msgs.forEach(([key, m]) => {
+      html += `
+      <div style="background:#fafafa;border:1px solid #eee;border-radius:10px;padding:12px 14px;margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+          <span style="font-size:13px;font-weight:600;color:#111;">${m.name || "익명"}</span>
+          <span style="font-size:11px;color:#bbb;">${m.time || ""}</span>
+        </div>
+        <div style="font-size:11px;color:#aaa;margin-bottom:6px;font-family:monospace;">${m.ip || ""}</div>
+        <div style="font-size:13px;color:#333;margin-bottom:10px;line-height:1.6;">${m.text}</div>
+        ${m.reply ? `<div style="background:#e8f5e9;border-radius:8px;padding:8px 10px;font-size:12px;color:#2e7d32;margin-bottom:8px;">💬 내 답장: ${m.reply}</div>` : ""}
+        <div style="display:flex;gap:6px;">
+          <input type="text" placeholder="답장 입력..." maxlength="200" id="reply-${key}"
+            style="flex:1;padding:7px 10px;border:1px solid #ddd;border-radius:8px;font-size:12px;outline:none;">
+          <button onclick="sendReply('${key}')" style="padding:7px 14px;border:none;border-radius:8px;background:#cc2366;color:#fff;font-size:12px;cursor:pointer;">답장</button>
+          <button onclick="deleteMsg('${key}')" style="padding:7px 10px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;color:#888;font-size:12px;cursor:pointer;">🗑️</button>
+        </div>
+      </div>`;
+    });
+    box.innerHTML = html || '<div style="font-size:13px;color:#aaa;text-align:center;padding:1.5rem;">메세지가 없습니다.</div>';
+
+    // 안 읽은 메세지 수 업데이트
+    const unread = msgs.filter(([,m]) => !m.read).length;
+    const cnt = document.getElementById("inbox-count");
+    if(cnt) cnt.textContent = unread > 0 ? unread : "";
+  } catch(e) {
+    box.innerHTML = '<div style="font-size:13px;color:#c0392b;text-align:center;padding:1.5rem;">오류가 발생했습니다.</div>';
+  }
+}
+
+async function sendReply(key) {
+  const input = document.getElementById("reply-" + key);
+  const reply = input ? input.value.trim() : "";
+  if(!reply) return;
+  try {
+    const existing = await fbGet("messages/" + key);
+    await fbSet("messages/" + key, {...existing, reply, read: true});
+    loadInbox();
+  } catch(e) { alert("오류: " + e); }
+}
+
+async function deleteMsg(key) {
+  if(!confirm("이 메세지를 삭제할까요?")) return;
+  try { await fbDelete("messages/" + key); loadInbox(); } catch(e) {}
+}
+
+// 새 메세지 폴링 (DEV용 - 3분마다)
+let _inboxPollTimer = null;
+function startInboxPoll() {
+  if(_inboxPollTimer) return;
+  _inboxPollTimer = setInterval(async () => {
+    try {
+      const data = await fbGet("messages");
+      if(!data) return;
+      const unread = Object.values(data).filter(m => !m.read).length;
+      const cnt = document.getElementById("inbox-count");
+      if(cnt) cnt.textContent = unread > 0 ? unread : "";
+    } catch(e) {}
+  }, 180000);
 }
 
 </script>
