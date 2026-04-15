@@ -3056,41 +3056,12 @@ function maintPinCheck() {
   }
 
   // 친구 → 친구 대시보드로 이동 (점검 오버레이 유지, 기본 BGM 재생)
-  if(btoa(unescape(encodeURIComponent(val))) === "OTIwMzE4") {
-    sessionStorage.setItem("loginType", "friend");
-    sessionStorage.setItem("isFriend", "true");
-    if(mbgm) { mbgm.pause(); mbgm.currentTime = 0; }
-    document.getElementById("maint-overlay").style.display = "none";
-    document.getElementById("page-pin").style.display = "none";
-    document.body.style.visibility = "visible";
-    // 기본 BGM 재생
-    setTimeout(() => {
-      const bgm = document.getElementById("bgm");
-      if(bgm) { const vol = document.getElementById("vol-slider"); bgm.volume = vol ? vol.value/100 : 0.5; bgm.play().catch(()=>{}); }
-    }, 300);
-    const saved = localStorage.getItem("userProfile");
-    if(saved) { goToDash(); } else { goToTerms(); }
-    setTimeout(() => {
-      if(!isAdminSession()) document.getElementById("maint-overlay").style.display = "flex";
-    }, 500);
-    return;
-  }
-
-  // 일반 → 일반 대시보드로 이동 (점검 오버레이 유지, 기본 BGM 재생)
-  if(btoa(unescape(encodeURIComponent(val))) === "MTk4MjM1") {
-    if(mbgm) { mbgm.pause(); mbgm.currentTime = 0; }
-    document.getElementById("maint-overlay").style.display = "none";
-    document.getElementById("page-pin").style.display = "none";
-    document.body.style.visibility = "visible";
-    // 기본 BGM 재생
-    setTimeout(() => {
-      const bgm = document.getElementById("bgm");
-      if(bgm) { const vol = document.getElementById("vol-slider"); bgm.volume = vol ? vol.value/100 : 0.5; bgm.play().catch(()=>{}); }
-    }, 300);
-    goToTerms();
-    setTimeout(() => {
-      if(!isAdminSession()) document.getElementById("maint-overlay").style.display = "flex";
-    }, 500);
+  // 친구/일반 PIN → 점검 중 접근 불가
+  if(btoa(unescape(encodeURIComponent(val))) === "OTIwMzE4" ||
+     btoa(unescape(encodeURIComponent(val))) === "MTk4MjM1") {
+    err.textContent = "점검 중에는 접근할 수 없습니다.";
+    document.getElementById("maint-pin-input").value = "";
+    setTimeout(() => { err.textContent = ""; }, 2500);
     return;
   }
 
