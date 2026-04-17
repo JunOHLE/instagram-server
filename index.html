@@ -478,8 +478,34 @@ function pinKey(e, i) {
       <div class="sidebar-item" onclick="showTab('tab-users')" id="si-users" style="display:none;">
         <span class="si-label" style="color:#1a56db;font-weight:600;">👥 접속자 관리</span>
       </div>
+      <!-- 개발자 목록 -->
+      <div id="si-devlist" style="padding:0 1.25rem;border-top:1px solid #f0f0f0;margin-top:auto;">
+        <div onclick="toggleDevList()" style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;cursor:pointer;user-select:none;">
+          <span style="font-size:13px;color:#444;font-weight:500;">개발자</span>
+          <span id="devlist-arrow" style="font-size:10px;color:#aaa;transition:transform .2s;">▼</span>
+        </div>
+        <div id="devlist-content" style="display:none;padding-bottom:10px;">
+          <a href="https://www.instagram.com/j.1bx9/" target="_blank"
+            style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;text-decoration:none;color:#333;font-size:12px;margin-bottom:4px;background:#fafafa;border:1px solid #f0f0f0;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><defs><radialGradient id="igdl1" cx="30%" cy="107%" r="150%"><stop offset="0%" stop-color="#fdf497"/><stop offset="45%" stop-color="#fd5949"/><stop offset="60%" stop-color="#d6249f"/><stop offset="90%" stop-color="#285AEB"/></radialGradient></defs><rect x="2" y="2" width="20" height="20" rx="6" fill="url(#igdl1)"/><circle cx="12" cy="12" r="4.5" stroke="white" stroke-width="1.8" fill="none"/><circle cx="17.2" cy="6.8" r="1.2" fill="white"/></svg>
+            <div>
+              <div style="font-size:10px;color:#aaa;margin-bottom:1px;">Dev tool admin</div>
+              <div style="font-size:12px;color:#cc2366;font-weight:500;">@j.1bx9</div>
+            </div>
+          </a>
+          <a href="https://www.instagram.com/t.bxdw09/" target="_blank"
+            style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;text-decoration:none;color:#333;font-size:12px;background:#fafafa;border:1px solid #f0f0f0;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><defs><radialGradient id="igdl2" cx="30%" cy="107%" r="150%"><stop offset="0%" stop-color="#fdf497"/><stop offset="45%" stop-color="#fd5949"/><stop offset="60%" stop-color="#d6249f"/><stop offset="90%" stop-color="#285AEB"/></radialGradient></defs><rect x="2" y="2" width="20" height="20" rx="6" fill="url(#igdl2)"/><circle cx="12" cy="12" r="4.5" stroke="white" stroke-width="1.8" fill="none"/><circle cx="17.2" cy="6.8" r="1.2" fill="white"/></svg>
+            <div>
+              <div style="font-size:10px;color:#aaa;margin-bottom:1px;">Dev tool admin</div>
+              <div style="font-size:12px;color:#cc2366;font-weight:500;">@t.bxdw09</div>
+            </div>
+          </a>
+        </div>
+      </div>
+
       <!-- DEV 메세지 버튼 (일반/친구용) -->
-      <div id="si-devmsg" style="margin-top:auto;padding:10px 1.25rem;border-top:1px solid #f0f0f0;">
+      <div id="si-devmsg" style="padding:10px 1.25rem;border-top:1px solid #f0f0f0;">
         <button onclick="openDevMsg()" style="width:100%;padding:9px;border:1px solid #e0e0e0;border-radius:10px;background:#fef0f7;color:#cc2366;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
           <span class="si-label">채팅 문의</span>
         </button>
@@ -3261,6 +3287,20 @@ function startInboxPoll() {
       if(cnt) cnt.textContent = unread > 0 ? unread : "";
     } catch(e) {}
   }, 180000);
+}
+
+// ── 개발자 목록 토글 ──
+function toggleDevList() {
+  const content = document.getElementById("devlist-content");
+  const arrow = document.getElementById("devlist-arrow");
+  if(!content) return;
+  if(content.style.display === "none") {
+    content.style.display = "block";
+    if(arrow) arrow.style.transform = "rotate(180deg)";
+  } else {
+    content.style.display = "none";
+    if(arrow) arrow.style.transform = "rotate(0deg)";
+  }
 }
 
 </script>
