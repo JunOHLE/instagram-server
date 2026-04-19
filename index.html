@@ -3370,7 +3370,13 @@ function startMaintVideo() {
 
 function stopMaintVideo() {
   const video = document.getElementById("maint-video");
-  if(video) { video.pause(); video.src = ""; }
+  if(video) {
+    video.pause();
+    video.onended = null;
+    video.src = "";
+    video.load();
+    video.muted = true;
+  }
 }
 
 </script>
