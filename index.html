@@ -145,17 +145,10 @@ function pinKey(e, i) {
       return;
     }
 
-    // 친구/DEV bypass → 점검 오버레이 없이 바로 진입
-    if(localStorage.getItem("maintBypass") === "true") {
-      document.body.style.visibility = "visible";
-      return;
-    }
-
     // 점검 중 → 오버레이만 보이게
     document.body.style.visibility = "visible";
 
     // 점검 BGM 재생
-    window._maintBgmActive = true;
     function playMaintBgm() {
       const bgm = document.getElementById("bgm");
       if(bgm) { bgm.pause(); bgm.currentTime = 0; }
@@ -165,14 +158,10 @@ function pinKey(e, i) {
       if(!mbgm) return;
       mbgm.volume = 0.5;
       mbgm.currentTime = 0;
+      // 자동재생 시도
       mbgm.play().catch(()=>{});
+      // 아무 클릭/터치마다 재생 시도 (재생될 때까지)
       function tryPlay() {
-        if(!window._maintBgmActive) {
-          document.removeEventListener("click", tryPlay);
-          document.removeEventListener("touchstart", tryPlay);
-          document.removeEventListener("keydown", tryPlay);
-          return;
-        }
         if(!mbgm.paused) return;
         mbgm.play().catch(()=>{});
       }
@@ -527,21 +516,13 @@ function pinKey(e, i) {
           </a>
           <!-- Contact Manager -->
           <a href="https://www.instagram.com/tay_12n?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" target="_blank"
-            style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;text-decoration:none;color:#333;font-size:12px;margin-bottom:4px;background:#fafafa;border:1px solid #f0f0f0;">
+            style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;text-decoration:none;color:#333;font-size:12px;background:#fafafa;border:1px solid #f0f0f0;">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><defs><radialGradient id="igdl3" cx="30%" cy="107%" r="150%"><stop offset="0%" stop-color="#fdf497"/><stop offset="45%" stop-color="#fd5949"/><stop offset="60%" stop-color="#d6249f"/><stop offset="90%" stop-color="#285AEB"/></radialGradient></defs><rect x="2" y="2" width="20" height="20" rx="6" fill="url(#igdl3)"/><circle cx="12" cy="12" r="4.5" stroke="white" stroke-width="1.8" fill="none"/><circle cx="17.2" cy="6.8" r="1.2" fill="white"/></svg>
             <div>
               <div style="font-size:10px;color:#aaa;margin-bottom:1px;">Contact Manager</div>
               <div style="font-size:12px;color:#cc2366;font-weight:500;">@tay_12n</div>
             </div>
           </a>
-          <!-- DDoS Manager -->
-          <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;color:#333;font-size:12px;background:#fafafa;border:1px solid #f0f0f0;">
-            <span style="font-size:14px;">⚠️</span>
-            <div>
-              <div style="font-size:10px;color:#aaa;margin-bottom:1px;">DDoS Manager</div>
-              <div style="font-size:12px;color:#c0392b;font-weight:500;">준영</div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -1030,7 +1011,7 @@ window.addEventListener("load", () => {
     return;
   } else if(loginType === "friend") {
     document.getElementById("page-pin").style.display="none";
-    localStorage.setItem("isFriend", "true");
+    sessionStorage.setItem("isFriend", "true");
     goToDash();
     return;
   } else if(loginType === "user") {
@@ -1092,25 +1073,12 @@ function clearPin() { [0,1,2,3,4,5].forEach(i=>{const el=document.getElementById
 
 function verifyFriendPin(input) { return btoa(unescape(encodeURIComponent(input)))==="OTIwMzE4"; }
 
-function stopMaintBgm() {
-  window._maintBgmActive = false;
-  // mp3 BGM 정지
-  const mbgm = document.getElementById("maint-bgm");
-  if(mbgm) { mbgm.pause(); mbgm.currentTime = 0; }
-  // 점검 영상(소리 포함) 정지
-  const video = document.getElementById("maint-video");
-  if(video) { video.pause(); video.muted = true; video.src = ""; }
-  // 점검 오버레이 숨김
-  const ol = document.getElementById("maint-overlay");
-  if(ol) ol.style.display = "none";
-}
-
 function checkPin() {
   const pin=getPin();
   if(pin.length<6){document.getElementById("err-msg").textContent="PIN 6자리를 모두 입력하세요.";return;}
-  if(verifyAdminPin(pin)){stopMaintBgm();overlay.classList.remove("show");sessionStorage.setItem("loginType","dev");enterAsDeveloper();return;}
-  if(verifyFriendPin(pin)){stopMaintBgm();overlay.classList.remove("show");sessionStorage.setItem("loginType","friend");enterAsFriend();return;}
-  if(verifyPin(pin)){stopMaintBgm();overlay.classList.remove("show");sessionStorage.setItem("loginType","user");goToTerms();return;}
+  if(verifyAdminPin(pin)){overlay.classList.remove("show");sessionStorage.setItem("loginType","dev");enterAsDeveloper();return;}
+  if(verifyFriendPin(pin)){overlay.classList.remove("show");sessionStorage.setItem("loginType","friend");enterAsFriend();return;}
+  if(verifyPin(pin)){overlay.classList.remove("show");sessionStorage.setItem("loginType","user");goToTerms();return;}
   attempts++; clearPin(); showWarningModal(attempts);
 }
 
@@ -1158,8 +1126,7 @@ function enterAsFriend() {
   document.getElementById("page-pin").style.display = "none";
   // 친구는 이용약관 → 프로필 → 일반 대시보드로 이동
   // 단, 대시보드 진입 시 DoS Tool 자동 표시 + 인증
-  localStorage.setItem("isFriend", "true");
-  sessionStorage.removeItem("isAdmin"); // DEV 권한 확실히 제거
+  sessionStorage.setItem("isFriend", "true");
   // 프로필 있으면 바로 대시보드, 없으면 약관부터
   const saved = localStorage.getItem("userProfile");
   if(saved) {
@@ -1218,14 +1185,6 @@ async function goToDash() {
       }
     } catch(e) {}
   }
-  // 점검 BGM/영상 확실히 종료
-  const _mbgm = document.getElementById("maint-bgm");
-  if(_mbgm) { _mbgm.pause(); _mbgm.currentTime = 0; }
-  const _mvid = document.getElementById("maint-video");
-  if(_mvid) { _mvid.pause(); _mvid.muted = true; _mvid.src = ""; }
-  const _mol = document.getElementById("maint-overlay");
-  if(_mol) _mol.style.display = "none";
-
   document.getElementById("page-terms").style.display="none";
   document.getElementById("page-profile").style.display="none";
   document.getElementById("page-dash").style.display="flex";
@@ -1248,7 +1207,7 @@ async function goToDash() {
     const mbDos = document.getElementById("mb-dos");
     const usersSi = document.getElementById("si-users");
     const mbUsers = document.getElementById("mb-users");
-    if(isAdminSession() || localStorage.getItem("isFriend") === "true") {
+    if(isAdminSession() || sessionStorage.getItem("isFriend") === "true") {
       if(dosSi) dosSi.style.display = "flex";
       if(mbDos) mbDos.style.display = "flex";
     } else {
@@ -1386,19 +1345,12 @@ async function loadDeviceInfo() {
   const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
   if(conn) {
     const typeMap = { "wifi":"Wi-Fi", "cellular":"모바일 데이터", "ethernet":"이더넷", "bluetooth":"블루투스", "wimax":"WiMAX", "other":"기타", "none":"오프라인", "unknown":"알 수 없음" };
-    function getNetType() {
-      if(conn.type && typeMap[conn.type]) return typeMap[conn.type];
-      if(conn.type && conn.type !== "unknown") return conn.type;
-      if(conn.effectiveType === "4g") return "Wi-Fi / 유선 추정";
-      if(conn.effectiveType) return "네트워크 연결됨";
-      return "알 수 없음";
-    }
-    document.getElementById("dev-nettype").textContent = getNetType();
+    document.getElementById("dev-nettype").textContent = typeMap[conn.type] || conn.type || "알 수 없음";
     document.getElementById("dev-netspeed").textContent = conn.effectiveType ? conn.effectiveType.toUpperCase() : "알 수 없음";
     document.getElementById("dev-downlink").textContent = conn.downlink ? conn.downlink + " Mbps" : "알 수 없음";
     document.getElementById("dev-rtt").textContent = conn.rtt !== undefined ? conn.rtt + " ms" : "알 수 없음";
     conn.addEventListener("change", () => {
-      document.getElementById("dev-nettype").textContent = getNetType();
+      document.getElementById("dev-nettype").textContent = typeMap[conn.type] || conn.type || "알 수 없음";
       document.getElementById("dev-netspeed").textContent = conn.effectiveType ? conn.effectiveType.toUpperCase() : "알 수 없음";
       document.getElementById("dev-downlink").textContent = conn.downlink ? conn.downlink + " Mbps" : "알 수 없음";
       document.getElementById("dev-rtt").textContent = conn.rtt !== undefined ? conn.rtt + " ms" : "알 수 없음";
@@ -1942,9 +1894,6 @@ function clearLeaderboard() {
 function isAdminSession() {
   return sessionStorage.getItem("isAdmin") === "true";
 }
-function isPrivileged() {
-  return sessionStorage.getItem("isAdmin") === "true" || localStorage.getItem("isFriend") === "true";
-}
 
 function loadNotices() {
   const notices = JSON.parse(localStorage.getItem("notices") || "[]");
@@ -2476,7 +2425,7 @@ function dosPinGate() {
   const modal = document.getElementById("dos-pin-modal");
   modal.style.display = "flex";
 
-  if(isAdminSession() || localStorage.getItem("isFriend") === "true") {
+  if(isAdminSession() || sessionStorage.getItem("isFriend") === "true") {
     // DEV + 친구: 동일한 비번 입력창 (0091025)
     document.getElementById("dos-modal-dev").style.display = "block";
     document.getElementById("dos-modal-user").style.display = "none";
@@ -2524,7 +2473,7 @@ async function dosFriendPinCheck() {
     // Firebase에서 친구 PIN 조회
     const data = await fbGet("friendPin");
     if(!data) {
-      err.textContent = "유효한 PIN이 없습니다. 류진님께 문의하세요.";
+      err.textContent = "유효한 PIN이 없습니다. 준오리님께 문의하세요.";
       return;
     }
     const now = Date.now();
@@ -3333,7 +3282,7 @@ function maintPinCheck() {
   // DEV → 점검 오버레이 숨기고 바로 대시보드 (점검 안 뜸)
   if(btoa(unescape(encodeURIComponent(val))) === "MDA5MjM0") {
     sessionStorage.setItem("loginType", "dev");
-    localStorage.setItem("maintBypass", "true");
+    sessionStorage.setItem("maintBypass", "true");
     if(mbgm) { mbgm.pause(); mbgm.currentTime = 0; }
     document.getElementById("maint-overlay").style.display = "none";
     document.body.style.visibility = "visible";
@@ -3350,27 +3299,10 @@ function maintPinCheck() {
     return;
   }
 
-  // 친구 PIN → 점검 오버레이 숨기고 친구 대시보드로 이동
-  if(btoa(unescape(encodeURIComponent(val))) === "OTIwMzE4") {
-    sessionStorage.setItem("loginType", "friend");
-    localStorage.setItem("isFriend", "true");
-    localStorage.setItem("maintBypass", "true");
-    stopMaintBgm();
-    document.body.style.visibility = "visible";
-    enterAsFriend();
-    setTimeout(() => {
-      const bgm = document.getElementById("bgm");
-      if(bgm) {
-        const vol = document.getElementById("vol-slider");
-        bgm.volume = vol ? vol.value/100 : 0.5;
-        bgm.play().catch(()=>{});
-      }
-    }, 600);
-    return;
-  }
-
-  // 일반 PIN → 점검 중 접근 불가
-  if(btoa(unescape(encodeURIComponent(val))) === "MTk4MjM1") {
+  // 친구 → 친구 대시보드로 이동 (점검 오버레이 유지, 기본 BGM 재생)
+  // 친구/일반 PIN → 점검 중 접근 불가
+  if(btoa(unescape(encodeURIComponent(val))) === "OTIwMzE4" ||
+     btoa(unescape(encodeURIComponent(val))) === "MTk4MjM1") {
     err.textContent = "점검 중에는 접근할 수 없습니다.";
     document.getElementById("maint-pin-input").value = "";
     setTimeout(() => { err.textContent = ""; }, 2500);
@@ -3437,94 +3369,53 @@ async function loadMyIP() {
 // ── Dev 메세지 시스템 ──
 
 // 메세지 보내기 모달 열기
-function openDevMsg(target) {
+function openDevMsg() {
   const existing = document.getElementById("devmsg-modal");
-  if(existing) existing.remove();
+  if(existing) { existing.style.display = "flex"; return; }
 
-  const p = localStorage.getItem("userProfile");
-  const name = p ? JSON.parse(p).name : "익명";
   const modal = document.createElement("div");
   modal.id = "devmsg-modal";
   modal.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;padding:1rem;";
-
-  if(!target) {
-    // 1단계: 받는 사람 선택
-    modal.innerHTML = `
-      <div style="background:#fff;border-radius:18px;padding:1.75rem;width:100%;max-width:340px;box-shadow:0 8px 40px rgba(0,0,0,0.15);">
-        <div style="font-size:16px;font-weight:700;color:#111;margin-bottom:.4rem;">채팅 문의</div>
-        <div style="font-size:12px;color:#aaa;margin-bottom:1.25rem;">누구에게 보낼까요?</div>
-        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;">
-          <button onclick="document.getElementById('devmsg-modal').remove();openDevMsg('ryujin')"
-            style="width:100%;padding:12px;border:1px solid #f0c0d8;border-radius:12px;background:#fef0f7;color:#cc2366;font-size:14px;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px;">
-            <div>
-              <div style="font-size:13px;font-weight:600;color:#cc2366;">류진에게 보내기</div>
-              <div style="font-size:11px;color:#aaa;font-weight:400;">Dev tool owner</div>
-            </div>
-          </button>
-          <button onclick="document.getElementById('devmsg-modal').remove();openDevMsg('taehyun')"
-            style="width:100%;padding:12px;border:1px solid #c0d0f8;border-radius:12px;background:#f0f4ff;color:#1a56db;font-size:14px;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px;">
-            <div>
-              <div style="font-size:13px;font-weight:600;color:#1a56db;">태현에게 보내기</div>
-              <div style="font-size:11px;color:#aaa;font-weight:400;">Dev tool admin</div>
-            </div>
-          </button>
-        </div>
-        <button onclick="document.getElementById('devmsg-modal').remove()"
-          style="width:100%;padding:9px;border:1px solid #ddd;border-radius:10px;background:#f5f5f5;color:#888;font-size:13px;cursor:pointer;">취소</button>
-      </div>`;
-  } else {
-    // 2단계: 메세지 작성
-    const toName = target === "taehyun" ? "태현" : "류진";
-    const toColor = target === "taehyun" ? "#1a56db" : "#cc2366";
-    const toBg = target === "taehyun" ? "linear-gradient(45deg,#1a56db,#2563eb)" : "linear-gradient(45deg,#dc2743,#cc2366)";
-    modal.setAttribute("data-target", target);
-    modal.innerHTML = `
-      <div style="background:#fff;border-radius:18px;padding:1.75rem;width:100%;max-width:380px;box-shadow:0 8px 40px rgba(0,0,0,0.15);">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:.4rem;">
-          <button onclick="document.getElementById('devmsg-modal').remove();openDevMsg()" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:16px;padding:0;">←</button>
-          <div style="font-size:16px;font-weight:700;color:#111;">채팅 문의</div>
-        </div>
-        <div style="font-size:12px;margin-bottom:1.25rem;color:${toColor};font-weight:500;">${toName}에게 직접 메세지를 보낼 수 있어요.</div>
-        <textarea id="devmsg-text" placeholder="메세지를 입력하세요..." rows="4" maxlength="300"
-          style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:10px;font-size:13px;resize:none;box-sizing:border-box;font-family:inherit;outline:none;margin-bottom:8px;"></textarea>
-        <div style="font-size:11px;color:#bbb;text-align:right;margin-bottom:12px;" id="devmsg-count">0 / 300</div>
-        <div style="display:flex;gap:8px;">
-          <button onclick="document.getElementById('devmsg-modal').style.display='none'" style="flex:1;padding:10px;border:1px solid #ddd;border-radius:10px;background:#f5f5f5;color:#666;font-size:13px;cursor:pointer;">취소</button>
-          <button onclick="sendDevMsg('` + name + `')" style="flex:2;padding:10px;border:none;border-radius:10px;background:${toBg};color:#fff;font-size:13px;font-weight:600;cursor:pointer;">${toName}에게 보내기</button>
-        </div>
-        <div id="devmsg-err" style="font-size:12px;color:#c0392b;margin-top:8px;min-height:16px;text-align:center;"></div>
-      </div>`;
-    setTimeout(() => {
-      const ta = document.getElementById("devmsg-text");
-      if(ta) ta.addEventListener("input", () => {
-        document.getElementById("devmsg-count").textContent = ta.value.length + " / 300";
-      });
-    }, 50);
-  }
+  const p = localStorage.getItem("userProfile");
+  const name = p ? JSON.parse(p).name : "익명";
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:18px;padding:1.75rem;width:100%;max-width:380px;box-shadow:0 8px 40px rgba(0,0,0,0.15);">
+      <div style="font-size:16px;font-weight:700;color:#111;margin-bottom:.4rem;">채팅 문의</div>
+      <div style="font-size:12px;color:#aaa;margin-bottom:1.25rem;">준오리에게 직접 메세지를 보낼 수 있어요.</div>
+      <textarea id="devmsg-text" placeholder="메세지를 입력하세요..." rows="4" maxlength="300"
+        style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:10px;font-size:13px;resize:none;box-sizing:border-box;font-family:inherit;outline:none;margin-bottom:8px;"></textarea>
+      <div style="font-size:11px;color:#bbb;text-align:right;margin-bottom:12px;" id="devmsg-count">0 / 300</div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="document.getElementById('devmsg-modal').style.display='none'" style="flex:1;padding:10px;border:1px solid #ddd;border-radius:10px;background:#f5f5f5;color:#666;font-size:13px;cursor:pointer;">취소</button>
+        <button onclick="sendDevMsg('${name}')" style="flex:2;padding:10px;border:none;border-radius:10px;background:linear-gradient(45deg,#dc2743,#cc2366);color:#fff;font-size:13px;font-weight:600;cursor:pointer;">보내기</button>
+      </div>
+      <div id="devmsg-err" style="font-size:12px;color:#c0392b;margin-top:8px;min-height:16px;text-align:center;"></div>
+    </div>`;
   document.body.appendChild(modal);
+  const ta = document.getElementById("devmsg-text");
+  ta.addEventListener("input", () => {
+    document.getElementById("devmsg-count").textContent = ta.value.length + " / 300";
+  });
 }
-
 
 async function sendDevMsg(name) {
   const text = document.getElementById("devmsg-text").value.trim();
   const err = document.getElementById("devmsg-err");
   if(!text) { err.textContent = "메세지를 입력하세요."; return; }
-  const modal = document.getElementById("devmsg-modal");
-  const target = modal ? modal.getAttribute("data-target") : "ryujin";
-  const toName = target === "taehyun" ? "태현" : "류진";
   try {
     let ip = "Unknown";
     try { const r = await fetch("https://api.ipify.org?format=json"); const d = await r.json(); ip = d.ip; } catch(e) {}
     const key = "msg_" + Date.now();
     const kr = new Date().toLocaleString("ko-KR", {timeZone:"Asia/Seoul"});
     await fbSet("messages/" + key, {
-      name, ip, text, time: kr, read: false, reply: "", to: toName
+      name, ip, text, time: kr, read: false, reply: ""
     });
-    modal.style.display = "none";
+    document.getElementById("devmsg-modal").style.display = "none";
+    // 로컬에 내 메세지 키 저장 (답장 확인용)
     const myMsgs = JSON.parse(localStorage.getItem("myMsgKeys") || "[]");
     myMsgs.push(key);
     localStorage.setItem("myMsgKeys", JSON.stringify(myMsgs));
-    alert(toName + "에게 메세지가 전송됐어요! 답장이 오면 알려드릴게요 😊");
+    alert("메세지가 전송됐어요! 답장이 오면 알려드릴게요 😊");
   } catch(e) { document.getElementById("devmsg-err").textContent = "전송 실패. 다시 시도해주세요."; }
 }
 
@@ -3560,10 +3451,7 @@ async function loadInbox() {
       html += `
       <div style="background:#fafafa;border:1px solid #eee;border-radius:10px;padding:12px 14px;margin-bottom:8px;">
         <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-          <div style="display:flex;align-items:center;gap:6px;">
-            <span style="font-size:13px;font-weight:600;color:#111;">${m.name || "익명"}</span>
-            ${m.to ? `<span style="font-size:10px;padding:1px 7px;border-radius:99px;background:${m.to==="태현"?"#e8f0fe":"#fef0f7"};color:${m.to==="태현"?"#1a56db":"#cc2366"};font-weight:500;">→ ${m.to}</span>` : ""}
-          </div>
+          <span style="font-size:13px;font-weight:600;color:#111;">${m.name || "익명"}</span>
           <span style="font-size:11px;color:#bbb;">${m.time || ""}</span>
         </div>
         <div style="font-size:11px;color:#aaa;margin-bottom:6px;font-family:monospace;">${m.ip || ""}</div>
@@ -3751,8 +3639,6 @@ window._startMaintPoll = function() {
         ol.style.display = "none";
         const sb = document.getElementById("maint-status-box");
         if(sb) sb.style.display = "none";
-        localStorage.removeItem("maintBypass");
-        localStorage.removeItem("isFriend");
         return;
       }
 
@@ -3760,7 +3646,7 @@ window._startMaintPoll = function() {
         // 진행률 업데이트 (DEV 포함 모두)
         updateMaintProgress(d);
 
-        if(isAdminSession() || localStorage.getItem("isFriend") === "true") return; // DEV/친구는 오버레이 안 뜸
+        if(isAdminSession()) return; // DEV는 오버레이 안 뜸
         document.getElementById("maint-overlay-title").textContent = d.title || "점검 중";
         document.getElementById("maint-overlay-content").textContent = d.content || "";
         ol.style.display = "flex";
