@@ -1,4 +1,4 @@
-=<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -207,6 +207,7 @@ function pinKey(e, i) {
       ol.style.display = "flex";
       if(typeof updateMaintProgress === "function") updateMaintProgress(data);
       startMaintVideo();
+      playMaintBgm();
     }
 
     if(document.readyState === "loading") {
