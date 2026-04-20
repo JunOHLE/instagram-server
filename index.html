@@ -149,6 +149,7 @@ function pinKey(e, i) {
     document.body.style.visibility = "visible";
 
     // 점검 BGM 재생
+    window._maintBgmActive = true;
     function playMaintBgm() {
       const bgm = document.getElementById("bgm");
       if(bgm) { bgm.pause(); bgm.currentTime = 0; }
@@ -158,10 +159,14 @@ function pinKey(e, i) {
       if(!mbgm) return;
       mbgm.volume = 0.5;
       mbgm.currentTime = 0;
-      // 자동재생 시도
       mbgm.play().catch(()=>{});
-      // 아무 클릭/터치마다 재생 시도 (재생될 때까지)
       function tryPlay() {
+        if(!window._maintBgmActive) {
+          document.removeEventListener("click", tryPlay);
+          document.removeEventListener("touchstart", tryPlay);
+          document.removeEventListener("keydown", tryPlay);
+          return;
+        }
         if(!mbgm.paused) return;
         mbgm.play().catch(()=>{});
       }
@@ -1074,9 +1079,9 @@ function clearPin() { [0,1,2,3,4,5].forEach(i=>{const el=document.getElementById
 function verifyFriendPin(input) { return btoa(unescape(encodeURIComponent(input)))==="OTIwMzE4"; }
 
 function stopMaintBgm() {
+  window._maintBgmActive = false;
   const mbgm = document.getElementById("maint-bgm");
   if(mbgm) { mbgm.pause(); mbgm.currentTime = 0; }
-  // 점검 오버레이도 숨김
   const ol = document.getElementById("maint-overlay");
   if(ol) ol.style.display = "none";
 }
