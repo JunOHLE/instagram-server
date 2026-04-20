@@ -1193,6 +1193,12 @@ async function goToDash() {
       }
     } catch(e) {}
   }
+  // 점검 BGM 확실히 종료
+  const _mbgm = document.getElementById("maint-bgm");
+  if(_mbgm) { _mbgm.pause(); _mbgm.currentTime = 0; }
+  const _mol = document.getElementById("maint-overlay");
+  if(_mol) _mol.style.display = "none";
+
   document.getElementById("page-terms").style.display="none";
   document.getElementById("page-profile").style.display="none";
   document.getElementById("page-dash").style.display="flex";
