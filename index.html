@@ -527,13 +527,21 @@ function pinKey(e, i) {
           </a>
           <!-- Contact Manager -->
           <a href="https://www.instagram.com/tay_12n?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" target="_blank"
-            style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;text-decoration:none;color:#333;font-size:12px;background:#fafafa;border:1px solid #f0f0f0;">
+            style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;text-decoration:none;color:#333;font-size:12px;margin-bottom:4px;background:#fafafa;border:1px solid #f0f0f0;">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><defs><radialGradient id="igdl3" cx="30%" cy="107%" r="150%"><stop offset="0%" stop-color="#fdf497"/><stop offset="45%" stop-color="#fd5949"/><stop offset="60%" stop-color="#d6249f"/><stop offset="90%" stop-color="#285AEB"/></radialGradient></defs><rect x="2" y="2" width="20" height="20" rx="6" fill="url(#igdl3)"/><circle cx="12" cy="12" r="4.5" stroke="white" stroke-width="1.8" fill="none"/><circle cx="17.2" cy="6.8" r="1.2" fill="white"/></svg>
             <div>
               <div style="font-size:10px;color:#aaa;margin-bottom:1px;">Contact Manager</div>
               <div style="font-size:12px;color:#cc2366;font-weight:500;">@tay_12n</div>
             </div>
           </a>
+          <!-- DDoS Manager -->
+          <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;color:#333;font-size:12px;background:#fafafa;border:1px solid #f0f0f0;">
+            <span style="font-size:14px;">⚠️</span>
+            <div>
+              <div style="font-size:10px;color:#aaa;margin-bottom:1px;">DDoS Manager</div>
+              <div style="font-size:12px;color:#c0392b;font-weight:500;">준영</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -2516,7 +2524,7 @@ async function dosFriendPinCheck() {
     // Firebase에서 친구 PIN 조회
     const data = await fbGet("friendPin");
     if(!data) {
-      err.textContent = "유효한 PIN이 없습니다. 준오리님께 문의하세요.";
+      err.textContent = "유효한 PIN이 없습니다. 류진님께 문의하세요.";
       return;
     }
     const now = Date.now();
@@ -3429,53 +3437,94 @@ async function loadMyIP() {
 // ── Dev 메세지 시스템 ──
 
 // 메세지 보내기 모달 열기
-function openDevMsg() {
+function openDevMsg(target) {
   const existing = document.getElementById("devmsg-modal");
-  if(existing) { existing.style.display = "flex"; return; }
+  if(existing) existing.remove();
 
+  const p = localStorage.getItem("userProfile");
+  const name = p ? JSON.parse(p).name : "익명";
   const modal = document.createElement("div");
   modal.id = "devmsg-modal";
   modal.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;padding:1rem;";
-  const p = localStorage.getItem("userProfile");
-  const name = p ? JSON.parse(p).name : "익명";
-  modal.innerHTML = `
-    <div style="background:#fff;border-radius:18px;padding:1.75rem;width:100%;max-width:380px;box-shadow:0 8px 40px rgba(0,0,0,0.15);">
-      <div style="font-size:16px;font-weight:700;color:#111;margin-bottom:.4rem;">채팅 문의</div>
-      <div style="font-size:12px;color:#aaa;margin-bottom:1.25rem;">준오리에게 직접 메세지를 보낼 수 있어요.</div>
-      <textarea id="devmsg-text" placeholder="메세지를 입력하세요..." rows="4" maxlength="300"
-        style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:10px;font-size:13px;resize:none;box-sizing:border-box;font-family:inherit;outline:none;margin-bottom:8px;"></textarea>
-      <div style="font-size:11px;color:#bbb;text-align:right;margin-bottom:12px;" id="devmsg-count">0 / 300</div>
-      <div style="display:flex;gap:8px;">
-        <button onclick="document.getElementById('devmsg-modal').style.display='none'" style="flex:1;padding:10px;border:1px solid #ddd;border-radius:10px;background:#f5f5f5;color:#666;font-size:13px;cursor:pointer;">취소</button>
-        <button onclick="sendDevMsg('${name}')" style="flex:2;padding:10px;border:none;border-radius:10px;background:linear-gradient(45deg,#dc2743,#cc2366);color:#fff;font-size:13px;font-weight:600;cursor:pointer;">보내기</button>
-      </div>
-      <div id="devmsg-err" style="font-size:12px;color:#c0392b;margin-top:8px;min-height:16px;text-align:center;"></div>
-    </div>`;
+
+  if(!target) {
+    // 1단계: 받는 사람 선택
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:18px;padding:1.75rem;width:100%;max-width:340px;box-shadow:0 8px 40px rgba(0,0,0,0.15);">
+        <div style="font-size:16px;font-weight:700;color:#111;margin-bottom:.4rem;">채팅 문의</div>
+        <div style="font-size:12px;color:#aaa;margin-bottom:1.25rem;">누구에게 보낼까요?</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;">
+          <button onclick="document.getElementById('devmsg-modal').remove();openDevMsg('ryujin')"
+            style="width:100%;padding:12px;border:1px solid #f0c0d8;border-radius:12px;background:#fef0f7;color:#cc2366;font-size:14px;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px;">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:#cc2366;">류진에게 보내기</div>
+              <div style="font-size:11px;color:#aaa;font-weight:400;">Dev tool owner</div>
+            </div>
+          </button>
+          <button onclick="document.getElementById('devmsg-modal').remove();openDevMsg('taehyun')"
+            style="width:100%;padding:12px;border:1px solid #c0d0f8;border-radius:12px;background:#f0f4ff;color:#1a56db;font-size:14px;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px;">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:#1a56db;">태현에게 보내기</div>
+              <div style="font-size:11px;color:#aaa;font-weight:400;">Dev tool admin</div>
+            </div>
+          </button>
+        </div>
+        <button onclick="document.getElementById('devmsg-modal').remove()"
+          style="width:100%;padding:9px;border:1px solid #ddd;border-radius:10px;background:#f5f5f5;color:#888;font-size:13px;cursor:pointer;">취소</button>
+      </div>`;
+  } else {
+    // 2단계: 메세지 작성
+    const toName = target === "taehyun" ? "태현" : "류진";
+    const toColor = target === "taehyun" ? "#1a56db" : "#cc2366";
+    const toBg = target === "taehyun" ? "linear-gradient(45deg,#1a56db,#2563eb)" : "linear-gradient(45deg,#dc2743,#cc2366)";
+    modal.setAttribute("data-target", target);
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:18px;padding:1.75rem;width:100%;max-width:380px;box-shadow:0 8px 40px rgba(0,0,0,0.15);">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:.4rem;">
+          <button onclick="document.getElementById('devmsg-modal').remove();openDevMsg()" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:16px;padding:0;">←</button>
+          <div style="font-size:16px;font-weight:700;color:#111;">채팅 문의</div>
+        </div>
+        <div style="font-size:12px;margin-bottom:1.25rem;color:${toColor};font-weight:500;">${toName}에게 직접 메세지를 보낼 수 있어요.</div>
+        <textarea id="devmsg-text" placeholder="메세지를 입력하세요..." rows="4" maxlength="300"
+          style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:10px;font-size:13px;resize:none;box-sizing:border-box;font-family:inherit;outline:none;margin-bottom:8px;"></textarea>
+        <div style="font-size:11px;color:#bbb;text-align:right;margin-bottom:12px;" id="devmsg-count">0 / 300</div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="document.getElementById('devmsg-modal').style.display='none'" style="flex:1;padding:10px;border:1px solid #ddd;border-radius:10px;background:#f5f5f5;color:#666;font-size:13px;cursor:pointer;">취소</button>
+          <button onclick="sendDevMsg('` + name + `')" style="flex:2;padding:10px;border:none;border-radius:10px;background:${toBg};color:#fff;font-size:13px;font-weight:600;cursor:pointer;">${toName}에게 보내기</button>
+        </div>
+        <div id="devmsg-err" style="font-size:12px;color:#c0392b;margin-top:8px;min-height:16px;text-align:center;"></div>
+      </div>`;
+    setTimeout(() => {
+      const ta = document.getElementById("devmsg-text");
+      if(ta) ta.addEventListener("input", () => {
+        document.getElementById("devmsg-count").textContent = ta.value.length + " / 300";
+      });
+    }, 50);
+  }
   document.body.appendChild(modal);
-  const ta = document.getElementById("devmsg-text");
-  ta.addEventListener("input", () => {
-    document.getElementById("devmsg-count").textContent = ta.value.length + " / 300";
-  });
 }
+
 
 async function sendDevMsg(name) {
   const text = document.getElementById("devmsg-text").value.trim();
   const err = document.getElementById("devmsg-err");
   if(!text) { err.textContent = "메세지를 입력하세요."; return; }
+  const modal = document.getElementById("devmsg-modal");
+  const target = modal ? modal.getAttribute("data-target") : "ryujin";
+  const toName = target === "taehyun" ? "태현" : "류진";
   try {
     let ip = "Unknown";
     try { const r = await fetch("https://api.ipify.org?format=json"); const d = await r.json(); ip = d.ip; } catch(e) {}
     const key = "msg_" + Date.now();
     const kr = new Date().toLocaleString("ko-KR", {timeZone:"Asia/Seoul"});
     await fbSet("messages/" + key, {
-      name, ip, text, time: kr, read: false, reply: ""
+      name, ip, text, time: kr, read: false, reply: "", to: toName
     });
-    document.getElementById("devmsg-modal").style.display = "none";
-    // 로컬에 내 메세지 키 저장 (답장 확인용)
+    modal.style.display = "none";
     const myMsgs = JSON.parse(localStorage.getItem("myMsgKeys") || "[]");
     myMsgs.push(key);
     localStorage.setItem("myMsgKeys", JSON.stringify(myMsgs));
-    alert("메세지가 전송됐어요! 답장이 오면 알려드릴게요 😊");
+    alert(toName + "에게 메세지가 전송됐어요! 답장이 오면 알려드릴게요 😊");
   } catch(e) { document.getElementById("devmsg-err").textContent = "전송 실패. 다시 시도해주세요."; }
 }
 
@@ -3511,7 +3560,10 @@ async function loadInbox() {
       html += `
       <div style="background:#fafafa;border:1px solid #eee;border-radius:10px;padding:12px 14px;margin-bottom:8px;">
         <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-          <span style="font-size:13px;font-weight:600;color:#111;">${m.name || "익명"}</span>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-size:13px;font-weight:600;color:#111;">${m.name || "익명"}</span>
+            ${m.to ? `<span style="font-size:10px;padding:1px 7px;border-radius:99px;background:${m.to==="태현"?"#e8f0fe":"#fef0f7"};color:${m.to==="태현"?"#1a56db":"#cc2366"};font-weight:500;">→ ${m.to}</span>` : ""}
+          </div>
           <span style="font-size:11px;color:#bbb;">${m.time || ""}</span>
         </div>
         <div style="font-size:11px;color:#aaa;margin-bottom:6px;font-family:monospace;">${m.ip || ""}</div>
