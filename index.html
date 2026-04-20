@@ -145,6 +145,12 @@ function pinKey(e, i) {
       return;
     }
 
+    // 친구/DEV bypass → 점검 오버레이 없이 바로 진입
+    if(sessionStorage.getItem("maintBypass") === "true") {
+      document.body.style.visibility = "visible";
+      return;
+    }
+
     // 점검 중 → 오버레이만 보이게
     document.body.style.visibility = "visible";
 
@@ -1928,6 +1934,9 @@ function clearLeaderboard() {
 function isAdminSession() {
   return sessionStorage.getItem("isAdmin") === "true";
 }
+function isPrivileged() {
+  return sessionStorage.getItem("isAdmin") === "true" || sessionStorage.getItem("isFriend") === "true";
+}
 
 function loadNotices() {
   const notices = JSON.parse(localStorage.getItem("notices") || "[]");
@@ -3697,7 +3706,7 @@ window._startMaintPoll = function() {
         // 진행률 업데이트 (DEV 포함 모두)
         updateMaintProgress(d);
 
-        if(isAdminSession()) return; // DEV는 오버레이 안 뜸
+        if(isAdminSession() || sessionStorage.getItem("isFriend") === "true") return; // DEV/친구는 오버레이 안 뜸
         document.getElementById("maint-overlay-title").textContent = d.title || "점검 중";
         document.getElementById("maint-overlay-content").textContent = d.content || "";
         ol.style.display = "flex";
