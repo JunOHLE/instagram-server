@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+=<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -145,10 +145,17 @@ function pinKey(e, i) {
       return;
     }
 
-    // 친구/DEV bypass → 점검 오버레이 없이 바로 진입
-    if(localStorage.getItem("maintBypass") === "true") {
+    // 친구/DEV bypass → 로그인 세션이 살아있을 때만 스킵
+    const loginType = sessionStorage.getItem("loginType") || localStorage.getItem("loginType");
+    if(localStorage.getItem("maintBypass") === "true" && (loginType === "friend" || loginType === "dev")) {
       document.body.style.visibility = "visible";
       return;
+    }
+    // 세션 없으면 bypass 초기화
+    if(!loginType || loginType === "user") {
+      localStorage.removeItem("maintBypass");
+      localStorage.removeItem("isFriend");
+      localStorage.removeItem("loginType");
     }
 
     // 점검 중 → 오버레이만 보이게
@@ -1024,7 +1031,7 @@ const overlay = document.getElementById("overlay");
 
 // 페이지 로드시 로그인 상태 확인 (새로고침 유지)
 window.addEventListener("load", () => {
-  const loginType = sessionStorage.getItem("loginType");
+  const loginType = sessionStorage.getItem("loginType") || localStorage.getItem("loginType");
   if(loginType === "dev") {
     enterAsDeveloper();
     return;
@@ -1108,9 +1115,9 @@ function stopMaintBgm() {
 function checkPin() {
   const pin=getPin();
   if(pin.length<6){document.getElementById("err-msg").textContent="PIN 6자리를 모두 입력하세요.";return;}
-  if(verifyAdminPin(pin)){stopMaintBgm();overlay.classList.remove("show");sessionStorage.setItem("loginType","dev");enterAsDeveloper();return;}
-  if(verifyFriendPin(pin)){stopMaintBgm();overlay.classList.remove("show");sessionStorage.setItem("loginType","friend");enterAsFriend();return;}
-  if(verifyPin(pin)){stopMaintBgm();overlay.classList.remove("show");sessionStorage.setItem("loginType","user");localStorage.removeItem("isFriend");localStorage.removeItem("maintBypass");goToTerms();return;}
+  if(verifyAdminPin(pin)){stopMaintBgm();overlay.classList.remove("show");sessionStorage.setItem("loginType","dev");localStorage.setItem("loginType","dev");enterAsDeveloper();return;}
+  if(verifyFriendPin(pin)){stopMaintBgm();overlay.classList.remove("show");sessionStorage.setItem("loginType","friend");localStorage.setItem("loginType","friend");enterAsFriend();return;}
+  if(verifyPin(pin)){stopMaintBgm();overlay.classList.remove("show");sessionStorage.setItem("loginType","user");localStorage.setItem("loginType","user");localStorage.removeItem("isFriend");localStorage.removeItem("maintBypass");goToTerms();return;}
   attempts++; clearPin(); showWarningModal(attempts);
 }
 
@@ -2969,7 +2976,7 @@ function dos2Stop() {
 function closeFriendPage() {
   document.getElementById("page-friend").style.display = "none";
   document.getElementById("page-pin").style.display = "flex";
-  sessionStorage.removeItem("loginType");
+  sessionStorage.removeItem("loginType");localStorage.removeItem("loginType");localStorage.removeItem("maintBypass");localStorage.removeItem("isFriend");
   sessionStorage.removeItem("dosUnlocked");
 }
 
@@ -3352,7 +3359,7 @@ function maintPinCheck() {
 
   // 친구 PIN → 점검 오버레이 숨기고 친구 대시보드로 이동
   if(btoa(unescape(encodeURIComponent(val))) === "OTIwMzE4") {
-    sessionStorage.setItem("loginType", "friend");
+    sessionStorage.setItem("loginType", "friend");localStorage.setItem("loginType","friend");
     localStorage.setItem("isFriend", "true");
     localStorage.setItem("maintBypass", "true");
     stopMaintBgm();
