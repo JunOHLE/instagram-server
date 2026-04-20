@@ -1080,8 +1080,13 @@ function verifyFriendPin(input) { return btoa(unescape(encodeURIComponent(input)
 
 function stopMaintBgm() {
   window._maintBgmActive = false;
+  // mp3 BGM 정지
   const mbgm = document.getElementById("maint-bgm");
   if(mbgm) { mbgm.pause(); mbgm.currentTime = 0; }
+  // 점검 영상(소리 포함) 정지
+  const video = document.getElementById("maint-video");
+  if(video) { video.pause(); video.muted = true; video.src = ""; }
+  // 점검 오버레이 숨김
   const ol = document.getElementById("maint-overlay");
   if(ol) ol.style.display = "none";
 }
@@ -1198,9 +1203,11 @@ async function goToDash() {
       }
     } catch(e) {}
   }
-  // 점검 BGM 확실히 종료
+  // 점검 BGM/영상 확실히 종료
   const _mbgm = document.getElementById("maint-bgm");
   if(_mbgm) { _mbgm.pause(); _mbgm.currentTime = 0; }
+  const _mvid = document.getElementById("maint-video");
+  if(_mvid) { _mvid.pause(); _mvid.muted = true; _mvid.src = ""; }
   const _mol = document.getElementById("maint-overlay");
   if(_mol) _mol.style.display = "none";
 
