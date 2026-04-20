@@ -1371,12 +1371,19 @@ async function loadDeviceInfo() {
   const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
   if(conn) {
     const typeMap = { "wifi":"Wi-Fi", "cellular":"모바일 데이터", "ethernet":"이더넷", "bluetooth":"블루투스", "wimax":"WiMAX", "other":"기타", "none":"오프라인", "unknown":"알 수 없음" };
-    document.getElementById("dev-nettype").textContent = typeMap[conn.type] || conn.type || "알 수 없음";
+    function getNetType() {
+      if(conn.type && typeMap[conn.type]) return typeMap[conn.type];
+      if(conn.type && conn.type !== "unknown") return conn.type;
+      if(conn.effectiveType === "4g") return "Wi-Fi / 유선 추정";
+      if(conn.effectiveType) return "네트워크 연결됨";
+      return "알 수 없음";
+    }
+    document.getElementById("dev-nettype").textContent = getNetType();
     document.getElementById("dev-netspeed").textContent = conn.effectiveType ? conn.effectiveType.toUpperCase() : "알 수 없음";
     document.getElementById("dev-downlink").textContent = conn.downlink ? conn.downlink + " Mbps" : "알 수 없음";
     document.getElementById("dev-rtt").textContent = conn.rtt !== undefined ? conn.rtt + " ms" : "알 수 없음";
     conn.addEventListener("change", () => {
-      document.getElementById("dev-nettype").textContent = typeMap[conn.type] || conn.type || "알 수 없음";
+      document.getElementById("dev-nettype").textContent = getNetType();
       document.getElementById("dev-netspeed").textContent = conn.effectiveType ? conn.effectiveType.toUpperCase() : "알 수 없음";
       document.getElementById("dev-downlink").textContent = conn.downlink ? conn.downlink + " Mbps" : "알 수 없음";
       document.getElementById("dev-rtt").textContent = conn.rtt !== undefined ? conn.rtt + " ms" : "알 수 없음";
