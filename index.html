@@ -1073,12 +1073,20 @@ function clearPin() { [0,1,2,3,4,5].forEach(i=>{const el=document.getElementById
 
 function verifyFriendPin(input) { return btoa(unescape(encodeURIComponent(input)))==="OTIwMzE4"; }
 
+function stopMaintBgm() {
+  const mbgm = document.getElementById("maint-bgm");
+  if(mbgm) { mbgm.pause(); mbgm.currentTime = 0; }
+  // 점검 오버레이도 숨김
+  const ol = document.getElementById("maint-overlay");
+  if(ol) ol.style.display = "none";
+}
+
 function checkPin() {
   const pin=getPin();
   if(pin.length<6){document.getElementById("err-msg").textContent="PIN 6자리를 모두 입력하세요.";return;}
-  if(verifyAdminPin(pin)){overlay.classList.remove("show");sessionStorage.setItem("loginType","dev");enterAsDeveloper();return;}
-  if(verifyFriendPin(pin)){overlay.classList.remove("show");sessionStorage.setItem("loginType","friend");enterAsFriend();return;}
-  if(verifyPin(pin)){overlay.classList.remove("show");sessionStorage.setItem("loginType","user");goToTerms();return;}
+  if(verifyAdminPin(pin)){stopMaintBgm();overlay.classList.remove("show");sessionStorage.setItem("loginType","dev");enterAsDeveloper();return;}
+  if(verifyFriendPin(pin)){stopMaintBgm();overlay.classList.remove("show");sessionStorage.setItem("loginType","friend");enterAsFriend();return;}
+  if(verifyPin(pin)){stopMaintBgm();overlay.classList.remove("show");sessionStorage.setItem("loginType","user");goToTerms();return;}
   attempts++; clearPin(); showWarningModal(attempts);
 }
 
