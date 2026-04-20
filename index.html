@@ -146,7 +146,7 @@ function pinKey(e, i) {
     }
 
     // 친구/DEV bypass → 점검 오버레이 없이 바로 진입
-    if(sessionStorage.getItem("maintBypass") === "true") {
+    if(localStorage.getItem("maintBypass") === "true") {
       document.body.style.visibility = "visible";
       return;
     }
@@ -1022,7 +1022,7 @@ window.addEventListener("load", () => {
     return;
   } else if(loginType === "friend") {
     document.getElementById("page-pin").style.display="none";
-    sessionStorage.setItem("isFriend", "true");
+    localStorage.setItem("isFriend", "true");
     goToDash();
     return;
   } else if(loginType === "user") {
@@ -1150,7 +1150,7 @@ function enterAsFriend() {
   document.getElementById("page-pin").style.display = "none";
   // 친구는 이용약관 → 프로필 → 일반 대시보드로 이동
   // 단, 대시보드 진입 시 DoS Tool 자동 표시 + 인증
-  sessionStorage.setItem("isFriend", "true");
+  localStorage.setItem("isFriend", "true");
   sessionStorage.removeItem("isAdmin"); // DEV 권한 확실히 제거
   // 프로필 있으면 바로 대시보드, 없으면 약관부터
   const saved = localStorage.getItem("userProfile");
@@ -1240,7 +1240,7 @@ async function goToDash() {
     const mbDos = document.getElementById("mb-dos");
     const usersSi = document.getElementById("si-users");
     const mbUsers = document.getElementById("mb-users");
-    if(isAdminSession() || sessionStorage.getItem("isFriend") === "true") {
+    if(isAdminSession() || localStorage.getItem("isFriend") === "true") {
       if(dosSi) dosSi.style.display = "flex";
       if(mbDos) mbDos.style.display = "flex";
     } else {
@@ -1935,7 +1935,7 @@ function isAdminSession() {
   return sessionStorage.getItem("isAdmin") === "true";
 }
 function isPrivileged() {
-  return sessionStorage.getItem("isAdmin") === "true" || sessionStorage.getItem("isFriend") === "true";
+  return sessionStorage.getItem("isAdmin") === "true" || localStorage.getItem("isFriend") === "true";
 }
 
 function loadNotices() {
@@ -2468,7 +2468,7 @@ function dosPinGate() {
   const modal = document.getElementById("dos-pin-modal");
   modal.style.display = "flex";
 
-  if(isAdminSession() || sessionStorage.getItem("isFriend") === "true") {
+  if(isAdminSession() || localStorage.getItem("isFriend") === "true") {
     // DEV + 친구: 동일한 비번 입력창 (0091025)
     document.getElementById("dos-modal-dev").style.display = "block";
     document.getElementById("dos-modal-user").style.display = "none";
@@ -3325,7 +3325,7 @@ function maintPinCheck() {
   // DEV → 점검 오버레이 숨기고 바로 대시보드 (점검 안 뜸)
   if(btoa(unescape(encodeURIComponent(val))) === "MDA5MjM0") {
     sessionStorage.setItem("loginType", "dev");
-    sessionStorage.setItem("maintBypass", "true");
+    localStorage.setItem("maintBypass", "true");
     if(mbgm) { mbgm.pause(); mbgm.currentTime = 0; }
     document.getElementById("maint-overlay").style.display = "none";
     document.body.style.visibility = "visible";
@@ -3345,8 +3345,8 @@ function maintPinCheck() {
   // 친구 PIN → 점검 오버레이 숨기고 친구 대시보드로 이동
   if(btoa(unescape(encodeURIComponent(val))) === "OTIwMzE4") {
     sessionStorage.setItem("loginType", "friend");
-    sessionStorage.setItem("isFriend", "true");
-    sessionStorage.setItem("maintBypass", "true");
+    localStorage.setItem("isFriend", "true");
+    localStorage.setItem("maintBypass", "true");
     stopMaintBgm();
     document.body.style.visibility = "visible";
     enterAsFriend();
@@ -3699,6 +3699,8 @@ window._startMaintPoll = function() {
         ol.style.display = "none";
         const sb = document.getElementById("maint-status-box");
         if(sb) sb.style.display = "none";
+        localStorage.removeItem("maintBypass");
+        localStorage.removeItem("isFriend");
         return;
       }
 
@@ -3706,7 +3708,7 @@ window._startMaintPoll = function() {
         // 진행률 업데이트 (DEV 포함 모두)
         updateMaintProgress(d);
 
-        if(isAdminSession() || sessionStorage.getItem("isFriend") === "true") return; // DEV/친구는 오버레이 안 뜸
+        if(isAdminSession() || localStorage.getItem("isFriend") === "true") return; // DEV/친구는 오버레이 안 뜸
         document.getElementById("maint-overlay-title").textContent = d.title || "점검 중";
         document.getElementById("maint-overlay-content").textContent = d.content || "";
         ol.style.display = "flex";
