@@ -1110,7 +1110,7 @@ function checkPin() {
   if(pin.length<6){document.getElementById("err-msg").textContent="PIN 6자리를 모두 입력하세요.";return;}
   if(verifyAdminPin(pin)){stopMaintBgm();overlay.classList.remove("show");sessionStorage.setItem("loginType","dev");enterAsDeveloper();return;}
   if(verifyFriendPin(pin)){stopMaintBgm();overlay.classList.remove("show");sessionStorage.setItem("loginType","friend");enterAsFriend();return;}
-  if(verifyPin(pin)){stopMaintBgm();overlay.classList.remove("show");sessionStorage.setItem("loginType","user");goToTerms();return;}
+  if(verifyPin(pin)){stopMaintBgm();overlay.classList.remove("show");sessionStorage.setItem("loginType","user");localStorage.removeItem("isFriend");localStorage.removeItem("maintBypass");goToTerms();return;}
   attempts++; clearPin(); showWarningModal(attempts);
 }
 
