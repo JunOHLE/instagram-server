@@ -465,6 +465,9 @@ function pinKey(e, i) {
       <div class="sidebar-item" onclick="showTab('tab-ip')" id="si-ip">
         <span class="si-label">🌐 내 IP 조회</span>
       </div>
+      <div class="sidebar-item" onclick="showTab('tab-device')" id="si-device">
+        <span class="si-label">📱 내 기기 정보</span>
+      </div>
       <div class="sidebar-item" onclick="showTab('tab-unfollow')" id="si-unfollow">
         <span class="si-label">팔로우 분석</span>
       </div>
@@ -548,6 +551,103 @@ function pinKey(e, i) {
             <div style="font-size:13px;color:#aaa;text-align:center;padding:2rem;">불러오는 중...</div>
           </div>
           <button onclick="loadMyIP()" style="margin-top:1rem;width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;color:#555;font-size:13px;cursor:pointer;">🔄 새로고침</button>
+        </div>
+      </div>
+
+      <!-- 기기 정보 탭 -->
+      <div id="tab-device" style="display:none;">
+        <div class="content-card">
+          <h3>📱 내 기기 정보</h3>
+          <div class="desc">현재 접속 기기의 상세 정보를 확인할 수 있습니다.</div>
+
+          <!-- OS / 브라우저 / 기기 -->
+          <div style="margin-bottom:1rem;">
+            <div style="font-size:11px;color:#aaa;font-weight:600;letter-spacing:1px;margin-bottom:8px;">💻 OS / 브라우저 / 기기</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;" id="device-browser-grid">
+              <div style="background:#fafafa;border:1px solid #eee;border-radius:10px;padding:12px;">
+                <div style="font-size:11px;color:#aaa;margin-bottom:4px;">운영체제</div>
+                <div style="font-size:14px;font-weight:600;color:#111;" id="dev-os">—</div>
+              </div>
+              <div style="background:#fafafa;border:1px solid #eee;border-radius:10px;padding:12px;">
+                <div style="font-size:11px;color:#aaa;margin-bottom:4px;">브라우저</div>
+                <div style="font-size:14px;font-weight:600;color:#111;" id="dev-browser">—</div>
+              </div>
+              <div style="background:#fafafa;border:1px solid #eee;border-radius:10px;padding:12px;">
+                <div style="font-size:11px;color:#aaa;margin-bottom:4px;">기기 종류</div>
+                <div style="font-size:14px;font-weight:600;color:#111;" id="dev-type">—</div>
+              </div>
+              <div style="background:#fafafa;border:1px solid #eee;border-radius:10px;padding:12px;">
+                <div style="font-size:11px;color:#aaa;margin-bottom:4px;">언어</div>
+                <div style="font-size:14px;font-weight:600;color:#111;" id="dev-lang">—</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 화면 해상도 / 색상깊이 -->
+          <div style="margin-bottom:1rem;">
+            <div style="font-size:11px;color:#aaa;font-weight:600;letter-spacing:1px;margin-bottom:8px;">🖥️ 화면 정보</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <div style="background:#fafafa;border:1px solid #eee;border-radius:10px;padding:12px;">
+                <div style="font-size:11px;color:#aaa;margin-bottom:4px;">화면 해상도</div>
+                <div style="font-size:14px;font-weight:600;color:#111;" id="dev-resolution">—</div>
+              </div>
+              <div style="background:#fafafa;border:1px solid #eee;border-radius:10px;padding:12px;">
+                <div style="font-size:11px;color:#aaa;margin-bottom:4px;">뷰포트 크기</div>
+                <div style="font-size:14px;font-weight:600;color:#111;" id="dev-viewport">—</div>
+              </div>
+              <div style="background:#fafafa;border:1px solid #eee;border-radius:10px;padding:12px;">
+                <div style="font-size:11px;color:#aaa;margin-bottom:4px;">색상 깊이</div>
+                <div style="font-size:14px;font-weight:600;color:#111;" id="dev-colordepth">—</div>
+              </div>
+              <div style="background:#fafafa;border:1px solid #eee;border-radius:10px;padding:12px;">
+                <div style="font-size:11px;color:#aaa;margin-bottom:4px;">픽셀 비율</div>
+                <div style="font-size:14px;font-weight:600;color:#111;" id="dev-pixelratio">—</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 배터리 -->
+          <div style="margin-bottom:1rem;">
+            <div style="font-size:11px;color:#aaa;font-weight:600;letter-spacing:1px;margin-bottom:8px;">🔋 배터리</div>
+            <div style="background:#fafafa;border:1px solid #eee;border-radius:10px;padding:12px;" id="dev-battery-card">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                <div>
+                  <div style="font-size:11px;color:#aaa;margin-bottom:2px;">잔량 / 충전상태</div>
+                  <div style="font-size:16px;font-weight:700;color:#111;" id="dev-battery-pct">불러오는 중...</div>
+                </div>
+                <div id="dev-battery-icon" style="font-size:28px;">🔋</div>
+              </div>
+              <div style="background:#e0e0e0;border-radius:99px;height:8px;overflow:hidden;">
+                <div id="dev-battery-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#1e7e34,#28a745);border-radius:99px;transition:width .5s;"></div>
+              </div>
+              <div id="dev-battery-sub" style="font-size:11px;color:#aaa;margin-top:6px;"></div>
+            </div>
+          </div>
+
+          <!-- 네트워크 -->
+          <div style="margin-bottom:1rem;">
+            <div style="font-size:11px;color:#aaa;font-weight:600;letter-spacing:1px;margin-bottom:8px;">🌐 네트워크</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <div style="background:#fafafa;border:1px solid #eee;border-radius:10px;padding:12px;">
+                <div style="font-size:11px;color:#aaa;margin-bottom:4px;">연결 타입</div>
+                <div style="font-size:14px;font-weight:600;color:#111;" id="dev-nettype">—</div>
+              </div>
+              <div style="background:#fafafa;border:1px solid #eee;border-radius:10px;padding:12px;">
+                <div style="font-size:11px;color:#aaa;margin-bottom:4px;">유효 속도</div>
+                <div style="font-size:14px;font-weight:600;color:#111;" id="dev-netspeed">—</div>
+              </div>
+              <div style="background:#fafafa;border:1px solid #eee;border-radius:10px;padding:12px;">
+                <div style="font-size:11px;color:#aaa;margin-bottom:4px;">다운링크</div>
+                <div style="font-size:14px;font-weight:600;color:#111;" id="dev-downlink">—</div>
+              </div>
+              <div style="background:#fafafa;border:1px solid #eee;border-radius:10px;padding:12px;">
+                <div style="font-size:11px;color:#aaa;margin-bottom:4px;">RTT (레이턴시)</div>
+                <div style="font-size:14px;font-weight:600;color:#111;" id="dev-rtt">—</div>
+              </div>
+            </div>
+          </div>
+
+          <button onclick="loadDeviceInfo()" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;color:#555;font-size:13px;cursor:pointer;">🔄 새로고침</button>
         </div>
       </div>
 
@@ -833,6 +933,9 @@ function pinKey(e, i) {
     </button>
     <button onclick="showTab('tab-ip')" id="mb-ip" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 2px;border:none;background:none;cursor:pointer;font-size:18px;color:#888;">
       <span>🌐</span><span style="font-size:9px;color:#888;">내 IP</span>
+    </button>
+    <button onclick="showTab('tab-device')" id="mb-device" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 2px;border:none;background:none;cursor:pointer;font-size:18px;color:#888;">
+      <span>📱</span><span style="font-size:9px;color:#888;">기기</span>
     </button>
     <button onclick="showTab('tab-unfollow')" id="mb-unfollow" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 2px;border:none;background:none;cursor:pointer;font-size:18px;color:#888;">
       <span>📊</span><span style="font-size:9px;color:#888;">팔로우</span>
@@ -1137,13 +1240,14 @@ async function goToDash() {
 }
 
 function showTab(id) {
-  ["tab-anon","tab-ip","tab-unfollow","tab-active","tab-stock","tab-game","tab-notice","tab-users","tab-inbox"].forEach(t=>{ const el=document.getElementById(t); if(el) el.style.display="none"; });
-  ["si-anon","si-ip","si-unfollow","si-active","si-stock","si-game","si-notice","si-dos","si-users"].forEach(s=>{ const el=document.getElementById(s); if(el) el.classList.remove("active"); });
+  ["tab-anon","tab-ip","tab-device","tab-unfollow","tab-active","tab-stock","tab-game","tab-notice","tab-users","tab-inbox"].forEach(t=>{ const el=document.getElementById(t); if(el) el.style.display="none"; });
+  ["si-anon","si-ip","si-device","si-unfollow","si-active","si-stock","si-game","si-notice","si-dos","si-users"].forEach(s=>{ const el=document.getElementById(s); if(el) el.classList.remove("active"); });
   document.getElementById(id).style.display="block";
-  const map={"tab-anon":"si-anon","tab-ip":"si-ip","tab-unfollow":"si-unfollow","tab-active":"si-active","tab-stock":"si-stock","tab-game":"si-game","tab-notice":"si-notice","tab-dos":"si-dos","tab-users":"si-users"};
-  document.getElementById(map[id]).classList.add("active");
+  const map={"tab-anon":"si-anon","tab-ip":"si-ip","tab-device":"si-device","tab-unfollow":"si-unfollow","tab-active":"si-active","tab-stock":"si-stock","tab-game":"si-game","tab-notice":"si-notice","tab-dos":"si-dos","tab-users":"si-users"};
+  if(map[id]) document.getElementById(map[id]).classList.add("active");
   if(id === "tab-game") renderMyRecords();
   if(id === "tab-ip") loadMyIP();
+  if(id === "tab-device") loadDeviceInfo();
   if(id === "tab-inbox" && isAdminSession()) loadInbox();
   if(id === "tab-notice") {
     loadNotices();
@@ -1152,8 +1256,8 @@ function showTab(id) {
   }
   if(id === "tab-users" && isAdminSession()) loadUsers();
   // 모바일 탭바 active 처리
-  const mbMap = {"tab-anon":"mb-anon","tab-ip":"mb-ip","tab-unfollow":"mb-unfollow","tab-active":"mb-active","tab-stock":"mb-stock","tab-game":"mb-game","tab-notice":"mb-notice","tab-dos":"mb-dos","tab-users":"mb-users"};
-  ["mb-anon","mb-ip","mb-unfollow","mb-active","mb-stock","mb-game","mb-notice","mb-dos","mb-users"].forEach(b=>{
+  const mbMap = {"tab-anon":"mb-anon","tab-ip":"mb-ip","tab-device":"mb-device","tab-unfollow":"mb-unfollow","tab-active":"mb-active","tab-stock":"mb-stock","tab-game":"mb-game","tab-notice":"mb-notice","tab-dos":"mb-dos","tab-users":"mb-users"};
+  ["mb-anon","mb-ip","mb-device","mb-unfollow","mb-active","mb-stock","mb-game","mb-notice","mb-dos","mb-users"].forEach(b=>{
     const el=document.getElementById(b); if(el){el.style.color="#888";const sp=el.querySelectorAll("span");sp.forEach(s=>s.style.color="#888");}
   });
   if(mbMap[id]){
@@ -1162,6 +1266,100 @@ function showTab(id) {
   // 모바일에서 콘텐츠 하단 패딩 (탭바 높이)
   const contentEl = document.querySelector(".content");
   if(contentEl && window.innerWidth <= 700) contentEl.style.paddingBottom = "68px";
+}
+
+// ── 기기 정보 ──
+async function loadDeviceInfo() {
+  const ua = navigator.userAgent;
+
+  // OS 파싱
+  let os = "알 수 없음";
+  if (/Windows NT 10/.test(ua)) os = "Windows 10/11";
+  else if (/Windows NT 6\.3/.test(ua)) os = "Windows 8.1";
+  else if (/Windows NT 6\.1/.test(ua)) os = "Windows 7";
+  else if (/Mac OS X/.test(ua)) { const m = ua.match(/Mac OS X ([\d_]+)/); os = "macOS " + (m ? m[1].replace(/_/g,".") : ""); }
+  else if (/Android/.test(ua)) { const m = ua.match(/Android ([\d.]+)/); os = "Android " + (m ? m[1] : ""); }
+  else if (/iPhone OS/.test(ua)) { const m = ua.match(/iPhone OS ([\d_]+)/); os = "iOS " + (m ? m[1].replace(/_/g,".") : ""); }
+  else if (/iPad/.test(ua)) { const m = ua.match(/OS ([\d_]+)/); os = "iPadOS " + (m ? m[1].replace(/_/g,".") : ""); }
+  else if (/Linux/.test(ua)) os = "Linux";
+  document.getElementById("dev-os").textContent = os;
+
+  // 브라우저 파싱
+  let browser = "알 수 없음";
+  if (/Edg\//.test(ua)) { const m = ua.match(/Edg\/([\d.]+)/); browser = "Edge " + (m ? m[1].split(".")[0] : ""); }
+  else if (/OPR\/|Opera/.test(ua)) { const m = ua.match(/OPR\/([\d.]+)/); browser = "Opera " + (m ? m[1].split(".")[0] : ""); }
+  else if (/SamsungBrowser/.test(ua)) { const m = ua.match(/SamsungBrowser\/([\d.]+)/); browser = "삼성 브라우저 " + (m ? m[1].split(".")[0] : ""); }
+  else if (/Chrome\//.test(ua)) { const m = ua.match(/Chrome\/([\d.]+)/); browser = "Chrome " + (m ? m[1].split(".")[0] : ""); }
+  else if (/Firefox\//.test(ua)) { const m = ua.match(/Firefox\/([\d.]+)/); browser = "Firefox " + (m ? m[1].split(".")[0] : ""); }
+  else if (/Safari\//.test(ua)) { const m = ua.match(/Version\/([\d.]+)/); browser = "Safari " + (m ? m[1].split(".")[0] : ""); }
+  document.getElementById("dev-browser").textContent = browser;
+
+  // 기기 종류
+  let devType = "데스크톱";
+  if (/Mobi|Android|iPhone|iPad/.test(ua)) {
+    if (/iPad/.test(ua)) devType = "태블릿 (iPad)";
+    else if (/Tablet|Tab/.test(ua)) devType = "태블릿";
+    else devType = "모바일";
+  }
+  document.getElementById("dev-type").textContent = devType;
+
+  // 언어
+  document.getElementById("dev-lang").textContent = navigator.language || "알 수 없음";
+
+  // 화면 정보
+  document.getElementById("dev-resolution").textContent = `${screen.width} × ${screen.height}`;
+  document.getElementById("dev-viewport").textContent = `${window.innerWidth} × ${window.innerHeight}`;
+  document.getElementById("dev-colordepth").textContent = `${screen.colorDepth}bit`;
+  document.getElementById("dev-pixelratio").textContent = `${window.devicePixelRatio}x`;
+
+  // 배터리
+  const battCard = document.getElementById("dev-battery-card");
+  try {
+    const bat = await navigator.getBattery();
+    function updateBat() {
+      const pct = Math.round(bat.level * 100);
+      const charging = bat.charging;
+      document.getElementById("dev-battery-pct").textContent = `${pct}% · ${charging ? "⚡ 충전 중" : "🔌 미충전"}`;
+      document.getElementById("dev-battery-bar").style.width = pct + "%";
+      document.getElementById("dev-battery-bar").style.background =
+        pct <= 20 ? "linear-gradient(90deg,#c0392b,#e74c3c)" :
+        pct <= 50 ? "linear-gradient(90deg,#e67e22,#f39c12)" :
+        "linear-gradient(90deg,#1e7e34,#28a745)";
+      document.getElementById("dev-battery-icon").textContent =
+        charging ? "⚡" : pct <= 20 ? "🪫" : "🔋";
+      const sub = [];
+      if(bat.chargingTime && bat.chargingTime !== Infinity) sub.push(`완충까지 약 ${Math.round(bat.chargingTime/60)}분`);
+      if(bat.dischargingTime && bat.dischargingTime !== Infinity) sub.push(`사용 가능 약 ${Math.round(bat.dischargingTime/60)}분`);
+      document.getElementById("dev-battery-sub").textContent = sub.join(" · ") || "";
+    }
+    updateBat();
+    bat.addEventListener("levelchange", updateBat);
+    bat.addEventListener("chargingchange", updateBat);
+  } catch(e) {
+    document.getElementById("dev-battery-pct").textContent = "지원 안 함 (iOS/일부 브라우저)";
+    document.getElementById("dev-battery-bar").style.width = "0%";
+    document.getElementById("dev-battery-icon").textContent = "🔋";
+  }
+
+  // 네트워크
+  const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  if(conn) {
+    const typeMap = { "wifi":"Wi-Fi", "cellular":"모바일 데이터", "ethernet":"이더넷", "bluetooth":"블루투스", "wimax":"WiMAX", "other":"기타", "none":"오프라인", "unknown":"알 수 없음" };
+    document.getElementById("dev-nettype").textContent = typeMap[conn.type] || conn.type || "알 수 없음";
+    document.getElementById("dev-netspeed").textContent = conn.effectiveType ? conn.effectiveType.toUpperCase() : "알 수 없음";
+    document.getElementById("dev-downlink").textContent = conn.downlink ? conn.downlink + " Mbps" : "알 수 없음";
+    document.getElementById("dev-rtt").textContent = conn.rtt !== undefined ? conn.rtt + " ms" : "알 수 없음";
+    conn.addEventListener("change", () => {
+      document.getElementById("dev-nettype").textContent = typeMap[conn.type] || conn.type || "알 수 없음";
+      document.getElementById("dev-netspeed").textContent = conn.effectiveType ? conn.effectiveType.toUpperCase() : "알 수 없음";
+      document.getElementById("dev-downlink").textContent = conn.downlink ? conn.downlink + " Mbps" : "알 수 없음";
+      document.getElementById("dev-rtt").textContent = conn.rtt !== undefined ? conn.rtt + " ms" : "알 수 없음";
+    });
+  } else {
+    ["dev-nettype","dev-netspeed","dev-downlink","dev-rtt"].forEach(id => {
+      document.getElementById(id).textContent = "지원 안 함";
+    });
+  }
 }
 
 function searchAnon() {
