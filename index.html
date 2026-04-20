@@ -1145,6 +1145,7 @@ function enterAsFriend() {
   // 친구는 이용약관 → 프로필 → 일반 대시보드로 이동
   // 단, 대시보드 진입 시 DoS Tool 자동 표시 + 인증
   sessionStorage.setItem("isFriend", "true");
+  sessionStorage.removeItem("isAdmin"); // DEV 권한 확실히 제거
   // 프로필 있으면 바로 대시보드, 없으면 약관부터
   const saved = localStorage.getItem("userProfile");
   if(saved) {
