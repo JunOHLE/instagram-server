@@ -2457,7 +2457,7 @@ function dosPinUnlock() {
   if(c1 === s1 && c2 === s2) {
     sessionStorage.setItem("dosUnlocked", "true");
     document.getElementById("dos-pin-modal").style.display = "none";
-    showTab("tab-dos");
+    showDosPage();
   } else {
     document.getElementById("dos-unlock-err").textContent = "코드가 올바르지 않습니다.";
   }
@@ -3820,6 +3820,7 @@ function edexClose() {
   const page = document.getElementById("page-edex");
   if (page) page.style.display = "none";
 }
+</script>
 
 <!-- DoS Tool PIN 모달 -->
 <div id="dos-pin-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:10000;align-items:center;justify-content:center;padding:1rem;">
