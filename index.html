@@ -1196,9 +1196,10 @@ async function goToDash() {
 function showTab(id) {
   ["tab-anon","tab-ip","tab-unfollow","tab-active","tab-stock","tab-game","tab-notice","tab-users","tab-inbox"].forEach(t=>{ const el=document.getElementById(t); if(el) el.style.display="none"; });
   ["si-anon","si-ip","si-unfollow","si-active","si-stock","si-game","si-notice","si-dos","si-users","si-edex"].forEach(s=>{ const el=document.getElementById(s); if(el) el.classList.remove("active"); });
-  document.getElementById(id).style.display="block";
+  const tabEl = document.getElementById(id);
+  if(tabEl) tabEl.style.display="block";
   const map={"tab-anon":"si-anon","tab-ip":"si-ip","tab-unfollow":"si-unfollow","tab-active":"si-active","tab-stock":"si-stock","tab-game":"si-game","tab-notice":"si-notice","tab-dos":"si-dos","tab-users":"si-users"};
-  document.getElementById(map[id]).classList.add("active");
+  if(map[id]) { const si = document.getElementById(map[id]); if(si) si.classList.add("active"); }
   if(id === "tab-game") renderMyRecords();
   if(id === "tab-ip") loadMyIP();
   if(id === "tab-inbox" && isAdminSession()) loadInbox();
