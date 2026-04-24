@@ -103,8 +103,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 /* eDEX 풀스크린 */
 body.edex-fullscreen .sidebar,
 body.edex-fullscreen .dash-nav { display: none !important; }
-body.edex-fullscreen .dash-body { display: block; }
-body.edex-fullscreen .content { max-width: 100%; padding: 0; }
+body.edex-fullscreen #page-dash { display: block !important; }
+body.edex-fullscreen .dash-body { display: block !important; }
+body.edex-fullscreen .content { max-width: 100% !important; padding: 0 !important; width: 100vw !important; }
+body.edex-fullscreen #tab-edex { display: block !important; }
 .sidebar { width: 220px; background: #fff; border-right: 1px solid #e0e0e0; padding: 1.25rem 0; min-height: calc(100vh - 52px); flex-shrink: 0; }
 .sidebar-item { display: flex; align-items: center; gap: 10px; padding: 10px 1.25rem; font-size: 14px; color: #444; cursor: pointer; border-radius: 0; transition: background .15s; border-left: 3px solid transparent; }
 .sidebar-item:hover { background: #f5f5f5; }
@@ -518,7 +520,7 @@ function pinKey(e, i) {
       <div class="sidebar-item" onclick="showTab('tab-notice')" id="si-notice">
         <span class="si-label">공지사항</span>
       </div>
-      <div class="sidebar-item" onclick="showTab('tab-edex')" id="si-edex" style="display:none;">
+      <div class="sidebar-item" onclick="edexOpen()" id="si-edex" style="display:none;">
         <span class="si-label" style="color:#00e5ff;font-weight:600;">⬡ eDEX Terminal</span>
       </div>
       <div class="sidebar-item" onclick="dosPinGate()" id="si-dos" style="display:none;">
@@ -791,139 +793,6 @@ function pinKey(e, i) {
         </div>
       </div>
 
-      <!-- eDEX Terminal 탭 (친구+DEV 전용) -->
-      <div id="tab-edex" style="display:none;margin:-1.5rem;background:#050a0f;">
-        <style>
-          #edex-wrap { display:grid; grid-template-columns:220px 1fr 220px; grid-template-rows:1fr 200px; height:calc(100vh - 52px); background:#050a0f; font-family:'Courier New',monospace; color:#00e5ff; }
-          .edex-panel { border:1px solid #00e5ff22; background:#07111a; position:relative; overflow:hidden; }
-          .edex-panel-title { font-size:10px; letter-spacing:3px; color:#00e5ff66; padding:6px 10px; border-bottom:1px solid #00e5ff22; display:flex; justify-content:space-between; }
-          .edex-stat-row { display:flex; justify-content:space-between; padding:3px 10px; font-size:10px; }
-          .edex-stat-label { color:#00e5ff55; letter-spacing:1px; }
-          .edex-stat-val { color:#fff; }
-          .edex-bar-wrap { padding:2px 10px 6px; }
-          .edex-bar-bg { background:#0d1f2d; border-radius:2px; height:4px; }
-          .edex-bar-fill { height:4px; border-radius:2px; background:linear-gradient(90deg,#00e5ff,#00ff88); transition:width 1s; }
-          #edex-terminal { grid-column:2; grid-row:1; display:flex; flex-direction:column; }
-          #edex-output { flex:1; padding:12px 16px; font-size:12px; line-height:1.75; overflow-y:auto; color:#00e5ff; }
-          #edex-input-row { padding:8px 16px; border-top:1px solid #00e5ff22; display:flex; align-items:center; gap:8px; background:#050a0f; }
-          #edex-keyboard { grid-column:1/-1; grid-row:2; border-top:1px solid #00e5ff22; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; background:#050a0f; padding:10px; }
-          .edex-kb-row { display:flex; gap:4px; }
-          .edex-key { min-width:32px; height:32px; border:1px solid #00e5ff33; border-radius:4px; background:#07111a; color:#00e5ff; font-family:'Courier New',monospace; font-size:10px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all .1s; user-select:none; padding:0 6px; }
-          .edex-key:hover { background:#00e5ff22; border-color:#00e5ff; }
-          .edex-key.active { background:#00e5ff44; border-color:#00ff88; color:#00ff88; }
-          .edex-key-wide { min-width:52px; }
-          .edex-key-wider { min-width:80px; }
-          .edex-radar { position:relative; width:140px; height:140px; margin:8px auto; }
-          .edex-radar svg { position:absolute; top:0; left:0; }
-          @keyframes edex-scan { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-          .edex-scan-line { transform-origin:70px 70px; animation:edex-scan 3s linear infinite; }
-          @keyframes edex-blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
-          .edex-cursor { animation:edex-blink 1s infinite; }
-        </style>
-        <div id="edex-wrap">
-          <!-- 왼쪽: SYSTEM + RESOURCES -->
-          <div style="grid-column:1;grid-row:1;display:flex;flex-direction:column;gap:0;">
-            <div class="edex-panel" style="flex:0 0 auto;">
-              <div class="edex-panel-title"><span>SYSTEM</span><span id="edex-clock" style="color:#00e5ff44;">00:00:00</span></div>
-              <div class="edex-stat-row"><span class="edex-stat-label">HOSTNAME</span><span class="edex-stat-val" id="edex-hostname">instagram-server</span></div>
-              <div class="edex-stat-row"><span class="edex-stat-label">USER</span><span class="edex-stat-val" id="edex-user">-</span></div>
-              <div class="edex-stat-row"><span class="edex-stat-label">PLATFORM</span><span class="edex-stat-val" id="edex-os">-</span></div>
-              <div class="edex-stat-row"><span class="edex-stat-label">BROWSER</span><span class="edex-stat-val" id="edex-browser">-</span></div>
-              <div class="edex-stat-row"><span class="edex-stat-label">UPTIME</span><span class="edex-stat-val" id="edex-uptime">0s</span></div>
-              <div class="edex-stat-row"><span class="edex-stat-label">LANG</span><span class="edex-stat-val" id="edex-lang">-</span></div>
-            </div>
-            <div class="edex-panel" style="flex:1;">
-              <div class="edex-panel-title"><span>RESOURCES</span></div>
-              <div class="edex-stat-row"><span class="edex-stat-label">CPU</span><span class="edex-stat-val" id="edex-cpu">--%</span></div>
-              <div class="edex-bar-wrap"><div class="edex-bar-bg"><div class="edex-bar-fill" id="edex-cpu-bar" style="width:0%"></div></div></div>
-              <div class="edex-stat-row"><span class="edex-stat-label">MEMORY</span><span class="edex-stat-val" id="edex-mem">--%</span></div>
-              <div class="edex-bar-wrap"><div class="edex-bar-bg"><div class="edex-bar-fill" id="edex-mem-bar" style="width:0%;background:linear-gradient(90deg,#febc2e,#ff9500)"></div></div></div>
-              <div class="edex-stat-row"><span class="edex-stat-label">SCREEN</span><span class="edex-stat-val" id="edex-screen">-</span></div>
-              <div class="edex-bar-wrap"><div class="edex-bar-bg"><div class="edex-bar-fill" id="edex-disk-bar" style="width:6%;background:linear-gradient(90deg,#a855f7,#7c3aed)"></div></div></div>
-              <div class="edex-stat-row"><span class="edex-stat-label">TEMP</span><span class="edex-stat-val" id="edex-temp">--°C</span></div>
-              <div class="edex-bar-wrap"><div class="edex-bar-bg"><div class="edex-bar-fill" id="edex-temp-bar" style="width:0%;background:linear-gradient(90deg,#ff5f57,#c0392b)"></div></div></div>
-            </div>
-          </div>
-
-          <!-- 가운데: MAIN TERMINAL -->
-          <div id="edex-terminal" class="edex-panel">
-            <div class="edex-panel-title"><span>MAIN TERMINAL</span><span style="display:flex;align-items:center;gap:12px;"><span>// TTY0</span><button onclick="showTab('tab-anon');document.body.classList.remove('edex-fullscreen')" style="background:#ff5f5722;border:1px solid #ff5f5766;border-radius:4px;color:#ff5f57;font-family:'Courier New',monospace;font-size:9px;padding:2px 8px;cursor:pointer;letter-spacing:1px;">✕ EXIT</button></span></div>
-            <div id="edex-output"></div>
-            <div id="edex-input-row">
-              <span style="color:#00ff88;font-size:12px;">operator@localhost:~$</span>
-              <input id="edex-input" type="text" autocomplete="off" spellcheck="false"
-                style="flex:1;background:transparent;border:none;outline:none;font-family:'Courier New',monospace;font-size:12px;color:#00e5ff;caret-color:#00e5ff;"
-                onkeydown="edexCommand(event)">
-              <span class="edex-cursor" style="color:#00e5ff;font-size:12px;">█</span>
-            </div>
-          </div>
-
-          <!-- 오른쪽: NETWORK + CONNECTIONS -->
-          <div style="grid-column:3;grid-row:1;display:flex;flex-direction:column;">
-            <div class="edex-panel" style="flex:1;">
-              <div class="edex-panel-title"><span>NETWORK</span></div>
-              <div class="edex-stat-row"><span class="edex-stat-label">IPv4</span><span class="edex-stat-val" id="edex-ip">--</span></div>
-              <div class="edex-stat-row"><span class="edex-stat-label">GATEWAY</span><span class="edex-stat-val">192.168.1.1</span></div>
-              <div class="edex-stat-row"><span class="edex-stat-label">DNS</span><span class="edex-stat-val">1.1.1.1</span></div>
-              <div class="edex-stat-row"><span class="edex-stat-label">DOWN</span><span class="edex-stat-val" id="edex-down">-- MB/s</span></div>
-              <div class="edex-stat-row"><span class="edex-stat-label">UP</span><span class="edex-stat-val" id="edex-up">-- MB/s</span></div>
-              <!-- 레이더 -->
-              <div class="edex-radar">
-                <svg width="140" height="140">
-                  <circle cx="70" cy="70" r="60" fill="none" stroke="#00e5ff11" stroke-width="1"/>
-                  <circle cx="70" cy="70" r="40" fill="none" stroke="#00e5ff11" stroke-width="1"/>
-                  <circle cx="70" cy="70" r="20" fill="none" stroke="#00e5ff11" stroke-width="1"/>
-                  <line x1="70" y1="10" x2="70" y2="130" stroke="#00e5ff11" stroke-width="1"/>
-                  <line x1="10" y1="70" x2="130" y2="70" stroke="#00e5ff11" stroke-width="1"/>
-                  <g class="edex-scan-line">
-                    <line x1="70" y1="70" x2="130" y2="70" stroke="#00e5ff" stroke-width="1" opacity="0.8"/>
-                    <line x1="70" y1="70" x2="130" y2="70" stroke="#00e5ff" stroke-width="8" opacity="0.1"/>
-                  </g>
-                  <circle cx="90" cy="50" r="3" fill="#00ff88" opacity="0.8"/>
-                  <circle cx="55" cy="85" r="2" fill="#00e5ff" opacity="0.6"/>
-                </svg>
-              </div>
-            </div>
-            <div class="edex-panel" style="flex:0 0 auto;">
-              <div class="edex-panel-title"><span>CONNECTIONS</span></div>
-              <div class="edex-stat-row"><span class="edex-stat-label">ESTABLISHED</span><span class="edex-stat-val" id="edex-conn">--</span></div>
-              <div class="edex-stat-row"><span class="edex-stat-label">LISTENING</span><span class="edex-stat-val">8</span></div>
-              <div class="edex-stat-row"><span class="edex-stat-label">LATENCY</span><span class="edex-stat-val" id="edex-latency">--ms</span></div>
-            </div>
-          </div>
-
-          <!-- 하단: INPUT DEVICE (키보드) -->
-          <div id="edex-keyboard">
-            <div class="edex-panel-title" style="width:100%;max-width:800px;border:none;padding:0 0 4px;"><span>INPUT DEVICE</span><span>// KBDL_E</span></div>
-            <div class="edex-kb-row">
-              <div class="edex-key edex-key-wide" onclick="edexKeyPress('Escape')">ESC</div>
-              <div class="edex-key" onclick="edexKeyPress('1')">1</div><div class="edex-key" onclick="edexKeyPress('2')">2</div><div class="edex-key" onclick="edexKeyPress('3')">3</div><div class="edex-key" onclick="edexKeyPress('4')">4</div><div class="edex-key" onclick="edexKeyPress('5')">5</div><div class="edex-key" onclick="edexKeyPress('6')">6</div><div class="edex-key" onclick="edexKeyPress('7')">7</div><div class="edex-key" onclick="edexKeyPress('8')">8</div><div class="edex-key" onclick="edexKeyPress('9')">9</div><div class="edex-key" onclick="edexKeyPress('0')">0</div>
-              <div class="edex-key" onclick="edexKeyPress('-')">-</div><div class="edex-key" onclick="edexKeyPress('=')">=</div>
-              <div class="edex-key edex-key-wide" onclick="edexKeyPress('Backspace')">⌫</div>
-            </div>
-            <div class="edex-kb-row">
-              <div class="edex-key edex-key-wide" onclick="edexKeyPress('Tab')">TAB</div>
-              <div class="edex-key" onclick="edexKeyPress('q')">Q</div><div class="edex-key" onclick="edexKeyPress('w')">W</div><div class="edex-key" onclick="edexKeyPress('e')">E</div><div class="edex-key" onclick="edexKeyPress('r')">R</div><div class="edex-key" onclick="edexKeyPress('t')">T</div><div class="edex-key" onclick="edexKeyPress('y')">Y</div><div class="edex-key" onclick="edexKeyPress('u')">U</div><div class="edex-key" onclick="edexKeyPress('i')">I</div><div class="edex-key" onclick="edexKeyPress('o')">O</div><div class="edex-key" onclick="edexKeyPress('p')">P</div>
-              <div class="edex-key" onclick="edexKeyPress('[')">&#91;</div><div class="edex-key" onclick="edexKeyPress(']')">&#93;</div><div class="edex-key" onclick="edexKeyPress('\\')">&#92;</div>
-            </div>
-            <div class="edex-kb-row">
-              <div class="edex-key edex-key-wider" onclick="edexKeyPress('CapsLock')">CAPS</div>
-              <div class="edex-key" onclick="edexKeyPress('a')">A</div><div class="edex-key" onclick="edexKeyPress('s')">S</div><div class="edex-key" onclick="edexKeyPress('d')">D</div><div class="edex-key" onclick="edexKeyPress('f')">F</div><div class="edex-key" onclick="edexKeyPress('g')">G</div><div class="edex-key" onclick="edexKeyPress('h')">H</div><div class="edex-key" onclick="edexKeyPress('j')">J</div><div class="edex-key" onclick="edexKeyPress('k')">K</div><div class="edex-key" onclick="edexKeyPress('l')">L</div>
-              <div class="edex-key" onclick="edexKeyPress(';')">;</div><div class="edex-key" onclick="edexKeyPress('\\')">'</div>
-              <div class="edex-key edex-key-wider" onclick="edexKeyPress('Enter')">ENTER</div>
-            </div>
-            <div class="edex-kb-row">
-              <div class="edex-key edex-key-wider" id="edex-shift-key" onclick="edexToggleShift()">SHIFT</div>
-              <div class="edex-key" onclick="edexKeyPress('z')">Z</div><div class="edex-key" onclick="edexKeyPress('x')">X</div><div class="edex-key" onclick="edexKeyPress('c')">C</div><div class="edex-key" onclick="edexKeyPress('v')">V</div><div class="edex-key" onclick="edexKeyPress('b')">B</div><div class="edex-key" onclick="edexKeyPress('n')">N</div><div class="edex-key" onclick="edexKeyPress('m')">M</div>
-              <div class="edex-key" onclick="edexKeyPress(',')"> , </div><div class="edex-key" onclick="edexKeyPress('.')"> . </div><div class="edex-key" onclick="edexKeyPress('/')"> / </div>
-              <div class="edex-key edex-key-wider" onclick="edexToggleShift()">SHIFT</div>
-            </div>
-            <div class="edex-kb-row">
-              <div class="edex-key" style="min-width:300px;" onclick="edexKeyPress(' ')">SPACE</div>
-            </div>
-          </div>
-        </div>
-      </div>
 
       <!-- 접속자 관리 탭 (DEV 전용) -->
       <div id="tab-users" style="display:none;">
@@ -1325,10 +1194,10 @@ async function goToDash() {
 }
 
 function showTab(id) {
-  ["tab-anon","tab-ip","tab-unfollow","tab-active","tab-stock","tab-game","tab-notice","tab-users","tab-inbox","tab-edex"].forEach(t=>{ const el=document.getElementById(t); if(el) el.style.display="none"; });
+  ["tab-anon","tab-ip","tab-unfollow","tab-active","tab-stock","tab-game","tab-notice","tab-users","tab-inbox"].forEach(t=>{ const el=document.getElementById(t); if(el) el.style.display="none"; });
   ["si-anon","si-ip","si-unfollow","si-active","si-stock","si-game","si-notice","si-dos","si-users","si-edex"].forEach(s=>{ const el=document.getElementById(s); if(el) el.classList.remove("active"); });
   document.getElementById(id).style.display="block";
-  const map={"tab-anon":"si-anon","tab-ip":"si-ip","tab-unfollow":"si-unfollow","tab-active":"si-active","tab-stock":"si-stock","tab-game":"si-game","tab-notice":"si-notice","tab-dos":"si-dos","tab-users":"si-users","tab-edex":"si-edex"};
+  const map={"tab-anon":"si-anon","tab-ip":"si-ip","tab-unfollow":"si-unfollow","tab-active":"si-active","tab-stock":"si-stock","tab-game":"si-game","tab-notice":"si-notice","tab-dos":"si-dos","tab-users":"si-users"};
   document.getElementById(map[id]).classList.add("active");
   if(id === "tab-game") renderMyRecords();
   if(id === "tab-ip") loadMyIP();
@@ -1340,8 +1209,8 @@ function showTab(id) {
   }
   if(id === "tab-users" && isAdminSession()) loadUsers();
   // 모바일 탭바 active 처리
-  const mbMap = {"tab-anon":"mb-anon","tab-ip":"mb-ip","tab-unfollow":"mb-unfollow","tab-active":"mb-active","tab-stock":"mb-stock","tab-game":"mb-game","tab-notice":"mb-notice","tab-dos":"mb-dos","tab-users":"mb-users","tab-edex":"mb-edex"};
-  ["mb-anon","mb-ip","mb-unfollow","mb-active","mb-stock","mb-game","mb-notice","mb-dos","mb-users","mb-edex"].forEach(b=>{
+  const mbMap = {"tab-anon":"mb-anon","tab-ip":"mb-ip","tab-unfollow":"mb-unfollow","tab-active":"mb-active","tab-stock":"mb-stock","tab-game":"mb-game","tab-notice":"mb-notice","tab-dos":"mb-dos","tab-users":"mb-users"};
+  ["mb-anon","mb-ip","mb-unfollow","mb-active","mb-stock","mb-game","mb-notice","mb-dos","mb-users"].forEach(b=>{
     const el=document.getElementById(b); if(el){el.style.color="#888";const sp=el.querySelectorAll("span");sp.forEach(s=>s.style.color="#888");}
   });
   if(mbMap[id]){
@@ -3939,18 +3808,17 @@ function initEdex() {
   }, 100);
 }
 
-// showTab 연결
-const _origShowTab = window.showTab;
-window.showTab = function(id) {
-  _origShowTab(id);
-  if (id === "tab-edex") {
-    document.body.classList.add("edex-fullscreen");
-    setTimeout(initEdex, 100);
-    setTimeout(() => { const inp = document.getElementById("edex-input"); if(inp) inp.focus(); }, 300);
-  } else {
-    document.body.classList.remove("edex-fullscreen");
-  }
-};
+function edexOpen() {
+  const page = document.getElementById("page-edex");
+  if (page) { page.style.display = "flex"; page.style.flexDirection = "column"; }
+  initEdex();
+  setTimeout(() => { const inp = document.getElementById("edex-input"); if(inp) inp.focus(); }, 300);
+}
+
+function edexClose() {
+  const page = document.getElementById("page-edex");
+  if (page) page.style.display = "none";
+}
 
 <!-- DoS Tool PIN 모달 -->
 <div id="dos-pin-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:10000;align-items:center;justify-content:center;padding:1rem;">
@@ -3987,6 +3855,140 @@ window.showTab = function(id) {
 </div>
 
 <!-- ── DoS Tool 풀스크린 페이지 ── -->
+<!-- ── eDEX Terminal 풀스크린 ── -->
+<div id="page-edex" style="display:none;position:fixed;inset:0;z-index:5000;background:#050a0f;font-family:'Courier New',monospace;">
+  <style>
+    #edex-wrap { display:grid; grid-template-columns:220px 1fr 220px; grid-template-rows:1fr 200px; height:100vh; background:#050a0f; color:#00e5ff; }
+    .edex-panel { border:1px solid #00e5ff22; background:#07111a; position:relative; overflow:hidden; }
+    .edex-panel-title { font-size:10px; letter-spacing:3px; color:#00e5ff66; padding:6px 10px; border-bottom:1px solid #00e5ff22; display:flex; justify-content:space-between; align-items:center; }
+    .edex-stat-row { display:flex; justify-content:space-between; padding:3px 10px; font-size:10px; }
+    .edex-stat-label { color:#00e5ff55; letter-spacing:1px; }
+    .edex-stat-val { color:#fff; }
+    .edex-bar-wrap { padding:2px 10px 6px; }
+    .edex-bar-bg { background:#0d1f2d; border-radius:2px; height:4px; }
+    .edex-bar-fill { height:4px; border-radius:2px; background:linear-gradient(90deg,#00e5ff,#00ff88); transition:width 1s; }
+    #edex-terminal { grid-column:2; grid-row:1; display:flex; flex-direction:column; }
+    #edex-output { flex:1; padding:12px 16px; font-size:12px; line-height:1.75; overflow-y:auto; color:#00e5ff; }
+    #edex-input-row { padding:8px 16px; border-top:1px solid #00e5ff22; display:flex; align-items:center; gap:8px; background:#050a0f; }
+    #edex-keyboard { grid-column:1/-1; grid-row:2; border-top:1px solid #00e5ff22; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; background:#050a0f; padding:8px; }
+    .edex-kb-row { display:flex; gap:4px; }
+    .edex-key { min-width:32px; height:30px; border:1px solid #00e5ff33; border-radius:4px; background:#07111a; color:#00e5ff; font-family:'Courier New',monospace; font-size:10px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all .1s; user-select:none; padding:0 6px; }
+    .edex-key:hover { background:#00e5ff22; border-color:#00e5ff; }
+    .edex-key.edex-active { background:#00e5ff44; border-color:#00ff88; color:#00ff88; }
+    .edex-key-wide { min-width:52px; }
+    .edex-key-wider { min-width:76px; }
+    @keyframes edex-scan { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+    .edex-scan-line { transform-origin:70px 70px; animation:edex-scan 3s linear infinite; }
+    @keyframes edex-blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    .edex-cursor { animation:edex-blink 1s infinite; }
+  </style>
+  <div id="edex-wrap">
+    <!-- 왼쪽: SYSTEM + RESOURCES -->
+    <div style="grid-column:1;grid-row:1;display:flex;flex-direction:column;">
+      <div class="edex-panel" style="flex:0 0 auto;">
+        <div class="edex-panel-title"><span>SYSTEM</span><span id="edex-clock">00:00:00</span></div>
+        <div class="edex-stat-row"><span class="edex-stat-label">HOSTNAME</span><span class="edex-stat-val">instagram-server</span></div>
+        <div class="edex-stat-row"><span class="edex-stat-label">USER</span><span class="edex-stat-val" id="edex-user">-</span></div>
+        <div class="edex-stat-row"><span class="edex-stat-label">PLATFORM</span><span class="edex-stat-val" id="edex-os">-</span></div>
+        <div class="edex-stat-row"><span class="edex-stat-label">BROWSER</span><span class="edex-stat-val" id="edex-browser">-</span></div>
+        <div class="edex-stat-row"><span class="edex-stat-label">UPTIME</span><span class="edex-stat-val" id="edex-uptime">0s</span></div>
+        <div class="edex-stat-row"><span class="edex-stat-label">LANG</span><span class="edex-stat-val" id="edex-lang">-</span></div>
+      </div>
+      <div class="edex-panel" style="flex:1;">
+        <div class="edex-panel-title"><span>RESOURCES</span></div>
+        <div class="edex-stat-row"><span class="edex-stat-label">CPU</span><span class="edex-stat-val" id="edex-cpu">--%</span></div>
+        <div class="edex-bar-wrap"><div class="edex-bar-bg"><div class="edex-bar-fill" id="edex-cpu-bar" style="width:0%"></div></div></div>
+        <div class="edex-stat-row"><span class="edex-stat-label">MEMORY</span><span class="edex-stat-val" id="edex-mem">--%</span></div>
+        <div class="edex-bar-wrap"><div class="edex-bar-bg"><div class="edex-bar-fill" id="edex-mem-bar" style="width:0%;background:linear-gradient(90deg,#febc2e,#ff9500)"></div></div></div>
+        <div class="edex-stat-row"><span class="edex-stat-label">SCREEN</span><span class="edex-stat-val" id="edex-screen">-</span></div>
+        <div class="edex-bar-wrap"><div class="edex-bar-bg"><div class="edex-bar-fill" style="width:6%;background:linear-gradient(90deg,#a855f7,#7c3aed)"></div></div></div>
+        <div class="edex-stat-row"><span class="edex-stat-label">TEMP</span><span class="edex-stat-val" id="edex-temp">--°C</span></div>
+        <div class="edex-bar-wrap"><div class="edex-bar-bg"><div class="edex-bar-fill" id="edex-temp-bar" style="width:0%;background:linear-gradient(90deg,#ff5f57,#c0392b)"></div></div></div>
+      </div>
+    </div>
+    <!-- 가운데: MAIN TERMINAL -->
+    <div id="edex-terminal" class="edex-panel">
+      <div class="edex-panel-title">
+        <span>MAIN TERMINAL</span>
+        <span style="display:flex;align-items:center;gap:10px;">
+          <span>// TTY0</span>
+          <button onclick="edexClose()" style="background:#ff5f5722;border:1px solid #ff5f5766;border-radius:4px;color:#ff5f57;font-family:'Courier New',monospace;font-size:9px;padding:2px 8px;cursor:pointer;letter-spacing:1px;">✕ EXIT</button>
+        </span>
+      </div>
+      <div id="edex-output"></div>
+      <div id="edex-input-row">
+        <span style="color:#00ff88;font-size:12px;">operator@localhost:~$</span>
+        <input id="edex-input" type="text" autocomplete="off" spellcheck="false"
+          style="flex:1;background:transparent;border:none;outline:none;font-family:'Courier New',monospace;font-size:12px;color:#00e5ff;caret-color:#00e5ff;"
+          onkeydown="edexCommand(event)">
+        <span class="edex-cursor" style="color:#00e5ff;font-size:12px;">█</span>
+      </div>
+    </div>
+    <!-- 오른쪽: NETWORK + CONNECTIONS -->
+    <div style="grid-column:3;grid-row:1;display:flex;flex-direction:column;">
+      <div class="edex-panel" style="flex:1;">
+        <div class="edex-panel-title"><span>NETWORK</span></div>
+        <div class="edex-stat-row"><span class="edex-stat-label">IPv4</span><span class="edex-stat-val" id="edex-ip">--</span></div>
+        <div class="edex-stat-row"><span class="edex-stat-label">GATEWAY</span><span class="edex-stat-val">192.168.1.1</span></div>
+        <div class="edex-stat-row"><span class="edex-stat-label">DNS</span><span class="edex-stat-val">1.1.1.1</span></div>
+        <div class="edex-stat-row"><span class="edex-stat-label">DOWN</span><span class="edex-stat-val" id="edex-down">-- MB/s</span></div>
+        <div class="edex-stat-row"><span class="edex-stat-label">UP</span><span class="edex-stat-val" id="edex-up">-- MB/s</span></div>
+        <div style="position:relative;width:140px;height:140px;margin:8px auto;">
+          <svg width="140" height="140">
+            <circle cx="70" cy="70" r="60" fill="none" stroke="#00e5ff11" stroke-width="1"/>
+            <circle cx="70" cy="70" r="40" fill="none" stroke="#00e5ff11" stroke-width="1"/>
+            <circle cx="70" cy="70" r="20" fill="none" stroke="#00e5ff11" stroke-width="1"/>
+            <line x1="70" y1="10" x2="70" y2="130" stroke="#00e5ff11" stroke-width="1"/>
+            <line x1="10" y1="70" x2="130" y2="70" stroke="#00e5ff11" stroke-width="1"/>
+            <g class="edex-scan-line">
+              <line x1="70" y1="70" x2="130" y2="70" stroke="#00e5ff" stroke-width="1" opacity="0.8"/>
+              <line x1="70" y1="70" x2="130" y2="70" stroke="#00e5ff" stroke-width="8" opacity="0.1"/>
+            </g>
+            <circle cx="90" cy="50" r="3" fill="#00ff88" opacity="0.8"/>
+            <circle cx="55" cy="85" r="2" fill="#00e5ff" opacity="0.6"/>
+          </svg>
+        </div>
+      </div>
+      <div class="edex-panel" style="flex:0 0 auto;">
+        <div class="edex-panel-title"><span>CONNECTIONS</span></div>
+        <div class="edex-stat-row"><span class="edex-stat-label">ESTABLISHED</span><span class="edex-stat-val" id="edex-conn">--</span></div>
+        <div class="edex-stat-row"><span class="edex-stat-label">LISTENING</span><span class="edex-stat-val">8</span></div>
+        <div class="edex-stat-row"><span class="edex-stat-label">LATENCY</span><span class="edex-stat-val" id="edex-latency">--ms</span></div>
+      </div>
+    </div>
+    <!-- 하단: 키보드 -->
+    <div id="edex-keyboard">
+      <div class="edex-panel-title" style="width:100%;max-width:760px;border:none;padding:0 0 4px;"><span>INPUT DEVICE</span><span>// KBDL_E</span></div>
+      <div class="edex-kb-row">
+        <div class="edex-key edex-key-wide" onclick="edexKeyPress('Escape','edex-key-esc')">ESC</div>
+        <div class="edex-key" id="edex-key-1" onclick="edexKeyPress('1','edex-key-1')">1</div><div class="edex-key" id="edex-key-2" onclick="edexKeyPress('2','edex-key-2')">2</div><div class="edex-key" id="edex-key-3" onclick="edexKeyPress('3','edex-key-3')">3</div><div class="edex-key" id="edex-key-4" onclick="edexKeyPress('4','edex-key-4')">4</div><div class="edex-key" id="edex-key-5" onclick="edexKeyPress('5','edex-key-5')">5</div><div class="edex-key" id="edex-key-6" onclick="edexKeyPress('6','edex-key-6')">6</div><div class="edex-key" id="edex-key-7" onclick="edexKeyPress('7','edex-key-7')">7</div><div class="edex-key" id="edex-key-8" onclick="edexKeyPress('8','edex-key-8')">8</div><div class="edex-key" id="edex-key-9" onclick="edexKeyPress('9','edex-key-9')">9</div><div class="edex-key" id="edex-key-0" onclick="edexKeyPress('0','edex-key-0')">0</div>
+        <div class="edex-key" onclick="edexKeyPress('-','edex-key-minus')">-</div><div class="edex-key" onclick="edexKeyPress('=','edex-key-eq')">=</div>
+        <div class="edex-key edex-key-wide" onclick="edexKeyPress('Backspace','edex-key-bs')">⌫</div>
+      </div>
+      <div class="edex-kb-row">
+        <div class="edex-key edex-key-wide" onclick="edexKeyPress('Tab','edex-key-tab')">TAB</div>
+        <div class="edex-key" onclick="edexKeyPress('q','edex-key-q')">Q</div><div class="edex-key" onclick="edexKeyPress('w','edex-key-w')">W</div><div class="edex-key" onclick="edexKeyPress('e','edex-key-e')">E</div><div class="edex-key" onclick="edexKeyPress('r','edex-key-r')">R</div><div class="edex-key" onclick="edexKeyPress('t','edex-key-t')">T</div><div class="edex-key" onclick="edexKeyPress('y','edex-key-y')">Y</div><div class="edex-key" onclick="edexKeyPress('u','edex-key-u')">U</div><div class="edex-key" onclick="edexKeyPress('i','edex-key-i')">I</div><div class="edex-key" onclick="edexKeyPress('o','edex-key-o')">O</div><div class="edex-key" onclick="edexKeyPress('p','edex-key-p')">P</div>
+        <div class="edex-key" onclick="edexKeyPress('[','edex-key-lb')">&#91;</div><div class="edex-key" onclick="edexKeyPress(']','edex-key-rb')">&#93;</div><div class="edex-key" onclick="edexKeyPress('\\','edex-key-bs2')">&#92;</div>
+      </div>
+      <div class="edex-kb-row">
+        <div class="edex-key edex-key-wider" onclick="edexKeyPress('CapsLock','edex-key-caps')">CAPS</div>
+        <div class="edex-key" onclick="edexKeyPress('a','edex-key-a')">A</div><div class="edex-key" onclick="edexKeyPress('s','edex-key-s')">S</div><div class="edex-key" onclick="edexKeyPress('d','edex-key-d')">D</div><div class="edex-key" onclick="edexKeyPress('f','edex-key-f')">F</div><div class="edex-key" onclick="edexKeyPress('g','edex-key-g')">G</div><div class="edex-key" onclick="edexKeyPress('h','edex-key-h')">H</div><div class="edex-key" onclick="edexKeyPress('j','edex-key-j')">J</div><div class="edex-key" onclick="edexKeyPress('k','edex-key-k')">K</div><div class="edex-key" onclick="edexKeyPress('l','edex-key-l')">L</div>
+        <div class="edex-key" onclick="edexKeyPress(';','edex-key-sc')">;</div><div class="edex-key" onclick="edexKeyPress(&quot;'&quot;,'edex-key-q2')">'</div>
+        <div class="edex-key edex-key-wider" onclick="edexKeyPress('Enter','edex-key-enter')">ENTER</div>
+      </div>
+      <div class="edex-kb-row">
+        <div class="edex-key edex-key-wider" id="edex-shift-key" onclick="edexToggleShift()">SHIFT</div>
+        <div class="edex-key" onclick="edexKeyPress('z','edex-key-z')">Z</div><div class="edex-key" onclick="edexKeyPress('x','edex-key-x')">X</div><div class="edex-key" onclick="edexKeyPress('c','edex-key-c')">C</div><div class="edex-key" onclick="edexKeyPress('v','edex-key-v')">V</div><div class="edex-key" onclick="edexKeyPress('b','edex-key-b')">B</div><div class="edex-key" onclick="edexKeyPress('n','edex-key-n')">N</div><div class="edex-key" onclick="edexKeyPress('m','edex-key-m')">M</div>
+        <div class="edex-key" onclick="edexKeyPress(',','edex-key-cm')">,</div><div class="edex-key" onclick="edexKeyPress('.','edex-key-dot')">.</div><div class="edex-key" onclick="edexKeyPress('/','edex-key-sl')">/</div>
+        <div class="edex-key edex-key-wider" onclick="edexToggleShift()">SHIFT</div>
+      </div>
+      <div class="edex-kb-row">
+        <div class="edex-key" style="min-width:280px;" onclick="edexKeyPress(' ','edex-key-sp')">SPACE</div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="page-dos" style="display:none;position:fixed;inset:0;background:#0a0a0a;z-index:5000;flex-direction:column;font-family:'Courier New',monospace;">
 <style>
   @keyframes dos-scan {
