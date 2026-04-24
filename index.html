@@ -513,6 +513,9 @@ function pinKey(e, i) {
       <div class="sidebar-item" onclick="showTab('tab-notice')" id="si-notice">
         <span class="si-label">공지사항</span>
       </div>
+      <div class="sidebar-item" onclick="showTab('tab-edex')" id="si-edex" style="display:none;">
+        <span class="si-label" style="color:#00e5ff;font-weight:600;">⬡ eDEX Terminal</span>
+      </div>
       <div class="sidebar-item" onclick="dosPinGate()" id="si-dos" style="display:none;">
         <span class="si-label" style="color:#c0392b;font-weight:600;">⚠️ DoS Tool</span>
       </div>
@@ -779,6 +782,42 @@ function pinKey(e, i) {
           <h3>패치노트</h3>
           <div id="patch-list" style="margin-top:.75rem;">
             <div style="font-size:13px;color:#aaa;text-align:center;padding:1.5rem;">패치노트가 없습니다.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- eDEX Terminal 탭 (친구+DEV 전용) -->
+      <div id="tab-edex" style="display:none;">
+        <div style="background:#0a0e1a;border-radius:16px;padding:0;overflow:hidden;border:1px solid #00e5ff33;box-shadow:0 0 40px rgba(0,229,255,0.08);min-height:600px;display:flex;flex-direction:column;">
+          <!-- 상단 헤더 -->
+          <div style="background:#050810;border-bottom:1px solid #00e5ff22;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="display:flex;gap:6px;">
+                <div style="width:12px;height:12px;border-radius:50%;background:#ff5f57;"></div>
+                <div style="width:12px;height:12px;border-radius:50%;background:#febc2e;"></div>
+                <div style="width:12px;height:12px;border-radius:50%;background:#28c840;"></div>
+              </div>
+              <span style="font-family:'Courier New',monospace;font-size:12px;color:#00e5ff;letter-spacing:2px;">eDEX-UI // TERMINAL</span>
+            </div>
+            <div id="edex-clock" style="font-family:'Courier New',monospace;font-size:11px;color:#00e5ff88;"></div>
+          </div>
+          <!-- 시스템 정보 바 -->
+          <div style="background:#070b16;border-bottom:1px solid #00e5ff11;padding:8px 16px;display:flex;gap:24px;flex-wrap:wrap;">
+            <span style="font-family:'Courier New',monospace;font-size:10px;color:#00e5ff66;">SYS: <span id="edex-os" style="color:#00e5ff;">-</span></span>
+            <span style="font-family:'Courier New',monospace;font-size:10px;color:#00e5ff66;">BROWSER: <span id="edex-browser" style="color:#00e5ff;">-</span></span>
+            <span style="font-family:'Courier New',monospace;font-size:10px;color:#00e5ff66;">SCREEN: <span id="edex-screen" style="color:#00e5ff;">-</span></span>
+            <span style="font-family:'Courier New',monospace;font-size:10px;color:#00e5ff66;">LANG: <span id="edex-lang" style="color:#00e5ff;">-</span></span>
+            <span style="font-family:'Courier New',monospace;font-size:10px;color:#00e5ff66;">IP: <span id="edex-ip" style="color:#00ff88;">-</span></span>
+          </div>
+          <!-- 터미널 출력 -->
+          <div id="edex-output" style="flex:1;padding:16px;font-family:'Courier New',monospace;font-size:13px;color:#00e5ff;line-height:1.8;overflow-y:auto;min-height:400px;max-height:420px;background:#0a0e1a;"></div>
+          <!-- 입력줄 -->
+          <div style="background:#050810;border-top:1px solid #00e5ff22;padding:10px 16px;display:flex;align-items:center;gap:8px;">
+            <span style="font-family:'Courier New',monospace;font-size:13px;color:#00ff88;">root@edex:~$</span>
+            <input id="edex-input" type="text" autocomplete="off" spellcheck="false"
+              style="flex:1;background:transparent;border:none;outline:none;font-family:'Courier New',monospace;font-size:13px;color:#00e5ff;caret-color:#00e5ff;"
+              placeholder="명령어를 입력하세요..."
+              onkeydown="edexCommand(event)">
           </div>
         </div>
       </div>
@@ -1148,9 +1187,14 @@ async function goToDash() {
     if(isAdminSession() || sessionStorage.getItem("isFriend") === "true") {
       if(dosSi) dosSi.style.display = "flex";
       if(mbDos) mbDos.style.display = "flex";
+      // eDEX Terminal 표시
+      const edexSi = document.getElementById("si-edex");
+      if(edexSi) edexSi.style.display = "flex";
     } else {
       if(dosSi) dosSi.style.display = "none";
       if(mbDos) mbDos.style.display = "none";
+      const edexSi = document.getElementById("si-edex");
+      if(edexSi) edexSi.style.display = "none";
     }
     // 접속자 관리: DEV 전용
     if(isAdminSession()) {
@@ -1178,10 +1222,10 @@ async function goToDash() {
 }
 
 function showTab(id) {
-  ["tab-anon","tab-ip","tab-unfollow","tab-active","tab-stock","tab-game","tab-notice","tab-users","tab-inbox"].forEach(t=>{ const el=document.getElementById(t); if(el) el.style.display="none"; });
-  ["si-anon","si-ip","si-unfollow","si-active","si-stock","si-game","si-notice","si-dos","si-users"].forEach(s=>{ const el=document.getElementById(s); if(el) el.classList.remove("active"); });
+  ["tab-anon","tab-ip","tab-unfollow","tab-active","tab-stock","tab-game","tab-notice","tab-users","tab-inbox","tab-edex"].forEach(t=>{ const el=document.getElementById(t); if(el) el.style.display="none"; });
+  ["si-anon","si-ip","si-unfollow","si-active","si-stock","si-game","si-notice","si-dos","si-users","si-edex"].forEach(s=>{ const el=document.getElementById(s); if(el) el.classList.remove("active"); });
   document.getElementById(id).style.display="block";
-  const map={"tab-anon":"si-anon","tab-ip":"si-ip","tab-unfollow":"si-unfollow","tab-active":"si-active","tab-stock":"si-stock","tab-game":"si-game","tab-notice":"si-notice","tab-dos":"si-dos","tab-users":"si-users"};
+  const map={"tab-anon":"si-anon","tab-ip":"si-ip","tab-unfollow":"si-unfollow","tab-active":"si-active","tab-stock":"si-stock","tab-game":"si-game","tab-notice":"si-notice","tab-dos":"si-dos","tab-users":"si-users","tab-edex":"si-edex"};
   document.getElementById(map[id]).classList.add("active");
   if(id === "tab-game") renderMyRecords();
   if(id === "tab-ip") loadMyIP();
@@ -1193,8 +1237,8 @@ function showTab(id) {
   }
   if(id === "tab-users" && isAdminSession()) loadUsers();
   // 모바일 탭바 active 처리
-  const mbMap = {"tab-anon":"mb-anon","tab-ip":"mb-ip","tab-unfollow":"mb-unfollow","tab-active":"mb-active","tab-stock":"mb-stock","tab-game":"mb-game","tab-notice":"mb-notice","tab-dos":"mb-dos","tab-users":"mb-users"};
-  ["mb-anon","mb-ip","mb-unfollow","mb-active","mb-stock","mb-game","mb-notice","mb-dos","mb-users"].forEach(b=>{
+  const mbMap = {"tab-anon":"mb-anon","tab-ip":"mb-ip","tab-unfollow":"mb-unfollow","tab-active":"mb-active","tab-stock":"mb-stock","tab-game":"mb-game","tab-notice":"mb-notice","tab-dos":"mb-dos","tab-users":"mb-users","tab-edex":"mb-edex"};
+  ["mb-anon","mb-ip","mb-unfollow","mb-active","mb-stock","mb-game","mb-notice","mb-dos","mb-users","mb-edex"].forEach(b=>{
     const el=document.getElementById(b); if(el){el.style.color="#888";const sp=el.querySelectorAll("span");sp.forEach(s=>s.style.color="#888");}
   });
   if(mbMap[id]){
@@ -3526,6 +3570,254 @@ window.saveScoreToFirebase = async function(name, score) {
 };
 
 window.startRealtimeLeaderboard();
+</script>
+
+<script>
+// ── eDEX Terminal ──
+let edexHistory = [];
+let edexHistoryIdx = -1;
+let edexBooted = false;
+
+const EDEX_COMMANDS = {
+  help: () => [
+    '<span style="color:#00ff88">사용 가능한 명령어:</span>',
+    '  <span style="color:#00e5ff">help</span>       — 명령어 목록',
+    '  <span style="color:#00e5ff">sysinfo</span>    — 시스템 정보',
+    '  <span style="color:#00e5ff">whoami</span>     — 현재 사용자',
+    '  <span style="color:#00e5ff">ip</span>         — IP 주소 확인',
+    '  <span style="color:#00e5ff">date</span>       — 현재 날짜/시간',
+    '  <span style="color:#00e5ff">ping</span>       — 서버 응답 테스트',
+    '  <span style="color:#00e5ff">matrix</span>    — 매트릭스 애니메이션',
+    '  <span style="color:#00e5ff">clear</span>      — 터미널 초기화',
+    '  <span style="color:#00e5ff">echo [텍스트]</span> — 텍스트 출력',
+    '  <span style="color:#00e5ff">ls</span>         — 파일 목록',
+    '  <span style="color:#00e5ff">hack</span>       — ???',
+  ],
+  sysinfo: () => [
+    '<span style="color:#00ff88">── SYSTEM INFO ──</span>',
+    `  OS: <span style="color:#fff">${navigator.platform}</span>`,
+    `  Browser: <span style="color:#fff">${getBrowserName()}</span>`,
+    `  Language: <span style="color:#fff">${navigator.language}</span>`,
+    `  Screen: <span style="color:#fff">${screen.width}x${screen.height}</span>`,
+    `  Color Depth: <span style="color:#fff">${screen.colorDepth}bit</span>`,
+    `  Cookies: <span style="color:#fff">${navigator.cookieEnabled ? 'Enabled' : 'Disabled'}</span>`,
+    `  Online: <span style="color:#fff">${navigator.onLine ? 'Yes' : 'No'}</span>`,
+    `  Timezone: <span style="color:#fff">${Intl.DateTimeFormat().resolvedOptions().timeZone}</span>`,
+  ],
+  whoami: () => {
+    const isAdmin = sessionStorage.getItem("isAdmin") === "true";
+    const isFriend = sessionStorage.getItem("isFriend") === "true";
+    const profile = localStorage.getItem("userProfile");
+    const name = profile ? JSON.parse(profile).name || "Unknown" : "Unknown";
+    const role = isAdmin ? "DEVELOPER" : isFriend ? "FRIEND" : "USER";
+    return [
+      `  User: <span style="color:#00ff88">${name}</span>`,
+      `  Role: <span style="color:#${isAdmin ? 'ff5f57' : isFriend ? 'febc2e' : '00e5ff'}">${role}</span>`,
+      `  Session: <span style="color:#fff">${sessionStorage.getItem("loginType") || "unknown"}</span>`,
+    ];
+  },
+  ip: async () => {
+    try {
+      const r = await fetch("https://api.ipify.org?format=json");
+      const d = await r.json();
+      return [`  Your IP: <span style="color:#00ff88">${d.ip}</span>`];
+    } catch {
+      return [`  <span style="color:#ff5f57">IP 조회 실패</span>`];
+    }
+  },
+  date: () => {
+    const now = new Date();
+    return [
+      `  Date: <span style="color:#fff">${now.toLocaleDateString('ko-KR', {weekday:'long', year:'numeric', month:'long', day:'numeric'})}</span>`,
+      `  Time: <span style="color:#00ff88">${now.toLocaleTimeString('ko-KR')}</span>`,
+      `  UTC: <span style="color:#fff">${now.toUTCString()}</span>`,
+    ];
+  },
+  ping: async () => {
+    const start = Date.now();
+    try {
+      await fetch("https://api.ipify.org?format=json");
+      const ms = Date.now() - start;
+      return [
+        `  Pinging api.ipify.org...`,
+        `  Response: <span style="color:#00ff88">${ms}ms</span>`,
+        `  Status: <span style="color:#00ff88">ONLINE</span>`,
+      ];
+    } catch {
+      return [`  Status: <span style="color:#ff5f57">OFFLINE</span>`];
+    }
+  },
+  ls: () => [
+    '<span style="color:#00ff88">── /home/edex ──</span>',
+    '  <span style="color:#00e5ff">drwxr-xr-x</span>  system/',
+    '  <span style="color:#00e5ff">drwxr-xr-x</span>  logs/',
+    '  <span style="color:#00ff88">-rw-r--r--</span>  config.json',
+    '  <span style="color:#00ff88">-rw-r--r--</span>  users.db',
+    '  <span style="color:#ff5f57">-rwx------</span>  secret.enc',
+  ],
+  hack: () => [
+    '<span style="color:#ff5f57">⚠ INITIATING SEQUENCE...</span>',
+    '  Scanning network... <span style="color:#00ff88">DONE</span>',
+    '  Bypassing firewall... <span style="color:#00ff88">DONE</span>',
+    '  Accessing mainframe... <span style="color:#febc2e">WAIT</span>',
+    '  <span style="color:#ff5f57">ERROR: Just kidding 😄</span>',
+  ],
+  clear: () => { document.getElementById("edex-output").innerHTML = ""; return []; },
+  matrix: () => {
+    startMatrix();
+    return ['<span style="color:#00ff88">Matrix mode activated... (아무 키나 누르면 종료)</span>'];
+  },
+};
+
+function getBrowserName() {
+  const ua = navigator.userAgent;
+  if (ua.includes("Chrome") && !ua.includes("Edg")) return "Chrome";
+  if (ua.includes("Firefox")) return "Firefox";
+  if (ua.includes("Safari") && !ua.includes("Chrome")) return "Safari";
+  if (ua.includes("Edg")) return "Edge";
+  return "Unknown";
+}
+
+function edexPrint(lines, color) {
+  const out = document.getElementById("edex-output");
+  if (!out) return;
+  lines.forEach(line => {
+    const div = document.createElement("div");
+    div.innerHTML = line;
+    if (color) div.style.color = color;
+    out.appendChild(div);
+  });
+  out.scrollTop = out.scrollHeight;
+}
+
+function edexPrintLine(text) {
+  edexPrint([text]);
+}
+
+async function edexCommand(e) {
+  if (e.key === "ArrowUp") {
+    e.preventDefault();
+    if (edexHistoryIdx < edexHistory.length - 1) edexHistoryIdx++;
+    e.target.value = edexHistory[edexHistory.length - 1 - edexHistoryIdx] || "";
+    return;
+  }
+  if (e.key === "ArrowDown") {
+    e.preventDefault();
+    if (edexHistoryIdx > 0) edexHistoryIdx--;
+    e.target.value = edexHistory[edexHistory.length - 1 - edexHistoryIdx] || "";
+    return;
+  }
+  if (e.key !== "Enter") return;
+
+  const input = e.target.value.trim();
+  e.target.value = "";
+  edexHistoryIdx = -1;
+  if (!input) return;
+
+  edexHistory.push(input);
+  edexPrint([`<span style="color:#00ff88">root@edex:~$</span> <span style="color:#fff">${input}</span>`]);
+
+  const [cmd, ...args] = input.split(" ");
+  const cmdFn = EDEX_COMMANDS[cmd.toLowerCase()];
+
+  if (cmd.toLowerCase() === "echo") {
+    edexPrint([`  ${args.join(" ")}`]);
+  } else if (cmdFn) {
+    const result = await cmdFn();
+    if (result && result.length) edexPrint(result);
+  } else {
+    edexPrint([`  <span style="color:#ff5f57">command not found: ${cmd}</span>`]);
+  }
+}
+
+function initEdex() {
+  if (edexBooted) return;
+  edexBooted = true;
+
+  // 시스템 정보 채우기
+  const osEl = document.getElementById("edex-os");
+  const browserEl = document.getElementById("edex-browser");
+  const screenEl = document.getElementById("edex-screen");
+  const langEl = document.getElementById("edex-lang");
+  const ipEl = document.getElementById("edex-ip");
+
+  if (osEl) osEl.textContent = navigator.platform;
+  if (browserEl) browserEl.textContent = getBrowserName();
+  if (screenEl) screenEl.textContent = `${screen.width}x${screen.height}`;
+  if (langEl) langEl.textContent = navigator.language;
+  if (ipEl) {
+    fetch("https://api.ipify.org?format=json")
+      .then(r => r.json())
+      .then(d => { if(ipEl) ipEl.textContent = d.ip; })
+      .catch(() => { if(ipEl) ipEl.textContent = "Unknown"; });
+  }
+
+  // 시계
+  setInterval(() => {
+    const el = document.getElementById("edex-clock");
+    if (el) el.textContent = new Date().toLocaleTimeString("ko-KR");
+  }, 1000);
+
+  // 부팅 시퀀스
+  const bootLines = [
+    '<span style="color:#00e5ff">eDEX-UI Terminal v2.2.8</span>',
+    '<span style="color:#00e5ff88">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>',
+    'Initializing system...',
+    'Loading kernel modules... <span style="color:#00ff88">OK</span>',
+    'Mounting filesystems... <span style="color:#00ff88">OK</span>',
+    'Starting network services... <span style="color:#00ff88">OK</span>',
+    'Authenticating user... <span style="color:#00ff88">OK</span>',
+    '<span style="color:#00e5ff88">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>',
+    'Type <span style="color:#00e5ff">help</span> to see available commands.',
+    '',
+  ];
+
+  let i = 0;
+  const interval = setInterval(() => {
+    if (i >= bootLines.length) { clearInterval(interval); return; }
+    edexPrint([bootLines[i]]);
+    i++;
+  }, 120);
+}
+
+// 매트릭스 애니메이션
+let matrixActive = false;
+let matrixInterval = null;
+function startMatrix() {
+  if (matrixActive) return;
+  matrixActive = true;
+  const chars = "アイウエオカキクケコサシスセソタチツテトナニヌネノ0123456789ABCDEF";
+  const out = document.getElementById("edex-output");
+  matrixInterval = setInterval(() => {
+    let line = "";
+    for (let i = 0; i < 40; i++) line += chars[Math.floor(Math.random() * chars.length)];
+    const div = document.createElement("div");
+    div.innerHTML = `<span style="color:#00ff${Math.floor(Math.random()*100+100).toString(16)}">${line}</span>`;
+    out.appendChild(div);
+    out.scrollTop = out.scrollHeight;
+    if (out.children.length > 200) out.removeChild(out.firstChild);
+  }, 60);
+
+  document.addEventListener("keydown", function stopMatrix() {
+    clearInterval(matrixInterval);
+    matrixActive = false;
+    edexPrint(['<span style="color:#ff5f57">Matrix stopped.</span>']);
+    document.removeEventListener("keydown", stopMatrix);
+  }, { once: true });
+}
+
+// showTab에 edex init 연결
+const _origShowTab = window.showTab;
+window.showTab = function(id) {
+  _origShowTab(id);
+  if (id === "tab-edex") {
+    setTimeout(initEdex, 100);
+    setTimeout(() => {
+      const inp = document.getElementById("edex-input");
+      if (inp) inp.focus();
+    }, 200);
+  }
+};
 </script>
 <!-- DoS Tool PIN 모달 -->
 <div id="dos-pin-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:10000;align-items:center;justify-content:center;padding:1rem;">
