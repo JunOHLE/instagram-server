@@ -1122,6 +1122,9 @@ async function goToDash() {
   document.getElementById("page-profile").style.display="none";
   document.getElementById("page-dash").style.display="flex";
   document.getElementById("page-dash").style.flexDirection="column";
+  // 점검 BGM 완전히 정지
+  const _mbgm = document.getElementById("maint-bgm");
+  if(_mbgm) { _mbgm.pause(); _mbgm.currentTime = 0; }
   loadMarketIndex();
   loadUserProfile();
   // Firebase 준비되면 점검 체크 (모바일 타이밍 대응)
