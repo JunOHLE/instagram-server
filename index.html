@@ -1027,6 +1027,11 @@ function toggleTermsBtn() {
 }
 
 function enterAsDeveloper() {
+  // 점검 영상/BGM 완전히 정지
+  const _mv = document.getElementById("maint-video");
+  if(_mv) { _mv.pause(); _mv.currentTime = 0; _mv.muted = true; }
+  const _mbgm = document.getElementById("maint-bgm");
+  if(_mbgm) { _mbgm.pause(); _mbgm.currentTime = 0; }
   sessionStorage.setItem("isAdmin", "true");
   // 기존 프로필 유지, role만 developer로 업데이트
   const saved = localStorage.getItem("userProfile");
