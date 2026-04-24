@@ -100,6 +100,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .dash-nav { background: #fff; border-bottom: 1px solid #e0e0e0; padding: 0 1.25rem; display: flex; align-items: center; height: 52px; gap: 8px; position: sticky; top: 0; z-index: 100; }
 .dash-nav .nav-logo { font-size: 16px; font-weight: 600; color: #111; display: flex; align-items: center; gap: 7px; flex: 1; }
 .dash-body { display: flex; flex: 1; }
+/* eDEX 풀스크린 */
+body.edex-fullscreen .sidebar,
+body.edex-fullscreen .dash-nav { display: none !important; }
+body.edex-fullscreen .dash-body { display: block; }
+body.edex-fullscreen .content { max-width: 100%; padding: 0; }
 .sidebar { width: 220px; background: #fff; border-right: 1px solid #e0e0e0; padding: 1.25rem 0; min-height: calc(100vh - 52px); flex-shrink: 0; }
 .sidebar-item { display: flex; align-items: center; gap: 10px; padding: 10px 1.25rem; font-size: 14px; color: #444; cursor: pointer; border-radius: 0; transition: background .15s; border-left: 3px solid transparent; }
 .sidebar-item:hover { background: #f5f5f5; }
@@ -787,37 +792,135 @@ function pinKey(e, i) {
       </div>
 
       <!-- eDEX Terminal 탭 (친구+DEV 전용) -->
-      <div id="tab-edex" style="display:none;">
-        <div style="background:#0a0e1a;border-radius:16px;padding:0;overflow:hidden;border:1px solid #00e5ff33;box-shadow:0 0 40px rgba(0,229,255,0.08);min-height:600px;display:flex;flex-direction:column;">
-          <!-- 상단 헤더 -->
-          <div style="background:#050810;border-bottom:1px solid #00e5ff22;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;">
-            <div style="display:flex;align-items:center;gap:10px;">
-              <div style="display:flex;gap:6px;">
-                <div style="width:12px;height:12px;border-radius:50%;background:#ff5f57;"></div>
-                <div style="width:12px;height:12px;border-radius:50%;background:#febc2e;"></div>
-                <div style="width:12px;height:12px;border-radius:50%;background:#28c840;"></div>
-              </div>
-              <span style="font-family:'Courier New',monospace;font-size:12px;color:#00e5ff;letter-spacing:2px;">eDEX-UI // TERMINAL</span>
+      <div id="tab-edex" style="display:none;margin:-1.5rem;background:#050a0f;">
+        <style>
+          #edex-wrap { display:grid; grid-template-columns:220px 1fr 220px; grid-template-rows:1fr 200px; height:calc(100vh - 52px); background:#050a0f; font-family:'Courier New',monospace; color:#00e5ff; }
+          .edex-panel { border:1px solid #00e5ff22; background:#07111a; position:relative; overflow:hidden; }
+          .edex-panel-title { font-size:10px; letter-spacing:3px; color:#00e5ff66; padding:6px 10px; border-bottom:1px solid #00e5ff22; display:flex; justify-content:space-between; }
+          .edex-stat-row { display:flex; justify-content:space-between; padding:3px 10px; font-size:10px; }
+          .edex-stat-label { color:#00e5ff55; letter-spacing:1px; }
+          .edex-stat-val { color:#fff; }
+          .edex-bar-wrap { padding:2px 10px 6px; }
+          .edex-bar-bg { background:#0d1f2d; border-radius:2px; height:4px; }
+          .edex-bar-fill { height:4px; border-radius:2px; background:linear-gradient(90deg,#00e5ff,#00ff88); transition:width 1s; }
+          #edex-terminal { grid-column:2; grid-row:1; display:flex; flex-direction:column; }
+          #edex-output { flex:1; padding:12px 16px; font-size:12px; line-height:1.75; overflow-y:auto; color:#00e5ff; }
+          #edex-input-row { padding:8px 16px; border-top:1px solid #00e5ff22; display:flex; align-items:center; gap:8px; background:#050a0f; }
+          #edex-keyboard { grid-column:1/-1; grid-row:2; border-top:1px solid #00e5ff22; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; background:#050a0f; padding:10px; }
+          .edex-kb-row { display:flex; gap:4px; }
+          .edex-key { min-width:32px; height:32px; border:1px solid #00e5ff33; border-radius:4px; background:#07111a; color:#00e5ff; font-family:'Courier New',monospace; font-size:10px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all .1s; user-select:none; padding:0 6px; }
+          .edex-key:hover { background:#00e5ff22; border-color:#00e5ff; }
+          .edex-key.active { background:#00e5ff44; border-color:#00ff88; color:#00ff88; }
+          .edex-key-wide { min-width:52px; }
+          .edex-key-wider { min-width:80px; }
+          .edex-radar { position:relative; width:140px; height:140px; margin:8px auto; }
+          .edex-radar svg { position:absolute; top:0; left:0; }
+          @keyframes edex-scan { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+          .edex-scan-line { transform-origin:70px 70px; animation:edex-scan 3s linear infinite; }
+          @keyframes edex-blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+          .edex-cursor { animation:edex-blink 1s infinite; }
+        </style>
+        <div id="edex-wrap">
+          <!-- 왼쪽: SYSTEM + RESOURCES -->
+          <div style="grid-column:1;grid-row:1;display:flex;flex-direction:column;gap:0;">
+            <div class="edex-panel" style="flex:0 0 auto;">
+              <div class="edex-panel-title"><span>SYSTEM</span><span id="edex-clock" style="color:#00e5ff44;">00:00:00</span></div>
+              <div class="edex-stat-row"><span class="edex-stat-label">HOSTNAME</span><span class="edex-stat-val" id="edex-hostname">instagram-server</span></div>
+              <div class="edex-stat-row"><span class="edex-stat-label">USER</span><span class="edex-stat-val" id="edex-user">-</span></div>
+              <div class="edex-stat-row"><span class="edex-stat-label">PLATFORM</span><span class="edex-stat-val" id="edex-os">-</span></div>
+              <div class="edex-stat-row"><span class="edex-stat-label">BROWSER</span><span class="edex-stat-val" id="edex-browser">-</span></div>
+              <div class="edex-stat-row"><span class="edex-stat-label">UPTIME</span><span class="edex-stat-val" id="edex-uptime">0s</span></div>
+              <div class="edex-stat-row"><span class="edex-stat-label">LANG</span><span class="edex-stat-val" id="edex-lang">-</span></div>
             </div>
-            <div id="edex-clock" style="font-family:'Courier New',monospace;font-size:11px;color:#00e5ff88;"></div>
+            <div class="edex-panel" style="flex:1;">
+              <div class="edex-panel-title"><span>RESOURCES</span></div>
+              <div class="edex-stat-row"><span class="edex-stat-label">CPU</span><span class="edex-stat-val" id="edex-cpu">--%</span></div>
+              <div class="edex-bar-wrap"><div class="edex-bar-bg"><div class="edex-bar-fill" id="edex-cpu-bar" style="width:0%"></div></div></div>
+              <div class="edex-stat-row"><span class="edex-stat-label">MEMORY</span><span class="edex-stat-val" id="edex-mem">--%</span></div>
+              <div class="edex-bar-wrap"><div class="edex-bar-bg"><div class="edex-bar-fill" id="edex-mem-bar" style="width:0%;background:linear-gradient(90deg,#febc2e,#ff9500)"></div></div></div>
+              <div class="edex-stat-row"><span class="edex-stat-label">SCREEN</span><span class="edex-stat-val" id="edex-screen">-</span></div>
+              <div class="edex-bar-wrap"><div class="edex-bar-bg"><div class="edex-bar-fill" id="edex-disk-bar" style="width:6%;background:linear-gradient(90deg,#a855f7,#7c3aed)"></div></div></div>
+              <div class="edex-stat-row"><span class="edex-stat-label">TEMP</span><span class="edex-stat-val" id="edex-temp">--°C</span></div>
+              <div class="edex-bar-wrap"><div class="edex-bar-bg"><div class="edex-bar-fill" id="edex-temp-bar" style="width:0%;background:linear-gradient(90deg,#ff5f57,#c0392b)"></div></div></div>
+            </div>
           </div>
-          <!-- 시스템 정보 바 -->
-          <div style="background:#070b16;border-bottom:1px solid #00e5ff11;padding:8px 16px;display:flex;gap:24px;flex-wrap:wrap;">
-            <span style="font-family:'Courier New',monospace;font-size:10px;color:#00e5ff66;">SYS: <span id="edex-os" style="color:#00e5ff;">-</span></span>
-            <span style="font-family:'Courier New',monospace;font-size:10px;color:#00e5ff66;">BROWSER: <span id="edex-browser" style="color:#00e5ff;">-</span></span>
-            <span style="font-family:'Courier New',monospace;font-size:10px;color:#00e5ff66;">SCREEN: <span id="edex-screen" style="color:#00e5ff;">-</span></span>
-            <span style="font-family:'Courier New',monospace;font-size:10px;color:#00e5ff66;">LANG: <span id="edex-lang" style="color:#00e5ff;">-</span></span>
-            <span style="font-family:'Courier New',monospace;font-size:10px;color:#00e5ff66;">IP: <span id="edex-ip" style="color:#00ff88;">-</span></span>
+
+          <!-- 가운데: MAIN TERMINAL -->
+          <div id="edex-terminal" class="edex-panel">
+            <div class="edex-panel-title"><span>MAIN TERMINAL</span><span style="display:flex;align-items:center;gap:12px;"><span>// TTY0</span><button onclick="showTab('tab-anon');document.body.classList.remove('edex-fullscreen')" style="background:#ff5f5722;border:1px solid #ff5f5766;border-radius:4px;color:#ff5f57;font-family:'Courier New',monospace;font-size:9px;padding:2px 8px;cursor:pointer;letter-spacing:1px;">✕ EXIT</button></span></div>
+            <div id="edex-output"></div>
+            <div id="edex-input-row">
+              <span style="color:#00ff88;font-size:12px;">operator@localhost:~$</span>
+              <input id="edex-input" type="text" autocomplete="off" spellcheck="false"
+                style="flex:1;background:transparent;border:none;outline:none;font-family:'Courier New',monospace;font-size:12px;color:#00e5ff;caret-color:#00e5ff;"
+                onkeydown="edexCommand(event)">
+              <span class="edex-cursor" style="color:#00e5ff;font-size:12px;">█</span>
+            </div>
           </div>
-          <!-- 터미널 출력 -->
-          <div id="edex-output" style="flex:1;padding:16px;font-family:'Courier New',monospace;font-size:13px;color:#00e5ff;line-height:1.8;overflow-y:auto;min-height:400px;max-height:420px;background:#0a0e1a;"></div>
-          <!-- 입력줄 -->
-          <div style="background:#050810;border-top:1px solid #00e5ff22;padding:10px 16px;display:flex;align-items:center;gap:8px;">
-            <span style="font-family:'Courier New',monospace;font-size:13px;color:#00ff88;">root@edex:~$</span>
-            <input id="edex-input" type="text" autocomplete="off" spellcheck="false"
-              style="flex:1;background:transparent;border:none;outline:none;font-family:'Courier New',monospace;font-size:13px;color:#00e5ff;caret-color:#00e5ff;"
-              placeholder="명령어를 입력하세요..."
-              onkeydown="edexCommand(event)">
+
+          <!-- 오른쪽: NETWORK + CONNECTIONS -->
+          <div style="grid-column:3;grid-row:1;display:flex;flex-direction:column;">
+            <div class="edex-panel" style="flex:1;">
+              <div class="edex-panel-title"><span>NETWORK</span></div>
+              <div class="edex-stat-row"><span class="edex-stat-label">IPv4</span><span class="edex-stat-val" id="edex-ip">--</span></div>
+              <div class="edex-stat-row"><span class="edex-stat-label">GATEWAY</span><span class="edex-stat-val">192.168.1.1</span></div>
+              <div class="edex-stat-row"><span class="edex-stat-label">DNS</span><span class="edex-stat-val">1.1.1.1</span></div>
+              <div class="edex-stat-row"><span class="edex-stat-label">DOWN</span><span class="edex-stat-val" id="edex-down">-- MB/s</span></div>
+              <div class="edex-stat-row"><span class="edex-stat-label">UP</span><span class="edex-stat-val" id="edex-up">-- MB/s</span></div>
+              <!-- 레이더 -->
+              <div class="edex-radar">
+                <svg width="140" height="140">
+                  <circle cx="70" cy="70" r="60" fill="none" stroke="#00e5ff11" stroke-width="1"/>
+                  <circle cx="70" cy="70" r="40" fill="none" stroke="#00e5ff11" stroke-width="1"/>
+                  <circle cx="70" cy="70" r="20" fill="none" stroke="#00e5ff11" stroke-width="1"/>
+                  <line x1="70" y1="10" x2="70" y2="130" stroke="#00e5ff11" stroke-width="1"/>
+                  <line x1="10" y1="70" x2="130" y2="70" stroke="#00e5ff11" stroke-width="1"/>
+                  <g class="edex-scan-line">
+                    <line x1="70" y1="70" x2="130" y2="70" stroke="#00e5ff" stroke-width="1" opacity="0.8"/>
+                    <line x1="70" y1="70" x2="130" y2="70" stroke="#00e5ff" stroke-width="8" opacity="0.1"/>
+                  </g>
+                  <circle cx="90" cy="50" r="3" fill="#00ff88" opacity="0.8"/>
+                  <circle cx="55" cy="85" r="2" fill="#00e5ff" opacity="0.6"/>
+                </svg>
+              </div>
+            </div>
+            <div class="edex-panel" style="flex:0 0 auto;">
+              <div class="edex-panel-title"><span>CONNECTIONS</span></div>
+              <div class="edex-stat-row"><span class="edex-stat-label">ESTABLISHED</span><span class="edex-stat-val" id="edex-conn">--</span></div>
+              <div class="edex-stat-row"><span class="edex-stat-label">LISTENING</span><span class="edex-stat-val">8</span></div>
+              <div class="edex-stat-row"><span class="edex-stat-label">LATENCY</span><span class="edex-stat-val" id="edex-latency">--ms</span></div>
+            </div>
+          </div>
+
+          <!-- 하단: INPUT DEVICE (키보드) -->
+          <div id="edex-keyboard">
+            <div class="edex-panel-title" style="width:100%;max-width:800px;border:none;padding:0 0 4px;"><span>INPUT DEVICE</span><span>// KBDL_E</span></div>
+            <div class="edex-kb-row">
+              <div class="edex-key edex-key-wide" onclick="edexKeyPress('Escape')">ESC</div>
+              <div class="edex-key" onclick="edexKeyPress('1')">1</div><div class="edex-key" onclick="edexKeyPress('2')">2</div><div class="edex-key" onclick="edexKeyPress('3')">3</div><div class="edex-key" onclick="edexKeyPress('4')">4</div><div class="edex-key" onclick="edexKeyPress('5')">5</div><div class="edex-key" onclick="edexKeyPress('6')">6</div><div class="edex-key" onclick="edexKeyPress('7')">7</div><div class="edex-key" onclick="edexKeyPress('8')">8</div><div class="edex-key" onclick="edexKeyPress('9')">9</div><div class="edex-key" onclick="edexKeyPress('0')">0</div>
+              <div class="edex-key" onclick="edexKeyPress('-')">-</div><div class="edex-key" onclick="edexKeyPress('=')">=</div>
+              <div class="edex-key edex-key-wide" onclick="edexKeyPress('Backspace')">⌫</div>
+            </div>
+            <div class="edex-kb-row">
+              <div class="edex-key edex-key-wide" onclick="edexKeyPress('Tab')">TAB</div>
+              <div class="edex-key" onclick="edexKeyPress('q')">Q</div><div class="edex-key" onclick="edexKeyPress('w')">W</div><div class="edex-key" onclick="edexKeyPress('e')">E</div><div class="edex-key" onclick="edexKeyPress('r')">R</div><div class="edex-key" onclick="edexKeyPress('t')">T</div><div class="edex-key" onclick="edexKeyPress('y')">Y</div><div class="edex-key" onclick="edexKeyPress('u')">U</div><div class="edex-key" onclick="edexKeyPress('i')">I</div><div class="edex-key" onclick="edexKeyPress('o')">O</div><div class="edex-key" onclick="edexKeyPress('p')">P</div>
+              <div class="edex-key" onclick="edexKeyPress('[')">&#91;</div><div class="edex-key" onclick="edexKeyPress(']')">&#93;</div><div class="edex-key" onclick="edexKeyPress('\\')">&#92;</div>
+            </div>
+            <div class="edex-kb-row">
+              <div class="edex-key edex-key-wider" onclick="edexKeyPress('CapsLock')">CAPS</div>
+              <div class="edex-key" onclick="edexKeyPress('a')">A</div><div class="edex-key" onclick="edexKeyPress('s')">S</div><div class="edex-key" onclick="edexKeyPress('d')">D</div><div class="edex-key" onclick="edexKeyPress('f')">F</div><div class="edex-key" onclick="edexKeyPress('g')">G</div><div class="edex-key" onclick="edexKeyPress('h')">H</div><div class="edex-key" onclick="edexKeyPress('j')">J</div><div class="edex-key" onclick="edexKeyPress('k')">K</div><div class="edex-key" onclick="edexKeyPress('l')">L</div>
+              <div class="edex-key" onclick="edexKeyPress(';')">;</div><div class="edex-key" onclick="edexKeyPress('\\')">'</div>
+              <div class="edex-key edex-key-wider" onclick="edexKeyPress('Enter')">ENTER</div>
+            </div>
+            <div class="edex-kb-row">
+              <div class="edex-key edex-key-wider" id="edex-shift-key" onclick="edexToggleShift()">SHIFT</div>
+              <div class="edex-key" onclick="edexKeyPress('z')">Z</div><div class="edex-key" onclick="edexKeyPress('x')">X</div><div class="edex-key" onclick="edexKeyPress('c')">C</div><div class="edex-key" onclick="edexKeyPress('v')">V</div><div class="edex-key" onclick="edexKeyPress('b')">B</div><div class="edex-key" onclick="edexKeyPress('n')">N</div><div class="edex-key" onclick="edexKeyPress('m')">M</div>
+              <div class="edex-key" onclick="edexKeyPress(',')"> , </div><div class="edex-key" onclick="edexKeyPress('.')"> . </div><div class="edex-key" onclick="edexKeyPress('/')"> / </div>
+              <div class="edex-key edex-key-wider" onclick="edexToggleShift()">SHIFT</div>
+            </div>
+            <div class="edex-kb-row">
+              <div class="edex-key" style="min-width:300px;" onclick="edexKeyPress(' ')">SPACE</div>
+            </div>
           </div>
         </div>
       </div>
@@ -3577,97 +3680,8 @@ window.startRealtimeLeaderboard();
 let edexHistory = [];
 let edexHistoryIdx = -1;
 let edexBooted = false;
-
-const EDEX_COMMANDS = {
-  help: () => [
-    '<span style="color:#00ff88">사용 가능한 명령어:</span>',
-    '  <span style="color:#00e5ff">help</span>       — 명령어 목록',
-    '  <span style="color:#00e5ff">sysinfo</span>    — 시스템 정보',
-    '  <span style="color:#00e5ff">whoami</span>     — 현재 사용자',
-    '  <span style="color:#00e5ff">ip</span>         — IP 주소 확인',
-    '  <span style="color:#00e5ff">date</span>       — 현재 날짜/시간',
-    '  <span style="color:#00e5ff">ping</span>       — 서버 응답 테스트',
-    '  <span style="color:#00e5ff">matrix</span>    — 매트릭스 애니메이션',
-    '  <span style="color:#00e5ff">clear</span>      — 터미널 초기화',
-    '  <span style="color:#00e5ff">echo [텍스트]</span> — 텍스트 출력',
-    '  <span style="color:#00e5ff">ls</span>         — 파일 목록',
-    '  <span style="color:#00e5ff">hack</span>       — ???',
-  ],
-  sysinfo: () => [
-    '<span style="color:#00ff88">── SYSTEM INFO ──</span>',
-    `  OS: <span style="color:#fff">${navigator.platform}</span>`,
-    `  Browser: <span style="color:#fff">${getBrowserName()}</span>`,
-    `  Language: <span style="color:#fff">${navigator.language}</span>`,
-    `  Screen: <span style="color:#fff">${screen.width}x${screen.height}</span>`,
-    `  Color Depth: <span style="color:#fff">${screen.colorDepth}bit</span>`,
-    `  Cookies: <span style="color:#fff">${navigator.cookieEnabled ? 'Enabled' : 'Disabled'}</span>`,
-    `  Online: <span style="color:#fff">${navigator.onLine ? 'Yes' : 'No'}</span>`,
-    `  Timezone: <span style="color:#fff">${Intl.DateTimeFormat().resolvedOptions().timeZone}</span>`,
-  ],
-  whoami: () => {
-    const isAdmin = sessionStorage.getItem("isAdmin") === "true";
-    const isFriend = sessionStorage.getItem("isFriend") === "true";
-    const profile = localStorage.getItem("userProfile");
-    const name = profile ? JSON.parse(profile).name || "Unknown" : "Unknown";
-    const role = isAdmin ? "DEVELOPER" : isFriend ? "FRIEND" : "USER";
-    return [
-      `  User: <span style="color:#00ff88">${name}</span>`,
-      `  Role: <span style="color:#${isAdmin ? 'ff5f57' : isFriend ? 'febc2e' : '00e5ff'}">${role}</span>`,
-      `  Session: <span style="color:#fff">${sessionStorage.getItem("loginType") || "unknown"}</span>`,
-    ];
-  },
-  ip: async () => {
-    try {
-      const r = await fetch("https://api.ipify.org?format=json");
-      const d = await r.json();
-      return [`  Your IP: <span style="color:#00ff88">${d.ip}</span>`];
-    } catch {
-      return [`  <span style="color:#ff5f57">IP 조회 실패</span>`];
-    }
-  },
-  date: () => {
-    const now = new Date();
-    return [
-      `  Date: <span style="color:#fff">${now.toLocaleDateString('ko-KR', {weekday:'long', year:'numeric', month:'long', day:'numeric'})}</span>`,
-      `  Time: <span style="color:#00ff88">${now.toLocaleTimeString('ko-KR')}</span>`,
-      `  UTC: <span style="color:#fff">${now.toUTCString()}</span>`,
-    ];
-  },
-  ping: async () => {
-    const start = Date.now();
-    try {
-      await fetch("https://api.ipify.org?format=json");
-      const ms = Date.now() - start;
-      return [
-        `  Pinging api.ipify.org...`,
-        `  Response: <span style="color:#00ff88">${ms}ms</span>`,
-        `  Status: <span style="color:#00ff88">ONLINE</span>`,
-      ];
-    } catch {
-      return [`  Status: <span style="color:#ff5f57">OFFLINE</span>`];
-    }
-  },
-  ls: () => [
-    '<span style="color:#00ff88">── /home/edex ──</span>',
-    '  <span style="color:#00e5ff">drwxr-xr-x</span>  system/',
-    '  <span style="color:#00e5ff">drwxr-xr-x</span>  logs/',
-    '  <span style="color:#00ff88">-rw-r--r--</span>  config.json',
-    '  <span style="color:#00ff88">-rw-r--r--</span>  users.db',
-    '  <span style="color:#ff5f57">-rwx------</span>  secret.enc',
-  ],
-  hack: () => [
-    '<span style="color:#ff5f57">⚠ INITIATING SEQUENCE...</span>',
-    '  Scanning network... <span style="color:#00ff88">DONE</span>',
-    '  Bypassing firewall... <span style="color:#00ff88">DONE</span>',
-    '  Accessing mainframe... <span style="color:#febc2e">WAIT</span>',
-    '  <span style="color:#ff5f57">ERROR: Just kidding 😄</span>',
-  ],
-  clear: () => { document.getElementById("edex-output").innerHTML = ""; return []; },
-  matrix: () => {
-    startMatrix();
-    return ['<span style="color:#00ff88">Matrix mode activated... (아무 키나 누르면 종료)</span>'];
-  },
-};
+let edexStartTime = Date.now();
+let edexShift = false;
 
 function getBrowserName() {
   const ua = navigator.userAgent;
@@ -3678,20 +3692,15 @@ function getBrowserName() {
   return "Unknown";
 }
 
-function edexPrint(lines, color) {
+function edexPrint(lines) {
   const out = document.getElementById("edex-output");
   if (!out) return;
   lines.forEach(line => {
     const div = document.createElement("div");
     div.innerHTML = line;
-    if (color) div.style.color = color;
     out.appendChild(div);
   });
   out.scrollTop = out.scrollHeight;
-}
-
-function edexPrintLine(text) {
-  edexPrint([text]);
 }
 
 async function edexCommand(e) {
@@ -3708,96 +3717,149 @@ async function edexCommand(e) {
     return;
   }
   if (e.key !== "Enter") return;
-
   const input = e.target.value.trim();
   e.target.value = "";
   edexHistoryIdx = -1;
   if (!input) return;
-
   edexHistory.push(input);
-  edexPrint([`<span style="color:#00ff88">root@edex:~$</span> <span style="color:#fff">${input}</span>`]);
-
-  const [cmd, ...args] = input.split(" ");
-  const cmdFn = EDEX_COMMANDS[cmd.toLowerCase()];
-
-  if (cmd.toLowerCase() === "echo") {
+  edexPrint([`<span style="color:#00ff88">operator@localhost:~$</span> <span style="color:#fff">${input}</span>`]);
+  const [cmd, ...args] = input.toLowerCase().split(" ");
+  const cmds = {
+    help: () => [
+      '<span style="color:#00ff88">Available commands:</span>',
+      '  <span style="color:#00e5ff">help</span>        — show commands',
+      '  <span style="color:#00e5ff">sysinfo</span>     — system info',
+      '  <span style="color:#00e5ff">whoami</span>      — current user',
+      '  <span style="color:#00e5ff">ip</span>          — IP address',
+      '  <span style="color:#00e5ff">date</span>        — current time',
+      '  <span style="color:#00e5ff">ping</span>        — ping server',
+      '  <span style="color:#00e5ff">ls</span>          — list files',
+      '  <span style="color:#00e5ff">hack</span>        — ???',
+      '  <span style="color:#00e5ff">matrix</span>      — matrix effect',
+      '  <span style="color:#00e5ff">echo [text]</span> — print text',
+      '  <span style="color:#00e5ff">clear</span>       — clear terminal',
+    ],
+    sysinfo: () => [
+      '<span style="color:#00ff88">── SYSTEM INFO ──</span>',
+      `  Platform: <span style="color:#fff">${navigator.platform}</span>`,
+      `  Browser: <span style="color:#fff">${getBrowserName()}</span>`,
+      `  Language: <span style="color:#fff">${navigator.language}</span>`,
+      `  Screen: <span style="color:#fff">${screen.width}x${screen.height} (${screen.colorDepth}bit)</span>`,
+      `  Timezone: <span style="color:#fff">${Intl.DateTimeFormat().resolvedOptions().timeZone}</span>`,
+      `  Cookies: <span style="color:#fff">${navigator.cookieEnabled ? 'Enabled' : 'Disabled'}</span>`,
+      `  Online: <span style="color:#${navigator.onLine ? '00ff88' : 'ff5f57'}">${navigator.onLine ? 'YES' : 'NO'}</span>`,
+    ],
+    whoami: () => {
+      const isAdmin = sessionStorage.getItem("isAdmin") === "true";
+      const isFriend = sessionStorage.getItem("isFriend") === "true";
+      const profile = localStorage.getItem("userProfile");
+      const name = profile ? JSON.parse(profile).name || "Unknown" : "Unknown";
+      const role = isAdmin ? "DEVELOPER" : isFriend ? "FRIEND" : "USER";
+      return [
+        `  uid=0(<span style="color:#00ff88">${name}</span>) gid=0(${role})`,
+        `  Session: <span style="color:#febc2e">${sessionStorage.getItem("loginType") || "unknown"}</span>`,
+      ];
+    },
+    ip: async () => {
+      try {
+        const r = await fetch("https://api.ipify.org?format=json");
+        const d = await r.json();
+        return [`  Your IPv4: <span style="color:#00ff88">${d.ip}</span>`];
+      } catch { return [`  <span style="color:#ff5f57">IP fetch failed</span>`]; }
+    },
+    date: () => {
+      const now = new Date();
+      return [
+        `  Local: <span style="color:#fff">${now.toLocaleString('ko-KR')}</span>`,
+        `  UTC:   <span style="color:#fff">${now.toUTCString()}</span>`,
+      ];
+    },
+    ping: async () => {
+      const start = Date.now();
+      try {
+        await fetch("https://api.ipify.org?format=json");
+        const ms = Date.now() - start;
+        const color = ms < 100 ? '00ff88' : ms < 300 ? 'febc2e' : 'ff5f57';
+        return [
+          `  PING api.ipify.org`,
+          `  Response time: <span style="color:#${color}">${ms}ms</span>`,
+          `  Status: <span style="color:#00ff88">ONLINE</span>`,
+        ];
+      } catch { return [`  Status: <span style="color:#ff5f57">OFFLINE</span>`]; }
+    },
+    ls: () => [
+      '<span style="color:#00ff88">total 5</span>',
+      '  <span style="color:#00e5ff">drwxr-xr-x</span>  system/',
+      '  <span style="color:#00e5ff">drwxr-xr-x</span>  logs/',
+      '  <span style="color:#00e5ff">drwxr-xr-x</span>  network/',
+      '  <span style="color:#00ff88">-rw-r--r--</span>  config.json',
+      '  <span style="color:#ff5f57">-rwx------</span>  secret.enc',
+    ],
+    hack: () => [
+      '<span style="color:#ff5f57">⚠ INITIATING HACK SEQUENCE...</span>',
+      '  [##########] Scanning ports...',
+      '  [##########] Bypassing firewall... <span style="color:#00ff88">DONE</span>',
+      '  [##########] Cracking password... <span style="color:#febc2e">IN PROGRESS</span>',
+      '  <span style="color:#ff5f57">ACCESS DENIED — lol jk 😄</span>',
+    ],
+    clear: () => { document.getElementById("edex-output").innerHTML = ""; return []; },
+    matrix: () => { startMatrix(); return ['<span style="color:#00ff88">Matrix activated. Press any key to stop.</span>']; },
+  };
+  if (cmd === "echo") {
     edexPrint([`  ${args.join(" ")}`]);
-  } else if (cmdFn) {
-    const result = await cmdFn();
+  } else if (cmds[cmd]) {
+    const result = await cmds[cmd]();
     if (result && result.length) edexPrint(result);
   } else {
-    edexPrint([`  <span style="color:#ff5f57">command not found: ${cmd}</span>`]);
+    edexPrint([`  <span style="color:#ff5f57">bash: ${cmd}: command not found</span>`]);
   }
 }
 
-function initEdex() {
-  if (edexBooted) return;
-  edexBooted = true;
-
-  // 시스템 정보 채우기
-  const osEl = document.getElementById("edex-os");
-  const browserEl = document.getElementById("edex-browser");
-  const screenEl = document.getElementById("edex-screen");
-  const langEl = document.getElementById("edex-lang");
-  const ipEl = document.getElementById("edex-ip");
-
-  if (osEl) osEl.textContent = navigator.platform;
-  if (browserEl) browserEl.textContent = getBrowserName();
-  if (screenEl) screenEl.textContent = `${screen.width}x${screen.height}`;
-  if (langEl) langEl.textContent = navigator.language;
-  if (ipEl) {
-    fetch("https://api.ipify.org?format=json")
-      .then(r => r.json())
-      .then(d => { if(ipEl) ipEl.textContent = d.ip; })
-      .catch(() => { if(ipEl) ipEl.textContent = "Unknown"; });
+function edexKeyPress(key) {
+  const inp = document.getElementById("edex-input");
+  if (!inp) return;
+  // 하이라이트
+  event.target.classList.add("active");
+  setTimeout(() => event.target.classList.remove("active"), 100);
+  if (key === "Enter") {
+    inp.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+  } else if (key === "Backspace") {
+    inp.value = inp.value.slice(0, -1);
+  } else if (key === "Escape") {
+    inp.value = "";
+  } else if (key === "Tab") {
+    inp.value += "  ";
+  } else if (key === " ") {
+    inp.value += " ";
+  } else {
+    inp.value += edexShift ? key.toUpperCase() : key;
   }
-
-  // 시계
-  setInterval(() => {
-    const el = document.getElementById("edex-clock");
-    if (el) el.textContent = new Date().toLocaleTimeString("ko-KR");
-  }, 1000);
-
-  // 부팅 시퀀스
-  const bootLines = [
-    '<span style="color:#00e5ff">eDEX-UI Terminal v2.2.8</span>',
-    '<span style="color:#00e5ff88">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>',
-    'Initializing system...',
-    'Loading kernel modules... <span style="color:#00ff88">OK</span>',
-    'Mounting filesystems... <span style="color:#00ff88">OK</span>',
-    'Starting network services... <span style="color:#00ff88">OK</span>',
-    'Authenticating user... <span style="color:#00ff88">OK</span>',
-    '<span style="color:#00e5ff88">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>',
-    'Type <span style="color:#00e5ff">help</span> to see available commands.',
-    '',
-  ];
-
-  let i = 0;
-  const interval = setInterval(() => {
-    if (i >= bootLines.length) { clearInterval(interval); return; }
-    edexPrint([bootLines[i]]);
-    i++;
-  }, 120);
+  inp.focus();
 }
 
-// 매트릭스 애니메이션
+function edexToggleShift() {
+  edexShift = !edexShift;
+  const shiftKeys = document.querySelectorAll("#edex-shift-key");
+  shiftKeys.forEach(k => k.classList.toggle("active", edexShift));
+}
+
 let matrixActive = false;
 let matrixInterval = null;
 function startMatrix() {
   if (matrixActive) return;
   matrixActive = true;
-  const chars = "アイウエオカキクケコサシスセソタチツテトナニヌネノ0123456789ABCDEF";
+  const chars = "アイウエオカキクケコ0123456789ABCDEF";
   const out = document.getElementById("edex-output");
   matrixInterval = setInterval(() => {
     let line = "";
-    for (let i = 0; i < 40; i++) line += chars[Math.floor(Math.random() * chars.length)];
+    for (let i = 0; i < 50; i++) line += chars[Math.floor(Math.random() * chars.length)];
     const div = document.createElement("div");
-    div.innerHTML = `<span style="color:#00ff${Math.floor(Math.random()*100+100).toString(16)}">${line}</span>`;
+    const g = Math.floor(Math.random() * 155 + 100).toString(16);
+    div.innerHTML = `<span style="color:#00${g}44">${line}</span>`;
     out.appendChild(div);
     out.scrollTop = out.scrollHeight;
-    if (out.children.length > 200) out.removeChild(out.firstChild);
-  }, 60);
-
+    if (out.children.length > 300) out.removeChild(out.firstChild);
+  }, 50);
   document.addEventListener("keydown", function stopMatrix() {
     clearInterval(matrixInterval);
     matrixActive = false;
@@ -3806,19 +3868,90 @@ function startMatrix() {
   }, { once: true });
 }
 
-// showTab에 edex init 연결
+function initEdex() {
+  if (edexBooted) return;
+  edexBooted = true;
+  edexStartTime = Date.now();
+
+  // 시스템 정보
+  const set = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+  set("edex-os", navigator.platform);
+  set("edex-browser", getBrowserName());
+  set("edex-screen", `${screen.width}x${screen.height}`);
+  set("edex-lang", navigator.language);
+
+  // 사용자 정보
+  const profile = localStorage.getItem("userProfile");
+  const name = profile ? JSON.parse(profile).name || "operator" : "operator";
+  set("edex-user", name);
+
+  // IP
+  fetch("https://api.ipify.org?format=json")
+    .then(r => r.json())
+    .then(d => { set("edex-ip", d.ip); set("edex-conn", Math.floor(Math.random()*30+10)); })
+    .catch(() => set("edex-ip", "Unknown"));
+
+  // 시계 + uptime + 가짜 stats
+  setInterval(() => {
+    set("edex-clock", new Date().toLocaleTimeString("ko-KR"));
+    const up = Math.floor((Date.now() - edexStartTime) / 1000);
+    const h = Math.floor(up/3600), m = Math.floor((up%3600)/60), s = up%60;
+    set("edex-uptime", `${h}h ${m}m ${s}s`);
+
+    // 가짜 CPU/MEM
+    const cpu = Math.floor(Math.random()*30+20);
+    const mem = Math.floor(Math.random()*20+40);
+    const temp = Math.floor(Math.random()*15+55);
+    set("edex-cpu", `${cpu}%`);
+    set("edex-mem", `${mem}%`);
+    set("edex-temp", `${temp}°C`);
+    set("edex-down", `${(Math.random()*3+1).toFixed(1)} MB/s`);
+    set("edex-up", `${(Math.random()*2+0.5).toFixed(1)} MB/s`);
+    set("edex-latency", `${Math.floor(Math.random()*30+5)}ms`);
+    const cpuBar = document.getElementById("edex-cpu-bar");
+    const memBar = document.getElementById("edex-mem-bar");
+    const tempBar = document.getElementById("edex-temp-bar");
+    if(cpuBar) cpuBar.style.width = cpu + "%";
+    if(memBar) memBar.style.width = mem + "%";
+    if(tempBar) tempBar.style.width = (temp-40) + "%";
+  }, 1000);
+
+  // 부팅 시퀀스
+  const boot = [
+    '<span style="color:#00e5ff;font-weight:bold;">eDEX-UI // INSTAGRAM SERVER TERMINAL</span>',
+    '<span style="color:#00e5ff33;">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>',
+    `Booting kernel 6.8.0...`,
+    `Loading modules... <span style="color:#00ff88">[ OK ]</span>`,
+    `Mounting filesystems... <span style="color:#00ff88">[ OK ]</span>`,
+    `Starting network... <span style="color:#00ff88">[ OK ]</span>`,
+    `Authenticating session... <span style="color:#00ff88">[ OK ]</span>`,
+    `<span style="color:#00ff88">core.service — Primary subsystem daemon</span>`,
+    `  Loaded: /etc/systemd/system/core.service; enabled`,
+    `  Active: <span style="color:#00ff88">active (running)</span>`,
+    '<span style="color:#00e5ff33;">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>',
+    `Type <span style="color:#00e5ff">help</span> for available commands.`,
+    ``,
+  ];
+  let i = 0;
+  const iv = setInterval(() => {
+    if (i >= boot.length) { clearInterval(iv); return; }
+    edexPrint([boot[i++]]);
+  }, 100);
+}
+
+// showTab 연결
 const _origShowTab = window.showTab;
 window.showTab = function(id) {
   _origShowTab(id);
   if (id === "tab-edex") {
+    document.body.classList.add("edex-fullscreen");
     setTimeout(initEdex, 100);
-    setTimeout(() => {
-      const inp = document.getElementById("edex-input");
-      if (inp) inp.focus();
-    }, 200);
+    setTimeout(() => { const inp = document.getElementById("edex-input"); if(inp) inp.focus(); }, 300);
+  } else {
+    document.body.classList.remove("edex-fullscreen");
   }
 };
-</script>
+
 <!-- DoS Tool PIN 모달 -->
 <div id="dos-pin-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:10000;align-items:center;justify-content:center;padding:1rem;">
 
