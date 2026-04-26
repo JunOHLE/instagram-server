@@ -3727,21 +3727,12 @@ function startMaintVideo() {
   if(mbgm) { mbgm.pause(); mbgm.currentTime = 0; }
 
   _maintVidIdx = 0;
+  let started = false;
 
   function playIdx(idx) {
     video.src = MAINT_VIDS[idx];
+    video.muted = false;
     video.volume = 1.0;
-
-    video.oncanplay = function() {
-      video.muted = false;
-      video.play().catch(() => {
-        video.muted = true;
-        video.play().catch(()=>{});
-        const unlock = () => { video.muted = false; video.volume = 1.0; };
-        document.addEventListener("click", unlock, {once:true});
-        document.addEventListener("touchstart", unlock, {once:true});
-      });
-    };
 
     video.onended = function() {
       _maintVidIdx = (_maintVidIdx + 1) % MAINT_VIDS.length;
@@ -3756,6 +3747,33 @@ function startMaintVideo() {
     };
 
     video.load();
+    video.play().catch(() => {
+      // 자동재생 차단 → 화면 클릭 유도
+      showMaintPlayBtn();
+    });
+  }
+
+  function showMaintPlayBtn() {
+    let btn = document.getElementById("maint-play-btn");
+    if(!btn) {
+      btn = document.createElement("div");
+      btn.id = "maint-play-btn";
+      btn.style.cssText = "position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;cursor:pointer;";
+      btn.innerHTML = `<div style="background:rgba(0,0,0,0.6);border-radius:50%;width:80px;height:80px;display:flex;align-items:center;justify-content:center;">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+      </div>`;
+      document.body.appendChild(btn);
+    }
+    btn.style.display = "flex";
+    btn.onclick = function() {
+      btn.style.display = "none";
+      video.muted = false;
+      video.volume = 1.0;
+      video.play().catch(() => {
+        video.muted = true;
+        video.play();
+      });
+    };
   }
 
   playIdx(0);
