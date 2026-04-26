@@ -1,4 +1,4 @@
-=<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -912,7 +912,7 @@ function pinKey(e, i) {
       <div id="tab-active" style="display:none;">
         <div class="content-card">
           <h3>최근 활동 시간 조회</h3>
-          <div class="desc">인스타그램 ID를 검색하면 계정 정보 및 마지막 게시물 날짜를 확인할 수 있습니다. 공개 계정만 지원합니다.</div>
+          <div class="desc">인스타그램 ID를 검색하면 해당 계정의 최근 활동 시간을 확인할 수 있습니다.</div>
           <div class="search-row">
             <input type="text" id="active-input" placeholder="인스타그램 ID 입력 (@ 제외)" onkeydown="if(event.key==='Enter')searchActive()">
             <button onclick="searchActive()">LOOKUP</button>
@@ -2116,105 +2116,17 @@ function deletePatch(idx) {
   loadPatches();
 }
 
-async function searchActive() {
-  const id = document.getElementById("active-input").value.trim().replace("@","");
-  const box = document.getElementById("active-result");
-  if(!id){ box.innerHTML=`<span class="placeholder">ID를 입력하세요.</span>`; return; }
-
-  box.className = "result-box has-data";
-  box.innerHTML = `<div style="text-align:center;padding:1rem;color:#aaa;font-size:13px;">조회 중...</div>`;
-
-  try {
-    // Instagram 공개 API로 계정 정보 조회
-    const res = await fetch(`https://www.instagram.com/api/v1/users/web_profile_info/?username=${id}`, {
-      headers: { "x-ig-app-id": "936619743392459" },
-      cache: "no-store"
-    });
-
-    if(!res.ok) throw new Error("not found");
-    const data = await res.json();
-    const user = data?.data?.user;
-    if(!user) throw new Error("no user");
-
-    const name = user.full_name || id;
-    const bio = user.biography || "";
-    const followers = user.edge_followed_by?.count?.toLocaleString() || "?";
-    const following = user.edge_follow?.count?.toLocaleString() || "?";
-    const posts = user.edge_owner_to_timeline_media?.count?.toLocaleString() || "?";
-    const isPrivate = user.is_private;
-    const isVerified = user.is_verified;
-    const pic = user.profile_pic_url;
-
-    // 마지막 게시물 날짜
-    const edges = user.edge_owner_to_timeline_media?.edges || [];
-    let lastPostStr = "알 수 없음";
-    let lastPostDiff = "";
-    if(edges.length > 0) {
-      const ts = edges[0].node.taken_at_timestamp * 1000;
-      const lastDate = new Date(ts);
-      const diff = Math.floor((Date.now() - ts) / 1000);
-      if(diff < 3600) lastPostDiff = `${Math.floor(diff/60)}분 전`;
-      else if(diff < 86400) lastPostDiff = `${Math.floor(diff/3600)}시간 전`;
-      else if(diff < 2592000) lastPostDiff = `${Math.floor(diff/86400)}일 전`;
-      else lastPostDiff = `${Math.floor(diff/2592000)}개월 전`;
-      lastPostStr = lastDate.toLocaleDateString("ko-KR") + ` (${lastPostDiff})`;
-    }
-
-    box.innerHTML = `
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
-        <img src="${pic}" style="width:52px;height:52px;border-radius:50%;border:2px solid #eee;object-fit:cover;" onerror="this.style.display='none'">
-        <div>
-          <div style="font-weight:700;font-size:15px;color:#111;">@${id} ${isVerified ? '✓' : ''}</div>
-          <div style="font-size:12px;color:#888;">${name}</div>
-          <div style="font-size:11px;margin-top:2px;">
-            <span style="background:${isPrivate?'#ffeaea':'#eafff0'};color:${isPrivate?'#c0392b':'#27ae60'};padding:2px 8px;border-radius:10px;font-size:11px;">
-              ${isPrivate ? '🔒 비공개' : '🌐 공개'}
-            </span>
-          </div>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;text-align:center;">
-        <div style="background:#f8f8f8;border-radius:8px;padding:8px;">
-          <div style="font-size:15px;font-weight:700;color:#111;">${posts}</div>
-          <div style="font-size:10px;color:#888;">게시물</div>
-        </div>
-        <div style="background:#f8f8f8;border-radius:8px;padding:8px;">
-          <div style="font-size:15px;font-weight:700;color:#111;">${followers}</div>
-          <div style="font-size:10px;color:#888;">팔로워</div>
-        </div>
-        <div style="background:#f8f8f8;border-radius:8px;padding:8px;">
-          <div style="font-size:15px;font-weight:700;color:#111;">${following}</div>
-          <div style="font-size:10px;color:#888;">팔로잉</div>
-        </div>
-      </div>
-      <div style="font-size:13px;color:#333;margin-bottom:10px;line-height:1.6;">
-        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;">
-          <span style="color:#888;">마지막 게시물</span>
-          <span style="font-weight:500;">${lastPostStr}</span>
-        </div>
-        ${bio ? `<div style="margin-top:8px;font-size:12px;color:#555;background:#f8f8f8;border-radius:8px;padding:8px;">${bio}</div>` : ''}
-      </div>
-      <div style="font-size:11px;color:#aaa;">※ 공개 계정만 상세 정보 조회 가능</div>`;
-
-  } catch(e) {
-    // fallback: allorigins 프록시
-    try {
-      const proxy = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(`https://www.instagram.com/${id}/?__a=1&__d=dis`)}`, { cache:"no-store" });
-      const pdata = await proxy.json();
-      if(pdata.status.http_code === 404) throw new Error("404");
-
-      box.innerHTML = `
-        <div style="margin-bottom:8px;font-weight:500;color:#111;">@${id}</div>
-        <div style="font-size:13px;color:#888;line-height:1.8;">
-          계정이 존재하나 상세 정보를 불러올 수 없습니다.<br>
-          <a href="https://www.instagram.com/${id}/" target="_blank" style="color:#cc2366;">→ 인스타그램에서 직접 보기</a>
-        </div>`;
-    } catch(e2) {
-      box.innerHTML = `
-        <div style="margin-bottom:8px;font-weight:500;color:#111;">@${id}</div>
-        <div style="font-size:13px;color:#e53935;">계정을 찾을 수 없거나 조회에 실패했습니다.</div>`;
-    }
-  }
+function searchActive() {
+  const id=document.getElementById("active-input").value.trim().replace("@","");
+  const box=document.getElementById("active-result");
+  if(!id){box.innerHTML=`<span class="placeholder">ID를 입력하세요.</span>`;return;}
+  box.className="result-box has-data";
+  box.innerHTML=`
+    <div style="margin-bottom:8px;font-weight:500;color:#111;">@${id}</div>
+    <div style="font-size:13px;color:#888;line-height:1.8;">
+      활동 시간 조회 기능은 서버 연동 후 이용 가능합니다.<br>
+      <a href="https://t.me/JY091025_lee" target="_blank" style="color:#1a8cff;">문의하기 →</a>
+    </div>`;
 }
 
 function showWarningModal(n) {
@@ -3919,46 +3831,28 @@ async function edexCommand(e) {
   const cmds = {
     help: () => [
       '<span style="color:#00ff88">Available commands:</span>',
-      '  <span style="color:#00e5ff">help</span>           — show commands',
-      '  <span style="color:#00e5ff">sysinfo</span>        — system info',
-      '  <span style="color:#00e5ff">whoami</span>         — current user',
-      '  <span style="color:#00e5ff">ip</span>             — IP address + location',
-      '  <span style="color:#00e5ff">date</span>           — current time',
-      '  <span style="color:#00e5ff">ping [host]</span>    — ping a host (default: google.com)',
-      '  <span style="color:#00e5ff">ls</span>             — list files',
-      '  <span style="color:#00e5ff">cat [file]</span>     — read a file',
-      '  <span style="color:#00e5ff">netstat</span>        — network connections',
-      '  <span style="color:#00e5ff">ifconfig</span>       — network interfaces',
-      '  <span style="color:#00e5ff">battery</span>        — battery status',
-      '  <span style="color:#00e5ff">hack [target]</span>  — port scan target',
-      '  <span style="color:#00e5ff">geoip [ip]</span>     — geo lookup an IP',
-      '  <span style="color:#00e5ff">matrix</span>         — matrix effect',
-      '  <span style="color:#00e5ff">echo [text]</span>    — print text',
-      '  <span style="color:#00e5ff">clear</span>          — clear terminal',
+      '  <span style="color:#00e5ff">help</span>        — show commands',
+      '  <span style="color:#00e5ff">sysinfo</span>     — system info',
+      '  <span style="color:#00e5ff">whoami</span>      — current user',
+      '  <span style="color:#00e5ff">ip</span>          — IP address',
+      '  <span style="color:#00e5ff">date</span>        — current time',
+      '  <span style="color:#00e5ff">ping</span>        — ping server',
+      '  <span style="color:#00e5ff">ls</span>          — list files',
+      '  <span style="color:#00e5ff">hack</span>        — ???',
+      '  <span style="color:#00e5ff">matrix</span>      — matrix effect',
+      '  <span style="color:#00e5ff">echo [text]</span> — print text',
+      '  <span style="color:#00e5ff">clear</span>       — clear terminal',
     ],
-    sysinfo: async () => {
-      const lines = [
-        '<span style="color:#00ff88">── SYSTEM INFO ──</span>',
-        `  Platform:   <span style="color:#fff">${navigator.platform}</span>`,
-        `  Browser:    <span style="color:#fff">${getBrowserName()} (${navigator.userAgent.match(/Chrome\/([\d.]+)|Firefox\/([\d.]+)|Safari\/([\d.]+)/)?.[0]||'Unknown'})</span>`,
-        `  Language:   <span style="color:#fff">${navigator.language}</span>`,
-        `  Screen:     <span style="color:#fff">${screen.width}x${screen.height} @ ${screen.colorDepth}bit</span>`,
-        `  Viewport:   <span style="color:#fff">${window.innerWidth}x${window.innerHeight}</span>`,
-        `  Timezone:   <span style="color:#fff">${Intl.DateTimeFormat().resolvedOptions().timeZone}</span>`,
-        `  Cores:      <span style="color:#fff">${navigator.hardwareConcurrency || '?'} logical CPUs</span>`,
-        `  Memory:     <span style="color:#fff">${navigator.deviceMemory ? navigator.deviceMemory + ' GB RAM' : 'Unknown'}</span>`,
-        `  Cookies:    <span style="color:#fff">${navigator.cookieEnabled ? 'Enabled' : 'Disabled'}</span>`,
-        `  Online:     <span style="color:#${navigator.onLine ? '00ff88' : 'ff5f57'}">${navigator.onLine ? 'YES' : 'NO'}</span>`,
-        `  Touch:      <span style="color:#fff">${navigator.maxTouchPoints > 0 ? 'Yes (' + navigator.maxTouchPoints + ' points)' : 'No'}</span>`,
-        `  Connection: <span style="color:#fff">${navigator.connection ? (navigator.connection.effectiveType || 'Unknown') + ' / ' + (navigator.connection.downlink || '?') + ' Mbps' : 'Unknown'}</span>`,
-      ];
-      // 배터리
-      try {
-        const bat = await navigator.getBattery();
-        lines.push(`  Battery:    <span style="color:#${bat.level > 0.2 ? '00ff88' : 'ff5f57'}">${Math.round(bat.level*100)}% ${bat.charging ? '⚡ Charging' : 'Discharging'}</span>`);
-      } catch { lines.push(`  Battery:    <span style="color:#888">Not available</span>`); }
-      return lines;
-    },
+    sysinfo: () => [
+      '<span style="color:#00ff88">── SYSTEM INFO ──</span>',
+      `  Platform: <span style="color:#fff">${navigator.platform}</span>`,
+      `  Browser: <span style="color:#fff">${getBrowserName()}</span>`,
+      `  Language: <span style="color:#fff">${navigator.language}</span>`,
+      `  Screen: <span style="color:#fff">${screen.width}x${screen.height} (${screen.colorDepth}bit)</span>`,
+      `  Timezone: <span style="color:#fff">${Intl.DateTimeFormat().resolvedOptions().timeZone}</span>`,
+      `  Cookies: <span style="color:#fff">${navigator.cookieEnabled ? 'Enabled' : 'Disabled'}</span>`,
+      `  Online: <span style="color:#${navigator.onLine ? '00ff88' : 'ff5f57'}">${navigator.onLine ? 'YES' : 'NO'}</span>`,
+    ],
     whoami: () => {
       const isAdmin = sessionStorage.getItem("isAdmin") === "true";
       const isFriend = sessionStorage.getItem("isFriend") === "true";
@@ -3968,179 +3862,57 @@ async function edexCommand(e) {
       return [
         `  uid=0(<span style="color:#00ff88">${name}</span>) gid=0(${role})`,
         `  Session: <span style="color:#febc2e">${sessionStorage.getItem("loginType") || "unknown"}</span>`,
-        `  Shell: /bin/edex`,
-        `  Home: /home/${name.toLowerCase().replace(/\s/g,'_')}`,
       ];
     },
     ip: async () => {
       try {
         const r = await fetch("https://api.ipify.org?format=json");
         const d = await r.json();
-        const geo = await fetch(`https://ipinfo.io/${d.ip}/json`);
-        const g = await geo.json();
-        return [
-          `  IPv4:     <span style="color:#00ff88">${d.ip}</span>`,
-          `  City:     <span style="color:#fff">${g.city || '?'}</span>`,
-          `  Region:   <span style="color:#fff">${g.region || '?'}</span>`,
-          `  Country:  <span style="color:#fff">${g.country || '?'}</span>`,
-          `  ISP:      <span style="color:#fff">${g.org || '?'}</span>`,
-          `  Timezone: <span style="color:#fff">${g.timezone || '?'}</span>`,
-        ];
+        return [`  Your IPv4: <span style="color:#00ff88">${d.ip}</span>`];
       } catch { return [`  <span style="color:#ff5f57">IP fetch failed</span>`]; }
     },
     date: () => {
       const now = new Date();
-      const kr = new Date(now.toLocaleString("en-US",{timeZone:"Asia/Seoul"}));
       return [
-        `  Local:  <span style="color:#fff">${now.toLocaleString('ko-KR')}</span>`,
-        `  KST:    <span style="color:#00ff88">${kr.toLocaleString('ko-KR')}</span>`,
-        `  UTC:    <span style="color:#fff">${now.toUTCString()}</span>`,
-        `  Unix:   <span style="color:#fff">${Math.floor(now.getTime()/1000)}</span>`,
+        `  Local: <span style="color:#fff">${now.toLocaleString('ko-KR')}</span>`,
+        `  UTC:   <span style="color:#fff">${now.toUTCString()}</span>`,
       ];
     },
-    ping: async (args) => {
-      const host = args[0] || "google.com";
-      const results = [];
-      results.push(`  PING ${host} — 4 packets`);
-      let times = [];
-      for(let i=1; i<=4; i++) {
-        const start = performance.now();
-        try {
-          const ctrl = new AbortController();
-          setTimeout(()=>ctrl.abort(),3000);
-          await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent('https://'+host)}&t=${Date.now()}`,{signal:ctrl.signal,cache:"no-store"});
-          const ms = Math.round(performance.now()-start);
-          times.push(ms);
-          results.push(`  [${i}] ${host}: time=<span style="color:#00ff88">${ms}ms</span> TTL=64`);
-        } catch(e) {
-          const ms = Math.round(performance.now()-start);
-          if(ms<2900){times.push(ms);results.push(`  [${i}] ${host}: time=<span style="color:#febc2e">${ms}ms</span> TTL=64`);}
-          else results.push(`  [${i}] ${host}: <span style="color:#ff5f57">Request timeout</span>`);
-        }
-        await new Promise(r=>setTimeout(r,400));
-      }
-      if(times.length){
-        const avg=Math.round(times.reduce((a,b)=>a+b,0)/times.length);
-        results.push(`  ── ${host} ping stats ──`);
-        results.push(`  ${4} sent, ${times.length} received, ${4-times.length} lost`);
-        results.push(`  min=${Math.min(...times)}ms avg=${avg}ms max=${Math.max(...times)}ms`);
-      }
-      return results;
+    ping: async () => {
+      const start = Date.now();
+      try {
+        await fetch("https://api.ipify.org?format=json");
+        const ms = Date.now() - start;
+        const color = ms < 100 ? '00ff88' : ms < 300 ? 'febc2e' : 'ff5f57';
+        return [
+          `  PING api.ipify.org`,
+          `  Response time: <span style="color:#${color}">${ms}ms</span>`,
+          `  Status: <span style="color:#00ff88">ONLINE</span>`,
+        ];
+      } catch { return [`  Status: <span style="color:#ff5f57">OFFLINE</span>`]; }
     },
     ls: () => [
-      `  <span style="color:#00e5ff">drwxr-xr-x</span>  2 root root  4096 ${new Date().toLocaleDateString('en-GB')} system/`,
-      `  <span style="color:#00e5ff">drwxr-xr-x</span>  2 root root  4096 ${new Date().toLocaleDateString('en-GB')} logs/`,
-      `  <span style="color:#00e5ff">drwxr-xr-x</span>  2 root root  4096 ${new Date().toLocaleDateString('en-GB')} network/`,
-      `  <span style="color:#00ff88">-rw-r--r--</span>  1 root root  1337 ${new Date().toLocaleDateString('en-GB')} config.json`,
-      `  <span style="color:#00ff88">-rw-r--r--</span>  1 root root  8192 ${new Date().toLocaleDateString('en-GB')} users.db`,
-      `  <span style="color:#ff5f57">-rwx------</span>  1 root root  2048 ${new Date().toLocaleDateString('en-GB')} secret.enc`,
-      `  <span style="color:#febc2e">-rw-rw-r--</span>  1 root root   512 ${new Date().toLocaleDateString('en-GB')} .env`,
+      '<span style="color:#00ff88">total 5</span>',
+      '  <span style="color:#00e5ff">drwxr-xr-x</span>  system/',
+      '  <span style="color:#00e5ff">drwxr-xr-x</span>  logs/',
+      '  <span style="color:#00e5ff">drwxr-xr-x</span>  network/',
+      '  <span style="color:#00ff88">-rw-r--r--</span>  config.json',
+      '  <span style="color:#ff5f57">-rwx------</span>  secret.enc',
     ],
-    cat: (args) => {
-      const file = args[0];
-      if(!file) return [`  Usage: cat [filename]`];
-      const files = {
-        'config.json': `{\n  "version": "2.1.0",\n  "env": "production",\n  "debug": false,\n  "maxUsers": 500,\n  "rateLimit": 100\n}`,
-        'users.db': `  [DATABASE] 접근 권한 필요 — RESTRICTED`,
-        'secret.enc': `  [ENCRYPTED] AES-256-GCM — 복호화 불가`,
-        '.env': `  [PROTECTED] 환경 변수 파일 — 읽기 금지`,
-      };
-      const content = files[file];
-      if(!content) return [`  cat: ${file}: No such file or directory`];
-      return content.split('\n').map(l=>`  <span style="color:#fff">${l}</span>`);
-    },
-    netstat: async () => {
-      const lines = [
-        `  <span style="color:#00ff88">Proto  Local Address          Foreign Address        State</span>`,
-        `  TCP    0.0.0.0:80             0.0.0.0:0              LISTENING`,
-        `  TCP    0.0.0.0:443            0.0.0.0:0              LISTENING`,
-        `  TCP    127.0.0.1:3306         0.0.0.0:0              LISTENING`,
-      ];
-      try {
-        const r = await fetch("https://api.ipify.org?format=json");
-        const d = await r.json();
-        lines.push(`  TCP    ${d.ip}:443          ${d.ip}:${Math.floor(Math.random()*10000+40000)}     ESTABLISHED`);
-        lines.push(`  TCP    ${d.ip}:80           ${d.ip}:${Math.floor(Math.random()*10000+40000)}     TIME_WAIT`);
-      } catch {}
-      lines.push(`  Active connections: ${Math.floor(Math.random()*20+5)}`);
-      return lines;
-    },
-    ifconfig: async () => {
-      try {
-        const r = await fetch("https://api.ipify.org?format=json");
-        const d = await r.json();
-        return [
-          `  <span style="color:#00ff88">en0:</span>`,
-          `    inet ${d.ip}  netmask 255.255.255.0  broadcast ${d.ip.replace(/\.\d+$/,'.255')}`,
-          `    inet6 ::1  prefixlen 128`,
-          `    ether ${[...Array(6)].map(()=>Math.floor(Math.random()*255).toString(16).padStart(2,'0')).join(':')}`,
-          `    RX packets: ${Math.floor(Math.random()*99999+10000)}  bytes: ${Math.floor(Math.random()*9999999+1000000)}`,
-          `    TX packets: ${Math.floor(Math.random()*99999+10000)}  bytes: ${Math.floor(Math.random()*9999999+1000000)}`,
-          `  <span style="color:#00ff88">lo:</span>`,
-          `    inet 127.0.0.1  netmask 255.0.0.0`,
-          `    inet6 ::1  prefixlen 128`,
-        ];
-      } catch { return [`  ifconfig: network unavailable`]; }
-    },
-    battery: async () => {
-      try {
-        const bat = await navigator.getBattery();
-        const pct = Math.round(bat.level*100);
-        const bar = "█".repeat(Math.floor(pct/10)) + "░".repeat(10-Math.floor(pct/10));
-        return [
-          `  [${bar}] ${pct}%`,
-          `  Status:    <span style="color:#${bat.charging?'00ff88':'febc2e'}">${bat.charging ? '⚡ Charging' : 'Discharging'}</span>`,
-          `  Level:     <span style="color:#fff">${pct}%</span>`,
-          bat.chargingTime < Infinity ? `  Full in:   <span style="color:#fff">${Math.round(bat.chargingTime/60)}min</span>` : '',
-          bat.dischargingTime < Infinity ? `  Empty in:  <span style="color:#fff">${Math.round(bat.dischargingTime/60)}min</span>` : '',
-        ].filter(Boolean);
-      } catch { return [`  Battery API not supported on this device`]; }
-    },
-    hack: async (args) => {
-      const target = args[0] || "target.com";
-      const ports = [21,22,23,25,80,443,3306,3389,8080,8443];
-      const results = [
-        `  <span style="color:#ff5f57">▶ PORT SCAN: ${target}</span>`,
-        `  Resolving ${target}...`,
-      ];
-      const ip = `${Math.floor(Math.random()*254)+1}.${Math.floor(Math.random()*254)+1}.${Math.floor(Math.random()*254)+1}.${Math.floor(Math.random()*254)+1}`;
-      results.push(`  Host: ${ip}`);
-      results.push(`  ─────────────────────`);
-      for(const port of ports) {
-        const names = {21:'FTP',22:'SSH',23:'Telnet',25:'SMTP',80:'HTTP',443:'HTTPS',3306:'MySQL',3389:'RDP',8080:'HTTP-Alt',8443:'HTTPS-Alt'};
-        const open = Math.random() > 0.6;
-        results.push(`  ${String(port).padEnd(6)} ${names[port].padEnd(12)} <span style="color:#${open?'00ff88':'ff5f5766'}">${open?'OPEN  ':'closed'}</span>`);
-        await new Promise(r=>setTimeout(r,80));
-      }
-      results.push(`  ─────────────────────`);
-      results.push(`  Scan complete.`);
-      return results;
-    },
-    geoip: async (args) => {
-      const ip = args[0];
-      if(!ip) return [`  Usage: geoip [ip address]`];
-      try {
-        const r = await fetch(`https://ipinfo.io/${ip}/json`);
-        const g = await r.json();
-        return [
-          `  IP:       <span style="color:#00ff88">${g.ip}</span>`,
-          `  City:     <span style="color:#fff">${g.city||'?'}</span>`,
-          `  Region:   <span style="color:#fff">${g.region||'?'}</span>`,
-          `  Country:  <span style="color:#fff">${g.country||'?'}</span>`,
-          `  Location: <span style="color:#fff">${g.loc||'?'}</span>`,
-          `  ISP:      <span style="color:#fff">${g.org||'?'}</span>`,
-          `  Timezone: <span style="color:#fff">${g.timezone||'?'}</span>`,
-          `  Hostname: <span style="color:#fff">${g.hostname||'?'}</span>`,
-        ];
-      } catch { return [`  geoip: lookup failed for ${ip}`]; }
-    },
+    hack: () => [
+      '<span style="color:#ff5f57">⚠ INITIATING HACK SEQUENCE...</span>',
+      '  [##########] Scanning ports...',
+      '  [##########] Bypassing firewall... <span style="color:#00ff88">DONE</span>',
+      '  [##########] Cracking password... <span style="color:#febc2e">IN PROGRESS</span>',
+      '  <span style="color:#ff5f57">ACCESS DENIED — lol jk 😄</span>',
+    ],
     clear: () => { document.getElementById("edex-output").innerHTML = ""; return []; },
     matrix: () => { startMatrix(); return ['<span style="color:#00ff88">Matrix activated. Press any key to stop.</span>']; },
   };
   if (cmd === "echo") {
     edexPrint([`  ${args.join(" ")}`]);
   } else if (cmds[cmd]) {
-    const result = await cmds[cmd](args);
+    const result = await cmds[cmd]();
     if (result && result.length) edexPrint(result);
   } else {
     edexPrint([`  <span style="color:#ff5f57">bash: ${cmd}: command not found</span>`]);
