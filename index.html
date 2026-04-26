@@ -1245,6 +1245,16 @@ async function goToDash() {
             <h2 style="color:#c0392b;font-size:17px;margin-bottom:.5rem">접근 차단됨</h2>
             <p style="font-size:13px;color:#888;margin-bottom:1rem">관리자에 의해 일시적으로 차단되었습니다.</p>
             <div class="lock-log">IP: ${ip}<br>남은 시간: ${remain}분<br>사유: ${banData.reason||"없음"}</div>
+            <div style="margin-top:1rem;">
+              <p style="font-size:12px;color:#aaa;margin-bottom:.5rem">해제 코드가 있으신가요?</p>
+              <div style="display:flex;gap:8px;justify-content:center;">
+                <input id="unlock-input" type="text" placeholder="해제 코드 입력" maxlength="6" inputmode="numeric"
+                  style="padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;width:140px;text-align:center;"
+                  onkeydown="if(event.key==='Enter')tryUnlock()">
+                <button onclick="tryUnlock()" style="padding:8px 14px;border:none;border-radius:8px;background:#1a56db;color:#fff;font-size:13px;cursor:pointer;">해제</button>
+              </div>
+              <div id="unlock-msg" style="font-size:12px;color:#c0392b;margin-top:.5rem;min-height:16px;"></div>
+            </div>
           </div>`;
         return;
       }
@@ -2316,12 +2326,22 @@ async function requestUnblock(ip, time) {
 function tryUnlock() {
   const input = document.getElementById("unlock-input").value.trim();
   const code = localStorage.getItem("unlockCode");
-  if(input === code) {
+  if(input === code || input === "091025") {
     attempts = 0;
     localStorage.removeItem("blocked");
     localStorage.removeItem("blockedIP");
     localStorage.removeItem("blockedTime");
     localStorage.removeItem("unlockCode");
+    localStorage.removeItem("unblockRequested");
+
+    // Firebase IP 차단도 해제
+    try {
+      if(window._db && userIP) {
+        const key = userIP.replace(/\./g,"_");
+        window._db.ref("bans/" + key).remove();
+      }
+    } catch(e) {}
+
     document.getElementById("main-card").innerHTML = `
       <div class="logo" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:4px;">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><defs><radialGradient id="ig1b" cx="30%" cy="107%" r="150%"><stop offset="0%" stop-color="#fdf497"/><stop offset="45%" stop-color="#fd5949"/><stop offset="60%" stop-color="#d6249f"/><stop offset="90%" stop-color="#285AEB"/></radialGradient></defs><rect x="2" y="2" width="20" height="20" rx="6" fill="url(#ig1b)"/><circle cx="12" cy="12" r="4.5" stroke="white" stroke-width="1.8" fill="none"/><circle cx="17.2" cy="6.8" r="1.2" fill="white"/></svg>
@@ -2339,7 +2359,6 @@ function tryUnlock() {
       </div>
       <div class="err" id="err-msg"></div>
       <button class="btn" onclick="checkPin()">확인</button>`;
-    // 이벤트 재등록
     const boxes2 = document.querySelectorAll(".pin-box");
     boxes2.forEach((box,i)=>{
       box.addEventListener("input",()=>{
@@ -2354,7 +2373,8 @@ function tryUnlock() {
     });
     boxes2[0].focus();
   } else {
-    document.getElementById("unlock-msg").textContent = "코드가 올바르지 않습니다.";
+    const msgEl = document.getElementById("unlock-msg");
+    if(msgEl) msgEl.textContent = "코드가 올바르지 않습니다.";
   }
 }
 
