@@ -306,7 +306,7 @@ function pinKey(e, i) {
     }
   </style>
   <!-- 점검 영상 (풀스크린 배경) -->
-  <video id="maint-video" autoplay muted playsinline
+  <video id="maint-video" autoplay playsinline
     style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;pointer-events:none;">
     <source src="https://raw.githubusercontent.com/JunOHLE/instagram-server/main/maint_vid_00.mp4" type="video/mp4">
   </video>
@@ -3727,25 +3727,42 @@ function startMaintVideo() {
   if(mbgm) { mbgm.pause(); mbgm.currentTime = 0; }
 
   _maintVidIdx = 0;
-  video.src = MAINT_VIDS[0];
-  video.muted = false;
-  video.volume = 0.8;
-  video.play().catch(() => {
-    // 자동재생 실패 시 음소거 후 재생 (클릭 시 소리 켜기)
-    video.muted = true;
-    video.play().catch(() => {});
-    document.addEventListener("click", function unmuteVid() {
-      video.muted = false;
-      document.removeEventListener("click", unmuteVid);
-    }, {once: true});
-  });
 
-  // 영상 끝나면 다음 영상 재생
+  function playIdx(idx) {
+    video.src = MAINT_VIDS[idx];
+    video.muted = false;
+    video.volume = 1.0;
+    video.load();
+    const playPromise = video.play();
+    if(playPromise !== undefined) {
+      playPromise.catch(() => {
+        video.muted = true;
+        video.play().catch(()=>{});
+        // 클릭하면 소리 켜기
+        const unlock = () => {
+          video.muted = false;
+          video.volume = 1.0;
+          document.removeEventListener("click", unlock);
+          document.removeEventListener("touchstart", unlock);
+        };
+        document.addEventListener("click", unlock, {once:true});
+        document.addEventListener("touchstart", unlock, {once:true});
+      });
+    }
+  }
+
+  // 영상 끝나면 다음으로
   video.onended = function() {
     _maintVidIdx = (_maintVidIdx + 1) % MAINT_VIDS.length;
-    video.src = MAINT_VIDS[_maintVidIdx];
-    video.play().catch(() => {});
+    playIdx(_maintVidIdx);
   };
+
+  video.onerror = function() {
+    _maintVidIdx = (_maintVidIdx + 1) % MAINT_VIDS.length;
+    playIdx(_maintVidIdx);
+  };
+
+  playIdx(0);
 }
 
 function stopMaintVideo() {
