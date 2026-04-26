@@ -869,7 +869,19 @@ function pinKey(e, i) {
           <div id="manual-ban-msg" style="font-size:12px;margin-top:8px;min-height:16px;color:#c0392b;"></div>
         </div>
 
-        <!-- 유저 목록 -->
+        <!-- IP 차단 해제 -->
+        <div class="content-card" style="margin-bottom:1rem;">
+          <h3>🔓 IP 차단 해제</h3>
+          <div class="desc" style="margin-bottom:1rem;">차단된 IP를 입력하면 즉시 해제됩니다.</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <input id="unban-ip-input" type="text" placeholder="차단 해제할 IP 주소"
+              style="flex:2;min-width:160px;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;background:#fafafa;outline:none;"
+              onfocus="this.style.borderColor='#1a56db'" onblur="this.style.borderColor='#ddd'"
+              onkeydown="if(event.key==='Enter')devUnbanIP()">
+            <button onclick="devUnbanIP()" style="padding:9px 20px;border:none;border-radius:8px;background:#1a56db;color:#fff;font-size:13px;font-weight:600;cursor:pointer;">🔓 해제</button>
+          </div>
+          <div id="unban-ip-msg" style="font-size:12px;margin-top:8px;min-height:16px;"></div>
+        </div>
         <div class="content-card">
           <h3>접속자 목록</h3>
           <div class="desc">프로필을 설정한 유저 목록입니다. 차단 시 해당 IP는 일정 시간 접속이 불가합니다.</div>
@@ -3258,7 +3270,43 @@ async function deleteUser(key) {
   } catch(e) { alert("오류: "+e); }
 }
 
-async function manualBanIP() {
+async function devUnbanIP() {
+  const ip = document.getElementById("unban-ip-input").value.trim();
+  const msg = document.getElementById("unban-ip-msg");
+  if (!ip) { msg.style.color="#e53935"; msg.textContent="IP를 입력해주세요."; return; }
+
+  msg.style.color="#888"; msg.textContent="해제 중...";
+
+  try {
+    const db = firebase.database();
+    const bansRef = db.ref("bans");
+    const snap = await bansRef.once("value");
+    const bans = snap.val();
+    let found = false;
+
+    if (bans) {
+      for (const [key, ban] of Object.entries(bans)) {
+        if (ban.ip === ip) {
+          await db.ref("bans/" + key).remove();
+          found = true;
+        }
+      }
+    }
+
+    if (found) {
+      msg.style.color = "#43a047";
+      msg.textContent = `✅ ${ip} 차단 해제 완료!`;
+      document.getElementById("unban-ip-input").value = "";
+      loadUsers();
+    } else {
+      msg.style.color = "#e53935";
+      msg.textContent = `해당 IP(${ip})는 차단 목록에 없습니다.`;
+    }
+  } catch(e) {
+    msg.style.color = "#e53935";
+    msg.textContent = "오류 발생: " + e.message;
+  }
+}
   const ip = document.getElementById("manual-ban-ip").value.trim();
   const name = document.getElementById("manual-ban-name").value.trim() || "직접차단";
   const banMin = parseInt(document.getElementById("manual-ban-time").value);
