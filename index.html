@@ -1060,6 +1060,13 @@ window.addEventListener("load", () => {
           <button onclick="tryUnlock()" style="padding:8px 14px;border:none;border-radius:8px;background:#1a56db;color:#fff;font-size:13px;cursor:pointer;">해제</button>
         </div>
         <div id="unlock-msg" style="font-size:12px;color:#c0392b;margin-top:.5rem;min-height:16px;"></div>
+        <hr style="border:none;border-top:1px solid #eee;margin:1.2rem 0;">
+        <p style="font-size:12px;color:#aaa;margin-bottom:8px;">해제 코드가 없으신가요?</p>
+        <button onclick="requestUnblock('${ip}','${time}')" id="req-unblock-btn"
+          style="padding:9px 20px;border:none;border-radius:10px;background:linear-gradient(135deg,#0088cc,#005fa3);color:#fff;font-size:13px;font-weight:600;cursor:pointer;">
+          📩 차단 해제 요청 보내기
+        </button>
+        <div id="req-unblock-msg" style="font-size:12px;margin-top:8px;min-height:16px;"></div>
       </div>`;
   }
 });
@@ -2233,7 +2240,53 @@ function lockOut(ip,now){
         <button onclick="tryUnlock()" style="padding:8px 14px;border:none;border-radius:8px;background:#1a56db;color:#fff;font-size:13px;cursor:pointer;">해제</button>
       </div>
       <div id="unlock-msg" style="font-size:12px;color:#c0392b;margin-top:.5rem;min-height:16px;"></div>
+      <hr style="border:none;border-top:1px solid #eee;margin:1.2rem 0;">
+      <p style="font-size:12px;color:#aaa;margin-bottom:8px;">해제 코드가 없으신가요?</p>
+      <button onclick="requestUnblock('${ip}','${krNow}')" id="req-unblock-btn"
+        style="padding:9px 20px;border:none;border-radius:10px;background:linear-gradient(135deg,#0088cc,#005fa3);color:#fff;font-size:13px;font-weight:600;cursor:pointer;">
+        📩 차단 해제 요청 보내기
+      </button>
+      <div id="req-unblock-msg" style="font-size:12px;margin-top:8px;min-height:16px;"></div>
     </div>`;
+}
+
+async function requestUnblock(ip, time) {
+  const btn = document.getElementById("req-unblock-btn");
+  const msgEl = document.getElementById("req-unblock-msg");
+  if (!btn || !msgEl) return;
+
+  if (localStorage.getItem("unblockRequested") === "true") {
+    msgEl.style.color = "#e53935";
+    msgEl.textContent = "이미 요청을 보냈습니다. 텔레그램 응답을 기다려주세요.";
+    return;
+  }
+
+  btn.disabled = true;
+  btn.style.opacity = "0.6";
+  msgEl.style.color = "#888";
+  msgEl.textContent = "요청 전송 중...";
+
+  const token = "8555822813:AAH18y8hDS383I1YQ410oJ8vDngr5zuUNAU";
+  const chatId = "8180331145";
+  const krNow = new Date().toLocaleString("ko-KR", {timeZone:"Asia/Seoul"});
+  const text = `🔓 차단 해제 요청\n━━━━━━━━━━━━━━\nIP: ${ip}\n차단 시각: ${time}\n요청 시각: ${krNow}\n\n차단 해제 코드를 발급하려면 /unblock 명령어를 입력하세요.`;
+
+  try {
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({chat_id: chatId, text})
+    });
+    localStorage.setItem("unblockRequested", "true");
+    msgEl.style.color = "#43a047";
+    msgEl.textContent = "✅ 요청 완료! 개발자에게 전송됐어요. 잠시 기다려주세요.";
+    btn.textContent = "✅ 요청 완료";
+  } catch(e) {
+    msgEl.style.color = "#e53935";
+    msgEl.textContent = "전송 실패. 다시 시도해주세요.";
+    btn.disabled = false;
+    btn.style.opacity = "1";
+  }
 }
 
 function tryUnlock() {
