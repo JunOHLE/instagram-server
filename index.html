@@ -4353,15 +4353,21 @@ let mapScriptLoaded = false;
 
 const MAP_LAYERS = {
   street:    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-  satellite: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-  topo:      "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+  satellite: "https://mt{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
+  hybrid:    "https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}",
   dark:      "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
 };
 const MAP_ATTRIBS = {
-  street:    '© OpenStreetMap',
-  satellite: '© Esri',
-  topo:      '© OpenTopoMap',
+  street:    '© OpenStreetMap contributors',
+  satellite: '© Google Maps',
+  hybrid:    '© Google Maps',
   dark:      '© CARTO',
+};
+const MAP_SUBDOMAINS = {
+  street:    'abc',
+  satellite: '0123',
+  hybrid:    '0123',
+  dark:      'abcd',
 };
 
 function mapInitLeaflet(cb) {
@@ -4376,7 +4382,7 @@ function mapInit() {
   if (leafletMap) return;
   mapInitLeaflet(() => {
     leafletMap = L.map("map", { zoomControl: false, attributionControl: true }).setView([37.5665, 126.9780], 12);
-    leafletLayer = L.tileLayer(MAP_LAYERS.street, { attribution: MAP_ATTRIBS.street, maxZoom: 19 }).addTo(leafletMap);
+    leafletLayer = L.tileLayer(MAP_LAYERS.street, { attribution: MAP_ATTRIBS.street, subdomains: MAP_SUBDOMAINS.street, maxZoom: 20 }).addTo(leafletMap);
     leafletMap.on("mousemove", e => {
       const el = document.getElementById("map-coords");
       if (el) el.textContent = `${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
@@ -4472,7 +4478,7 @@ function mapChangeLayer() {
   const val = document.getElementById("map-layer").value;
   if (!leafletMap || !leafletLayer) return;
   leafletMap.removeLayer(leafletLayer);
-  leafletLayer = L.tileLayer(MAP_LAYERS[val], { attribution: MAP_ATTRIBS[val], maxZoom: 19 }).addTo(leafletMap);
+  leafletLayer = L.tileLayer(MAP_LAYERS[val], { attribution: MAP_ATTRIBS[val], subdomains: MAP_SUBDOMAINS[val], maxZoom: 20 }).addTo(leafletMap);
 }
 
 function mapZoom(dir) {
@@ -4963,8 +4969,8 @@ print('Hello, World!')"></textarea>
     <!-- 레이어 선택 -->
     <select id="map-layer" onchange="mapChangeLayer()" style="background:#0f3460;border:1px solid #4285f444;border-radius:8px;color:#fff;font-size:12px;padding:5px 8px;outline:none;">
       <option value="street">일반</option>
-      <option value="satellite">위성</option>
-      <option value="topo">지형</option>
+      <option value="satellite">위성 (Google)</option>
+      <option value="hybrid">하이브리드 (Google)</option>
       <option value="dark">다크</option>
     </select>
     <button onclick="mapClose()" style="background:#ff5f5722;border:1px solid #ff5f5766;border-radius:8px;color:#ff5f57;font-size:12px;padding:6px 12px;cursor:pointer;">✕ 닫기</button>
