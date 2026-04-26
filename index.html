@@ -146,14 +146,17 @@ body.edex-fullscreen #tab-edex { display: block !important; }
   /* 사이드바 숨기고 하단 탭바로 대체 */
   .sidebar { display: none !important; }
   .dash-body { flex-direction: column; }
-  .content { padding: .75rem; max-width: 100%; width: 100%; }
+  .content { padding: .75rem; padding-top: 56px; max-width: 100%; width: 100%; }
   .content-card { padding: 1rem; border-radius: 10px; }
   .search-row input { font-size: 13px; }
   /* 하단 탭바 */
   #mobile-tabbar { display: flex !important; }
+  /* 카카오 배너 */
+  #mb-kakao-banner { display: flex !important; }
 }
 @media (min-width: 701px) {
   #mobile-tabbar { display: none !important; }
+  #mb-kakao-banner { display: none !important; }
 }
 </style>
 <script>
@@ -906,6 +909,17 @@ function pinKey(e, i) {
 
     </div>
   </div>
+
+  <!-- 모바일 카카오톡 상단 배너 -->
+  <a id="mb-kakao-banner" href="https://pf.kakao.com/_xldyjX?utm_source=ig&utm_medium=social&utm_content=link_in_bio&fbclid=PAb21jcARaqFtleHRuA2FlbQIxMQBzcnRjBmFwcF9pZA81NjcwNjczNDMzNTI0MjcAAaf2Oh8k51weHrWZvxqSlC4qpbGc651hHVJjHUHVoRhZafujsHBMLdvXkFxyFg_aem_LWN-yIvNrYrM8Lo67Fsqqg" target="_blank"
+    style="display:none;position:fixed;top:0;left:0;right:0;z-index:300;background:#FEE500;padding:10px 16px;align-items:center;gap:10px;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="#3A1D1D"><path d="M12 2C6.477 2 2 5.813 2 10.5c0 2.98 1.786 5.607 4.5 7.18L5.5 21l4.09-2.18A11.5 11.5 0 0 0 12 19c5.523 0 10-3.813 10-8.5S17.523 2 12 2z"/></svg>
+    <div style="flex:1;">
+      <div style="font-size:10px;color:#7a6200;font-weight:500;">24시간 연락 가능</div>
+      <div style="font-size:13px;color:#3A1D1D;font-weight:700;">카카오톡 채널 문의</div>
+    </div>
+    <div style="font-size:11px;color:#7a6200;">▶</div>
+  </a>
 
   <!-- 모바일 하단 탭바 -->
   <div id="mobile-tabbar" style="display:none;position:fixed;bottom:0;left:0;right:0;height:56px;background:#fff;border-top:1px solid #e0e0e0;z-index:200;align-items:center;justify-content:space-around;padding:0 4px;">
