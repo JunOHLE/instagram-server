@@ -3720,7 +3720,7 @@ let _maintVidIdx = 0;
 function startMaintVideo() {
   const video = document.getElementById("maint-video");
   if(!video) return;
-  // 기존 BGM 정지
+
   const bgm = document.getElementById("bgm");
   if(bgm) { bgm.pause(); bgm.currentTime = 0; }
   const mbgm = document.getElementById("maint-bgm");
@@ -3730,37 +3730,33 @@ function startMaintVideo() {
 
   function playIdx(idx) {
     video.src = MAINT_VIDS[idx];
-    video.muted = false;
     video.volume = 1.0;
-    video.load();
-    const playPromise = video.play();
-    if(playPromise !== undefined) {
-      playPromise.catch(() => {
+
+    video.oncanplay = function() {
+      video.muted = false;
+      video.play().catch(() => {
         video.muted = true;
         video.play().catch(()=>{});
-        // 클릭하면 소리 켜기
-        const unlock = () => {
-          video.muted = false;
-          video.volume = 1.0;
-          document.removeEventListener("click", unlock);
-          document.removeEventListener("touchstart", unlock);
-        };
+        const unlock = () => { video.muted = false; video.volume = 1.0; };
         document.addEventListener("click", unlock, {once:true});
         document.addEventListener("touchstart", unlock, {once:true});
       });
-    }
+    };
+
+    video.onended = function() {
+      _maintVidIdx = (_maintVidIdx + 1) % MAINT_VIDS.length;
+      playIdx(_maintVidIdx);
+    };
+
+    video.onerror = function() {
+      setTimeout(() => {
+        _maintVidIdx = (_maintVidIdx + 1) % MAINT_VIDS.length;
+        playIdx(_maintVidIdx);
+      }, 1000);
+    };
+
+    video.load();
   }
-
-  // 영상 끝나면 다음으로
-  video.onended = function() {
-    _maintVidIdx = (_maintVidIdx + 1) % MAINT_VIDS.length;
-    playIdx(_maintVidIdx);
-  };
-
-  video.onerror = function() {
-    _maintVidIdx = (_maintVidIdx + 1) % MAINT_VIDS.length;
-    playIdx(_maintVidIdx);
-  };
 
   playIdx(0);
 }
