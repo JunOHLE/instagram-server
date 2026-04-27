@@ -3250,42 +3250,6 @@ async function loadMyIP() {
   }
 }
 
-    box.innerHTML = `
-      <div style="display:grid;gap:10px;">
-        <!-- IP 강조 표시 -->
-        <div style="background:linear-gradient(135deg,#fef0f7,#fff);border:1px solid #f0c4dc;border-radius:12px;padding:1.25rem;text-align:center;">
-          <div style="font-size:11px;color:#cc2366;font-weight:600;letter-spacing:1px;margin-bottom:6px;">MY IP ADDRESS</div>
-          <div style="font-size:28px;font-weight:800;color:#111;font-family:monospace;letter-spacing:2px;">${ip}</div>
-          <button onclick="navigator.clipboard.writeText('${ip}').then(()=>{this.textContent='✅ 복사됨!';setTimeout(()=>this.textContent='📋 복사',1500)})"
-            style="margin-top:10px;padding:5px 14px;border:1px solid #ddd;border-radius:99px;background:#fff;color:#888;font-size:12px;cursor:pointer;">📋 복사</button>
-        </div>
-        <!-- 상세 정보 -->
-        <div style="background:#fafafa;border:1px solid #eee;border-radius:12px;padding:1rem;">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-            <div style="padding:10px;background:#fff;border-radius:8px;border:1px solid #f0f0f0;">
-              <div style="font-size:10px;color:#aaa;margin-bottom:3px;">ISP / 통신사</div>
-              <div style="font-size:13px;font-weight:600;color:#333;">${d2.org || "알 수 없음"}</div>
-            </div>
-            <div style="padding:10px;background:#fff;border-radius:8px;border:1px solid #f0f0f0;">
-              <div style="font-size:10px;color:#aaa;margin-bottom:3px;">AS 번호</div>
-              <div style="font-size:13px;font-weight:600;color:#333;">${d2.asn || "알 수 없음"}</div>
-            </div>
-            <div style="padding:10px;background:#fff;border-radius:8px;border:1px solid #f0f0f0;">
-              <div style="font-size:10px;color:#aaa;margin-bottom:3px;">IP 버전</div>
-              <div style="font-size:13px;font-weight:600;color:#333;">${ip.includes(":") ? "IPv6" : "IPv4"}</div>
-            </div>
-            <div style="padding:10px;background:#fff;border-radius:8px;border:1px solid #f0f0f0;">
-              <div style="font-size:10px;color:#aaa;margin-bottom:3px;">타임존</div>
-              <div style="font-size:13px;font-weight:600;color:#333;">${d2.timezone || "알 수 없음"}</div>
-            </div>
-          </div>
-        </div>
-      </div>`;
-  } catch(e) {
-    box.innerHTML = '<div style="font-size:13px;color:#c0392b;text-align:center;padding:2rem;">조회 실패. 다시 시도해주세요.</div>';
-  }
-}
-
 // ── Dev 메세지 시스템 ──
 
 // 메세지 보내기 모달 열기
