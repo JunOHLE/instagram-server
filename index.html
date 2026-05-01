@@ -923,10 +923,10 @@ function toggleMusic() {
 
 // 페이지 로드 시 자동재생 시도
 window.addEventListener("click", function autoStart() {
-  // DoS 페이지 또는 점검 오버레이 떠있으면 기존 BGM 재생 안 함
   const dosPage = document.getElementById("page-dos");
   if(dosPage && dosPage.style.display === "flex") return;
-      const audio = document.getElementById("bg-music");
+  const audio = document.getElementById("bg-music");
+  if(!audio) return;
   const btn = document.getElementById("music-btn");
   if(!musicPlaying) {
     audio.play().then(() => {
@@ -3500,10 +3500,13 @@ function startInboxPoll() {
       if(typeof updateMaintProgress === "function") updateMaintProgress(data);
       startMaintVideo();
 
-      // 로컬 1초 타이머로 실시간 카운트다운 업데이트
+      // 로컬 1초 타이머 - data를 클로저로 캡처해서 매초 업데이트
       if(window._maintLocalTimer) clearInterval(window._maintLocalTimer);
-      window._maintLocalTimer = setInterval(() => {
-        if(typeof updateMaintProgress === "function") updateMaintProgress(data);
+      const _d = Object.assign({}, data); // 복사본 저장
+      window._maintLocalTimer = setInterval(function() {
+        if(typeof updateMaintProgress === "function") {
+          updateMaintProgress(_d);
+        }
       }, 1000);
     }
 
@@ -3840,7 +3843,7 @@ window.saveScoreToFirebase = async function(name, score) {
 window.startRealtimeLeaderboard();
 
 // 점검 체크 (FB_URL 선언 이후 실행)
-checkMaintOnLoad();
+// 점검 체크는 페이지 로드시 IIFE로 자동 실행됨
 
 // ── eDEX Terminal ──
 let edexHistory = [];
