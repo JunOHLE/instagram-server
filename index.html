@@ -627,47 +627,6 @@ document.addEventListener("DOMContentLoaded", function() {
             <button onclick="postNotice('공지사항')" style="margin-top:6px;width:100%;padding:8px;border:none;border-radius:8px;background:#1a56db;color:#fff;font-size:13px;font-weight:500;cursor:pointer;">공지 게시</button>
           </div>
 
-          <!-- 점검 -->
-          <div style="margin-bottom:1.25rem;padding:1rem;background:#fafafa;border-radius:10px;border:1px solid #eee;">
-            <div style="font-size:13px;font-weight:600;color:#111;margin-bottom:10px;">🔧 점검 설정</div>
-            <input type="text" id="maint-title" placeholder="점검 제목" maxlength="50"
-              style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;margin-bottom:6px;box-sizing:border-box;">
-            <textarea id="maint-content" placeholder="점검 내용" rows="2"
-              style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;resize:vertical;box-sizing:border-box;font-family:inherit;margin-bottom:8px;"></textarea>
-            <!-- 시간 설정 -->
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
-              <div>
-                <div style="font-size:11px;color:#888;margin-bottom:4px;">시작 시간 (한국)</div>
-                <input type="datetime-local" id="maint-start"
-                  style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:8px;font-size:12px;box-sizing:border-box;background:#fff;">
-              </div>
-              <div>
-                <div style="font-size:11px;color:#888;margin-bottom:4px;">종료 시간 (한국)</div>
-                <input type="datetime-local" id="maint-end"
-                  style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:8px;font-size:12px;box-sizing:border-box;background:#fff;">
-              </div>
-            </div>
-            <!-- 현재 점검 상태 표시 -->
-            <div id="maint-status-box" style="display:none;background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:#856404;">
-              <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-                <span>⏳ 점검 진행중</span>
-                <span id="maint-remain-txt"></span>
-              </div>
-              <div style="background:#e0e0e0;border-radius:99px;height:6px;overflow:hidden;">
-                <div id="maint-progress-bar" style="height:100%;background:linear-gradient(90deg,#f09433,#cc2366);border-radius:99px;transition:width .5s;width:0%;"></div>
-              </div>
-              <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:11px;color:#aaa;">
-                <span id="maint-start-label"></span>
-                <span id="maint-progress-pct">0%</span>
-                <span id="maint-end-label"></span>
-              </div>
-            </div>
-            <div style="display:flex;gap:6px;margin-top:2px;">
-              <button onclick="startMaintenance()" style="flex:1;padding:8px;border:none;border-radius:8px;background:#a32d2d;color:#fff;font-size:13px;font-weight:500;cursor:pointer;">점검 시작</button>
-              <button onclick="endMaintenance()" style="flex:1;padding:8px;border:1px solid #ddd;border-radius:8px;background:#f0f0f0;color:#333;font-size:13px;font-weight:500;cursor:pointer;">점검 완료</button>
-            </div>
-          </div>
-
           <!-- 점검 설정 -->
           <div style="margin-bottom:1.25rem;padding:1rem;background:#fafafa;border-radius:10px;border:1px solid #eee;">
             <div style="font-size:13px;font-weight:600;color:#111;margin-bottom:10px;">🔧 점검 설정</div>
@@ -1856,40 +1815,6 @@ function checkPendingToast() {
   document.getElementById("toast-content").textContent = d.content;
   document.getElementById("notice-toast").style.display = "block";
 }
-
-async function startMaintenance() {
-  const title = document.getElementById("maint-title").value.trim() || "서버 점검 중";
-  const cnt = document.getElementById("maint-content").value.trim() || "잠시 후 다시 접속해주세요.";
-  const startInput = document.getElementById("maint-start").value;
-  const endInput = document.getElementById("maint-end").value;
-
-  // 한국 시간 → UTC 타임스탬프 변환
-  let startTs = null, endTs = null;
-  if(startInput) startTs = new Date(startInput).getTime();
-  if(endInput) endTs = new Date(endInput).getTime();
-
-  if(startTs && endTs && endTs <= startTs) {
-    alert("종료 시간이 시작 시간보다 늦어야 해요!"); return;
-  }
-
-  try {
-    await fbSet("maintenance", {
-      active: true, title, content: cnt,
-      startTs: startTs || Date.now(),
-      endTs: endTs || null
-    });
-    alert("점검 시작됐어요! 모든 기기에 적용됩니다.");
-  } catch(e) { alert("오류: " + e); }
-}
-
-async function endMaintenance() {
-  try {
-    await fbSet("maintenance", {active: false, title: "", content: "", startTs: null, endTs: null});
-    alert("점검 완료!");
-  } catch(e) { alert("오류: " + e); }
-}
-
-let _maintProgressTimer = null;
 
 function postPatch() {
   const version = document.getElementById("patch-version").value.trim();
