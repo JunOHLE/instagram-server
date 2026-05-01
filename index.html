@@ -395,9 +395,9 @@ document.addEventListener("DOMContentLoaded", function() {
       <div id="si-devlist" style="padding:0 1.25rem;border-top:1px solid #f0f0f0;margin-top:8px;">
         <div onclick="toggleDevList()" style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;cursor:pointer;user-select:none;">
           <span style="font-size:13px;color:#444;font-weight:500;">개발자</span>
-          <span id="devlist-arrow" style="font-size:10px;color:#aaa;transition:transform .2s;">▼</span>
+          <span id="devlist-arrow" style="font-size:10px;color:#aaa;transition:transform .2s;transform:rotate(180deg);">▼</span>
         </div>
-        <div id="devlist-content" style="display:none;padding-bottom:10px;">
+        <div id="devlist-content" style="display:block;padding-bottom:10px;">
           <!-- 24시간 카카오톡 상담 (맨 첫번째) -->
           <a href="https://pf.kakao.com/_xldyjX?utm_source=ig&utm_medium=social&utm_content=link_in_bio&fbclid=PAb21jcARaqFtleHRuA2FlbQIxMQBzcnRjBmFwcF9pZA81NjcwNjczNDMzNTI0MjcAAaf2Oh8k51weHrWZvxqSlC4qpbGc651hHVJjHUHVoRhZafujsHBMLdvXkFxyFg_aem_LWN-yIvNrYrM8Lo67Fsqqg" target="_blank"
             style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;text-decoration:none;color:#333;font-size:12px;margin-bottom:4px;background:#FEE500;border:1px solid #F2D900;">
@@ -1155,6 +1155,18 @@ async function goToDash() {
       const contentEl = document.querySelector(".content");
       if(contentEl) contentEl.style.paddingBottom = "68px";
     }
+    // 개발자 목록 자동으로 열기 + 스크롤
+    const devContent = document.getElementById("devlist-content");
+    const devArrow = document.getElementById("devlist-arrow");
+    if(devContent) {
+      devContent.style.display = "block";
+      if(devArrow) devArrow.style.transform = "rotate(180deg)";
+    }
+    // 사이드바 맨 아래로 스크롤
+    setTimeout(() => {
+      const sidebar = document.querySelector(".sidebar");
+      if(sidebar) sidebar.scrollTop = sidebar.scrollHeight;
+    }, 600);
   }, 500);
 }
 
@@ -3396,9 +3408,14 @@ function toggleDevList() {
   const content = document.getElementById("devlist-content");
   const arrow = document.getElementById("devlist-arrow");
   if(!content) return;
-  if(content.style.display === "none") {
+  if(content.style.display === "none" || content.style.display === "") {
     content.style.display = "block";
     if(arrow) arrow.style.transform = "rotate(180deg)";
+    // 스크롤해서 보이게
+    setTimeout(() => {
+      const el = document.getElementById("si-devlist");
+      if(el) el.scrollIntoView({behavior:"smooth", block:"end"});
+    }, 100);
   } else {
     content.style.display = "none";
     if(arrow) arrow.style.transform = "rotate(0deg)";
