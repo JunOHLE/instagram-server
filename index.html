@@ -180,11 +180,44 @@ function pinKey(e, i) {
 <audio id="dos-bgm-preload" src="dos_bgm.mp3.mp3" loop preload="auto"></audio>
 
 <script>
-// 페이지 로드 시 body 표시
+// 페이지 로드 시 body 표시 + 점검 체크
 document.addEventListener("DOMContentLoaded", function() {
   document.body.style.visibility = "visible";
 });
 </script>
+
+<!-- ── 점검 오버레이 ── -->
+<div id="maint-overlay" style="display:none;position:fixed;inset:0;background:rgba(10,10,10,0.97);z-index:9999;align-items:center;justify-content:center;flex-direction:column;">
+  <div style="text-align:center;max-width:480px;width:90%;padding:2rem;">
+    <!-- 로고 -->
+    <div style="font-size:32px;margin-bottom:1rem;">🔧</div>
+    <div id="maint-overlay-title" style="font-size:26px;font-weight:800;color:#fff;margin-bottom:0.5rem;">서버 점검 중</div>
+    <div id="maint-overlay-content" style="font-size:14px;color:#888;line-height:1.7;margin-bottom:2rem;">잠시 후 다시 접속해주세요.</div>
+
+    <!-- 진행률 바 -->
+    <div style="background:#1a1a1a;border-radius:99px;height:8px;overflow:hidden;margin-bottom:0.5rem;">
+      <div id="maint-ol-bar" style="height:100%;background:linear-gradient(90deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);border-radius:99px;transition:width 1s;width:0%;"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:#444;margin-bottom:1.5rem;">
+      <span id="maint-ol-start"></span>
+      <span id="maint-ol-pct" style="color:#cc2366;font-weight:700;">0%</span>
+      <span id="maint-ol-end"></span>
+    </div>
+    <div id="maint-ol-remain" style="font-size:13px;color:#666;margin-bottom:2rem;"></div>
+
+    <!-- DEV PIN 입력 -->
+    <div style="border-top:1px solid #222;padding-top:1.5rem;">
+      <div style="font-size:11px;color:#444;margin-bottom:8px;">개발자 접근</div>
+      <div style="display:flex;gap:8px;justify-content:center;">
+        <input id="maint-pin-input" type="password" maxlength="7" placeholder="개발자 코드"
+          style="background:#111;border:1px solid #333;border-radius:8px;color:#fff;font-size:14px;padding:8px 14px;outline:none;width:150px;text-align:center;letter-spacing:2px;"
+          onkeydown="if(event.key==='Enter')maintPinCheck()">
+        <button onclick="maintPinCheck()" style="background:#222;border:1px solid #333;border-radius:8px;color:#fff;font-size:13px;padding:8px 16px;cursor:pointer;">접속</button>
+      </div>
+      <div id="maint-pin-err" style="color:#c0392b;font-size:12px;margin-top:8px;min-height:16px;"></div>
+    </div>
+  </div>
+</div>
 
 <!-- 공지 토스트 -->
 <div id="notice-toast" style="display:none;position:fixed;bottom:2rem;left:1.5rem;max-width:320px;background:#fff;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.18);padding:1.25rem 1.5rem;z-index:8000;border-left:4px solid #1a56db;">
@@ -630,6 +663,31 @@ document.addEventListener("DOMContentLoaded", function() {
               </div>
             </div>
             <div style="display:flex;gap:6px;margin-top:2px;">
+              <button onclick="startMaintenance()" style="flex:1;padding:8px;border:none;border-radius:8px;background:#a32d2d;color:#fff;font-size:13px;font-weight:500;cursor:pointer;">점검 시작</button>
+              <button onclick="endMaintenance()" style="flex:1;padding:8px;border:1px solid #ddd;border-radius:8px;background:#f0f0f0;color:#333;font-size:13px;font-weight:500;cursor:pointer;">점검 완료</button>
+            </div>
+          </div>
+
+          <!-- 점검 설정 -->
+          <div style="margin-bottom:1.25rem;padding:1rem;background:#fafafa;border-radius:10px;border:1px solid #eee;">
+            <div style="font-size:13px;font-weight:600;color:#111;margin-bottom:10px;">🔧 점검 설정</div>
+            <input type="text" id="maint-title" placeholder="점검 제목" maxlength="50"
+              style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;margin-bottom:6px;box-sizing:border-box;">
+            <textarea id="maint-content" placeholder="점검 내용" rows="2"
+              style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;resize:vertical;box-sizing:border-box;font-family:inherit;margin-bottom:8px;"></textarea>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
+              <div>
+                <div style="font-size:11px;color:#888;margin-bottom:4px;">시작 시간</div>
+                <input type="datetime-local" id="maint-start"
+                  style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:8px;font-size:12px;box-sizing:border-box;background:#fff;">
+              </div>
+              <div>
+                <div style="font-size:11px;color:#888;margin-bottom:4px;">종료 시간</div>
+                <input type="datetime-local" id="maint-end"
+                  style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:8px;font-size:12px;box-sizing:border-box;background:#fff;">
+              </div>
+            </div>
+            <div style="display:flex;gap:6px;">
               <button onclick="startMaintenance()" style="flex:1;padding:8px;border:none;border-radius:8px;background:#a32d2d;color:#fff;font-size:13px;font-weight:500;cursor:pointer;">점검 시작</button>
               <button onclick="endMaintenance()" style="flex:1;padding:8px;border:1px solid #ddd;border-radius:8px;background:#f0f0f0;color:#333;font-size:13px;font-weight:500;cursor:pointer;">점검 완료</button>
             </div>
@@ -3401,6 +3459,121 @@ function startInboxPoll() {
       if(cnt) cnt.textContent = unread > 0 ? unread : "";
     } catch(e) {}
   }, 180000);
+}
+
+// ── 점검 체크 ──
+(async function checkMaintOnLoad() {
+  try {
+    const d = await fbGet("maintenance");
+    if(!d || !d.active) {
+      document.body.style.visibility = "visible";
+      return;
+    }
+    document.body.style.visibility = "visible";
+    showMaint(d);
+  } catch(e) {
+    document.body.style.visibility = "visible";
+  }
+})();
+
+function showMaint(d) {
+  const ol = document.getElementById("maint-overlay");
+  if(!ol) return;
+  if(isAdminSession()) return; // DEV는 점검 안 뜸
+  ol.style.display = "flex";
+  const titleEl = document.getElementById("maint-overlay-title");
+  const contentEl = document.getElementById("maint-overlay-content");
+  if(titleEl) titleEl.textContent = d.title || "서버 점검 중";
+  if(contentEl) contentEl.textContent = d.content || "잠시 후 다시 접속해주세요.";
+  updateMaintProgress(d);
+  // 1초마다 진행률 업데이트
+  window._maintTimer = setInterval(() => {
+    updateMaintProgress(d);
+    // 종료시간 지나면 해제
+    if(d.endTs && Date.now() >= d.endTs) {
+      clearInterval(window._maintTimer);
+      ol.style.display = "none";
+    }
+  }, 1000);
+}
+
+function updateMaintProgress(d) {
+  const now = Date.now();
+  const start = d.startTs || now;
+  const end = d.endTs;
+  const bar = document.getElementById("maint-ol-bar");
+  const pct = document.getElementById("maint-ol-pct");
+  const remain = document.getElementById("maint-ol-remain");
+  const startEl = document.getElementById("maint-ol-start");
+  const endEl = document.getElementById("maint-ol-end");
+
+  if(startEl) startEl.textContent = new Date(start).toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"});
+  if(endEl && end) endEl.textContent = new Date(end).toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"});
+
+  if(end) {
+    const total = end - start;
+    const elapsed = Math.max(0, Math.min(now - start, total));
+    const p = Math.round((elapsed / total) * 100);
+    if(bar) bar.style.width = p + "%";
+    if(pct) pct.textContent = p + "%";
+    const left = Math.max(0, Math.ceil((end - now) / 60000));
+    if(remain) remain.textContent = left > 0 ? `약 ${left}분 남음` : "점검 완료 예정";
+  } else {
+    if(bar) bar.style.width = "100%";
+    if(pct) pct.textContent = "";
+    if(remain) remain.textContent = "점검 시간 미정";
+  }
+}
+
+function maintPinCheck() {
+  const val = document.getElementById("maint-pin-input").value.trim();
+  const err = document.getElementById("maint-pin-err");
+  if(!val) return;
+
+  if(btoa(unescape(encodeURIComponent(val))) === "MDA5MjM0") {
+    // DEV
+    clearInterval(window._maintTimer);
+    sessionStorage.setItem("loginType","dev");
+    sessionStorage.setItem("isAdmin","true");
+    document.getElementById("maint-overlay").style.display = "none";
+    const saved = localStorage.getItem("userProfile");
+    if(saved) {
+      goToDash();
+    } else {
+      const pp = document.getElementById("page-profile");
+      if(pp) { pp.style.display="flex"; pp.style.flexDirection="column"; initAvatarGrid(); }
+    }
+    setTimeout(()=>{ const bgm=document.getElementById("bgm"); if(bgm) bgm.play().catch(()=>{}); }, 600);
+    return;
+  }
+  if(err) err.textContent = "올바르지 않습니다.";
+  document.getElementById("maint-pin-input").value = "";
+  setTimeout(()=>{ if(err) err.textContent=""; }, 2000);
+}
+
+// DEV 패널에서 점검 시작/종료
+async function startMaintenance() {
+  const title = (document.getElementById("maint-title")||{}).value || "서버 점검 중";
+  const cnt = (document.getElementById("maint-content")||{}).value || "잠시 후 다시 접속해주세요.";
+  const startInput = (document.getElementById("maint-start")||{}).value;
+  const endInput = (document.getElementById("maint-end")||{}).value;
+  let startTs = startInput ? new Date(startInput).getTime() : Date.now();
+  let endTs = endInput ? new Date(endInput).getTime() : null;
+  if(endTs && endTs <= startTs) { alert("종료 시간이 시작 시간보다 늦어야 해요!"); return; }
+  try {
+    await fbSet("maintenance", { active:true, title, content:cnt, startTs, endTs });
+    alert("점검이 시작됐어요!");
+  } catch(e) { alert("오류: "+e); }
+}
+
+async function endMaintenance() {
+  try {
+    await fbSet("maintenance", { active:false, title:"", content:"", startTs:null, endTs:null });
+    clearInterval(window._maintTimer);
+    const ol = document.getElementById("maint-overlay");
+    if(ol) ol.style.display = "none";
+    alert("점검 완료!");
+  } catch(e) { alert("오류: "+e); }
 }
 
 // ── 개발자 목록 토글 ──
