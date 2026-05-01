@@ -2968,8 +2968,6 @@ window.enterAsFriend = function() {
   setTimeout(startFrClock, 300);
 };
 
-</script>
-<script>
 // 페이지 벗어날 때 소리 끄고, 돌아올 때 복원
 function stopAllAudio() {
   document.querySelectorAll("audio").forEach(a => { a.pause(); });
@@ -3131,6 +3129,8 @@ async function devUnbanIP() {
     msg.textContent = "오류 발생: " + e.message;
   }
 }
+
+async function manualBanIP() {
   const ip = document.getElementById("manual-ban-ip").value.trim();
   const name = document.getElementById("manual-ban-name").value.trim() || "직접차단";
   const banMin = parseInt(document.getElementById("manual-ban-time").value);
@@ -3473,27 +3473,53 @@ function maintPinCheck() {
 
 // DEV 패널에서 점검 시작/종료
 async function startMaintenance() {
-  const title = (document.getElementById("maint-title")||{}).value || "서버 점검 중";
-  const cnt = (document.getElementById("maint-content")||{}).value || "잠시 후 다시 접속해주세요.";
-  const startInput = (document.getElementById("maint-start")||{}).value;
-  const endInput = (document.getElementById("maint-end")||{}).value;
+  const titleEl = document.getElementById("maint-title");
+  const cntEl = document.getElementById("maint-content");
+  const startEl = document.getElementById("maint-start");
+  const endEl = document.getElementById("maint-end");
+
+  const title = titleEl ? titleEl.value.trim() || "서버 점검 중" : "서버 점검 중";
+  const cnt = cntEl ? cntEl.value.trim() || "잠시 후 다시 접속해주세요." : "잠시 후 다시 접속해주세요.";
+  const startInput = startEl ? startEl.value : "";
+  const endInput = endEl ? endEl.value : "";
+
   let startTs = startInput ? new Date(startInput).getTime() : Date.now();
   let endTs = endInput ? new Date(endInput).getTime() : null;
-  if(endTs && endTs <= startTs) { alert("종료 시간이 시작 시간보다 늦어야 해요!"); return; }
+
+  if(endTs && endTs <= startTs) {
+    alert("종료 시간이 시작 시간보다 늦어야 해요!"); return;
+  }
+
+  const payload = { active: true, title, content: cnt, startTs, endTs };
+
   try {
-    await fbSet("maintenance", { active:true, title, content:cnt, startTs, endTs });
-    alert("점검이 시작됐어요!");
-  } catch(e) { alert("오류: "+e); }
+    const res = await fetch(`https://instagram-server-d01e0-default-rtdb.firebaseio.com/maintenance.json`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if(!res.ok) throw new Error("HTTP " + res.status);
+    alert("✅ 점검이 시작됐어요! 모든 기기에 적용됩니다.");
+  } catch(e) {
+    alert("❌ 오류: " + e.message + "\nFirebase Rules를 확인해주세요.");
+  }
 }
 
 async function endMaintenance() {
   try {
-    await fbSet("maintenance", { active:false, title:"", content:"", startTs:null, endTs:null });
+    const res = await fetch(`https://instagram-server-d01e0-default-rtdb.firebaseio.com/maintenance.json`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ active: false, title: "", content: "", startTs: null, endTs: null })
+    });
+    if(!res.ok) throw new Error("HTTP " + res.status);
     clearInterval(window._maintTimer);
     const ol = document.getElementById("maint-overlay");
     if(ol) ol.style.display = "none";
-    alert("점검 완료!");
-  } catch(e) { alert("오류: "+e); }
+    alert("✅ 점검 완료!");
+  } catch(e) {
+    alert("❌ 오류: " + e.message);
+  }
 }
 
 // ── 개발자 목록 토글 ──
@@ -3516,15 +3542,12 @@ function toggleDevList() {
 }
 
 // ── 점검 영상 순차 재생 ──
-</script>
-<script>
+
 (function(){
   function playBGM(){
-    // DoS 페이지 열려있으면 재생 안 함
     const dosPage = document.getElementById("page-dos");
     if(dosPage && dosPage.style.display === "flex") return;
-    // 점검 오버레이 떠있으면 재생 안 함
-            var b=document.getElementById("bgm");
+    var b=document.getElementById("bgm");
     if(b){
       var vol = document.getElementById("vol-slider");
       b.volume = vol ? vol.value/100 : 0.5;
@@ -3535,10 +3558,7 @@ function toggleDevList() {
   document.addEventListener("touchstart", playBGM, {once:true});
   document.addEventListener("keydown", playBGM, {once:true});
 })();
-</script>
 
-
-<script>
 // ── Firebase REST API (SDK 없이 fetch로 직접 통신) ──
 const FB_URL = "https://instagram-server-d01e0-default-rtdb.firebaseio.com";
 window._fbReady = true;
@@ -3625,9 +3645,7 @@ window.startRealtimeLeaderboard();
 
 // 점검 체크 (FB_URL 선언 이후 실행)
 checkMaintOnLoad();
-</script>
 
-<script>
 // ── eDEX Terminal ──
 let edexHistory = [];
 let edexHistoryIdx = -1;
