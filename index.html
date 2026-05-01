@@ -3497,17 +3497,62 @@ function startInboxPoll() {
       document.getElementById("maint-overlay-title").textContent = data.title || "점검 중";
       document.getElementById("maint-overlay-content").textContent = data.content || "";
       ol.style.display = "flex";
-      if(typeof updateMaintProgress === "function") updateMaintProgress(data);
-      startMaintVideo();
 
-      // 로컬 1초 타이머 - data를 클로저로 캡처해서 매초 업데이트
-      if(window._maintLocalTimer) clearInterval(window._maintLocalTimer);
-      const _d = Object.assign({}, data); // 복사본 저장
-      window._maintLocalTimer = setInterval(function() {
-        if(typeof updateMaintProgress === "function") {
-          updateMaintProgress(_d);
-        }
-      }, 1000);
+      // window에 데이터 저장
+      window._maintData = data;
+
+      // DOMContentLoaded 이후 타이머 시작
+      function startLocalTimer() {
+        if(window._maintLocalTimer) clearInterval(window._maintLocalTimer);
+        window._maintLocalTimer = setInterval(function() {
+          const d = window._maintData;
+          if(!d) return;
+          const now = Date.now();
+          const startTs = d.startTs || now;
+          const endTs = d.endTs;
+
+          const olPct = document.getElementById("maint-ol-pct");
+          const olBar = document.getElementById("maint-ol-bar");
+          const olRemain = document.getElementById("maint-ol-remain");
+          const olStart = document.getElementById("maint-ol-start");
+          const olEnd = document.getElementById("maint-ol-end");
+          const fmt = (ts) => new Date(ts).toLocaleTimeString("ko-KR", {timeZone:"Asia/Seoul", hour:"2-digit", minute:"2-digit"});
+
+          if(olStart && startTs) olStart.textContent = fmt(startTs);
+          if(olEnd && endTs) olEnd.textContent = fmt(endTs);
+
+          if(!endTs) {
+            if(olPct) olPct.textContent = "진행 중";
+            if(olRemain) olRemain.textContent = "잠시 후 다시 접속해주세요.";
+            return;
+          }
+
+          const total = endTs - startTs;
+          const elapsed = now - startTs;
+          const pct = Math.min(100, Math.max(0, Math.floor(elapsed / total * 100)));
+          const remainMs = Math.max(0, endTs - now);
+
+          if(olBar) { olBar.style.animation = "none"; olBar.style.width = pct + "%"; }
+          if(olPct) { olPct.textContent = pct + "%"; olPct.style.color = pct >= 90 ? "#27ae60" : "#cc2366"; }
+
+          const rH = Math.floor(remainMs / 3600000);
+          const rM = Math.floor((remainMs % 3600000) / 60000);
+          const rS = Math.floor((remainMs % 60000) / 1000);
+          let str = remainMs > 0
+            ? (rH > 0 ? `종료까지 ${rH}시간 ${rM}분 ${rS}초` : rM > 0 ? `종료까지 ${rM}분 ${rS}초` : `종료까지 ${rS}초`)
+            : "점검이 완료됐습니다!";
+          if(olRemain) olRemain.textContent = str;
+
+          // 종료 시간 지나면 페이지 새로고침
+          if(remainMs <= 0) {
+            clearInterval(window._maintLocalTimer);
+            setTimeout(() => location.reload(), 2000);
+          }
+        }, 1000);
+      }
+
+      startLocalTimer();
+      startMaintVideo();
     }
 
     if(document.readyState === "loading") {
