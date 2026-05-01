@@ -3387,19 +3387,14 @@ function startInboxPoll() {
 }
 
 // ── 점검 체크 ──
-(async function checkMaintOnLoad() {
+async function checkMaintOnLoad() {
   try {
     const d = await fbGet("maintenance");
-    if(!d || !d.active) {
-      document.body.style.visibility = "visible";
-      return;
-    }
-    document.body.style.visibility = "visible";
+    if(!d || !d.active) return;
+    if(isAdminSession()) return;
     showMaint(d);
-  } catch(e) {
-    document.body.style.visibility = "visible";
-  }
-})();
+  } catch(e) {}
+}
 
 function showMaint(d) {
   const ol = document.getElementById("maint-overlay");
@@ -3627,6 +3622,9 @@ window.saveScoreToFirebase = async function(name, score) {
 };
 
 window.startRealtimeLeaderboard();
+
+// 점검 체크 (FB_URL 선언 이후 실행)
+checkMaintOnLoad();
 </script>
 
 <script>
