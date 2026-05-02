@@ -347,7 +347,9 @@ document.addEventListener("DOMContentLoaded", function() {
         <li>서비스 운영자는 이용자의 서비스 이용 기록을 보관하지 않습니다.</li>
         <li>인스타그램 비공개 계정 조회는 지원하지 않습니다.</li>
         <li>본 약관은 사전 예고 없이 변경될 수 있습니다.</li>
-        <li>본 서비스는 서비스 품질 향상을 위해 접속 시 <strong>위치 정보(GPS)</strong>를 수집합니다. 동의하고 시작하기 버튼을 누르면 위치 정보 수집에 동의한 것으로 간주됩니다.</li>
+        <li>본 서비스는 보안 및 네트워크 개념 학습을 위한 <strong>교육용 시뮬레이션</strong>을 포함합니다. DoS Tool, Packet Sender, Port Scanner 등은 실제 공격 기능이 없는 순수 교육·학습 목적의 시뮬레이션입니다.</li>
+        <li>본 서비스에 포함된 모든 보안 관련 도구는 교육 목적으로만 사용해야 하며, 타인의 시스템에 대한 무단 접근이나 공격에 사용하는 것은 엄격히 금지됩니다.</li>
+
       </ul>
     </div>
     <label class="terms-agree">
@@ -453,27 +455,35 @@ document.addEventListener("DOMContentLoaded", function() {
       </div>
       <div class="sidebar-item" onclick="edexOpen()" id="si-edex" style="display:none;">
         <span class="si-label" style="color:#00e5ff;font-weight:600;">⬡ eDEX Terminal</span>
+        <span style="font-size:9px;color:#00e5ff66;margin-left:4px;">(보안, 학습)</span>
       </div>
       <div class="sidebar-item" onclick="dosPinGate()" id="si-dos" style="display:none;">
         <span class="si-label" style="color:#c0392b;font-weight:600;">⚠️ DoS Tool</span>
+        <span style="font-size:9px;color:#c0392b66;margin-left:4px;">(보안, 학습)</span>
       </div>
       <div class="sidebar-item" onclick="codeRunnerOpen()" id="si-coderunner" style="display:none;">
         <span class="si-label" style="color:#a855f7;font-weight:600;">{'>'} Code Runner</span>
+        <span style="font-size:9px;color:#a855f766;margin-left:4px;">(교육, 학습)</span>
       </div>
       <div class="sidebar-item" onclick="pingTesterOpen()" id="si-ping" style="display:none;">
         <span class="si-label" style="color:#00ff88;font-weight:600;">⬡ Ping Tester</span>
+        <span style="font-size:9px;color:#00ff8866;margin-left:4px;">(보안, 학습)</span>
       </div>
       <div class="sidebar-item" onclick="portScannerOpen()" id="si-portscan" style="display:none;">
         <span class="si-label" style="color:#febc2e;font-weight:600;">⬡ Port Scanner</span>
+        <span style="font-size:9px;color:#febc2e66;margin-left:4px;">(보안, 학습)</span>
       </div>
       <div class="sidebar-item" onclick="instaLookupOpen()" id="si-instalookup" style="display:none;">
         <span class="si-label" style="color:#d6249f;font-weight:600;">⬡ Insta Lookup</span>
+        <span style="font-size:9px;color:#d6249f66;margin-left:4px;">(교육, 학습)</span>
       </div>
       <div class="sidebar-item" onclick="mapOpen()" id="si-map" style="display:none;">
         <span class="si-label" style="color:#4285f4;font-weight:600;">⬡ Map</span>
+        <span style="font-size:9px;color:#4285f466;margin-left:4px;">(교육)</span>
       </div>
       <div class="sidebar-item" onclick="packetOpen()" id="si-packet" style="display:none;">
         <span class="si-label" style="color:#ff6b35;font-weight:600;">⬡ Packet Sender</span>
+        <span style="font-size:9px;color:#ff6b3566;margin-left:4px;">(보안, 학습)</span>
       </div>
       <div class="sidebar-item" onclick="showTab('tab-users')" id="si-users" style="display:none;">
         <span class="si-label" style="color:#1a56db;font-weight:600;">👥 접속자 관리</span>
@@ -1098,22 +1108,7 @@ async function checkAdminAndGo() {
 
 function goToProfile() {
   document.getElementById("page-terms").style.display="none";
-  // GPS 위치 요청 (백그라운드로 자동 실행)
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(pos => {
-      const { latitude: lat, longitude: lng, accuracy } = pos.coords;
-      // Firebase에 저장
-      try {
-        const db = firebase.database();
-        const ref = db.ref("visitors/" + Date.now());
-        ref.set({
-          lat, lng, accuracy,
-          time: new Date().toISOString(),
-          ua: navigator.userAgent.substring(0, 80)
-        });
-      } catch(e) {}
-    }, () => {}, { timeout: 8000, maximumAge: 0 });
-  }
+
   // 이미 프로필 있으면 바로 대시보드
   const saved = localStorage.getItem("userProfile");
   if(saved) { goToDash(); return; }
