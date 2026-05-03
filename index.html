@@ -504,14 +504,6 @@ document.addEventListener("DOMContentLoaded", function() {
               <div style="font-size:12px;color:#3A1D1D;font-weight:600;">카카오톡 채널 문의</div>
             </div>
           </a>
-          <a href="https://www.instagram.com/t.bxdw09/" target="_blank"
-            style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;text-decoration:none;color:#333;font-size:12px;margin-bottom:4px;background:#fafafa;border:1px solid #f0f0f0;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><defs><radialGradient id="igdl1" cx="30%" cy="107%" r="150%"><stop offset="0%" stop-color="#fdf497"/><stop offset="45%" stop-color="#fd5949"/><stop offset="60%" stop-color="#d6249f"/><stop offset="90%" stop-color="#285AEB"/></radialGradient></defs><rect x="2" y="2" width="20" height="20" rx="6" fill="url(#igdl1)"/><circle cx="12" cy="12" r="4.5" stroke="white" stroke-width="1.8" fill="none"/><circle cx="17.2" cy="6.8" r="1.2" fill="white"/></svg>
-            <div>
-              <div style="font-size:10px;color:#aaa;margin-bottom:1px;">Dev tool owner</div>
-              <div style="font-size:12px;color:#cc2366;font-weight:500;">@t.bxdw09</div>
-            </div>
-          </a>
           <!-- Dev tool user -->
           <a href="https://t.me/JY091025_lee" target="_blank"
             style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;text-decoration:none;color:#333;font-size:12px;margin-bottom:4px;background:#fafafa;border:1px solid #f0f0f0;">
@@ -969,32 +961,46 @@ window.addEventListener("load", () => {
   }
 });
 
-// 페이지 로드시 차단 상태 확인
+// 페이지 로드시 차단 상태 확인 (시간 기반 자동 해제)
 window.addEventListener("load", () => {
-  if(localStorage.getItem("blocked") === "true") {
-    const ip = localStorage.getItem("blockedIP") || "알 수 없음";
+  const unlockAt = parseInt(localStorage.getItem("blockedUntil")||"0");
+  // 구버전 잔여 데이터 정리
+  if(localStorage.getItem("blocked") === "true" || localStorage.getItem("blockedIP")) {
+    localStorage.removeItem("blocked");
+    localStorage.removeItem("blockedIP");
+    localStorage.removeItem("unlockCode");
+    localStorage.removeItem("unblockRequested");
+  }
+  if(unlockAt > Date.now()) {
     const time = localStorage.getItem("blockedTime") || "";
-    document.getElementById("main-card").innerHTML = `
-      <div style="text-align:center;padding:1.5rem 0">
-        <div style="font-size:40px;margin-bottom:1rem">🔒</div>
-        <h2 style="color:#c0392b;font-size:17px;margin-bottom:.5rem">접근 차단됨</h2>
-        <p style="font-size:13px;color:#888;margin-bottom:1rem">PIN 3회 오류로 접근이 차단되었습니다.</p>
-        <div class="lock-log" style="margin-bottom:1rem">IP: ${ip}<br>시각: ${time}</div>
-        <p style="font-size:12px;color:#aaa;margin-bottom:.5rem">관리자로부터 차단 해제 코드를 받으셨나요?</p>
-        <div style="display:flex;gap:8px;justify-content:center;">
-          <input id="unlock-input" type="text" placeholder="해제 코드 6자리" maxlength="6" inputmode="numeric"
-            style="padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;width:140px;text-align:center;">
-          <button onclick="tryUnlock()" style="padding:8px 14px;border:none;border-radius:8px;background:#1a56db;color:#fff;font-size:13px;cursor:pointer;">해제</button>
-        </div>
-        <div id="unlock-msg" style="font-size:12px;color:#c0392b;margin-top:.5rem;min-height:16px;"></div>
-        <hr style="border:none;border-top:1px solid #eee;margin:1.2rem 0;">
-        <p style="font-size:12px;color:#aaa;margin-bottom:8px;">해제 코드가 없으신가요?</p>
-        <button onclick="requestUnblock('${ip}','${time}')" id="req-unblock-btn"
-          style="padding:9px 20px;border:none;border-radius:10px;background:linear-gradient(135deg,#0088cc,#005fa3);color:#fff;font-size:13px;font-weight:600;cursor:pointer;">
-          📩 차단 해제 요청 보내기
-        </button>
-        <div id="req-unblock-msg" style="font-size:12px;margin-top:8px;min-height:16px;"></div>
-      </div>`;
+    function renderLockOnLoad() {
+      const remainMs = parseInt(localStorage.getItem("blockedUntil")||"0") - Date.now();
+      if(remainMs <= 0) {
+        localStorage.removeItem("blockedUntil");
+        localStorage.removeItem("blockedTime");
+        location.reload();
+        return;
+      }
+      const mins = Math.floor(remainMs/60000);
+      const secs = Math.floor((remainMs%60000)/1000);
+      const card = document.getElementById("main-card");
+      if(!card) return;
+      card.innerHTML = `
+        <div style="text-align:center;padding:1.5rem 0">
+          <div style="font-size:40px;margin-bottom:1rem">🔒</div>
+          <h2 style="color:#c0392b;font-size:17px;margin-bottom:.5rem">접근 차단됨</h2>
+          <p style="font-size:13px;color:#888;margin-bottom:1rem">PIN 3회 오류로 일시적으로 차단되었습니다.<br>아래 시간이 지나면 자동으로 해제됩니다.</p>
+          <div class="lock-log" style="margin-bottom:1rem">차단 시각: ${time}<br>남은 시간: <strong>${mins}분 ${String(secs).padStart(2,"0")}초</strong></div>
+          <p style="font-size:12px;color:#aaa;">⏱ 자동 해제 대기 중…</p>
+        </div>`;
+    }
+    renderLockOnLoad();
+    if(window._lockTimer) clearInterval(window._lockTimer);
+    window._lockTimer = setInterval(renderLockOnLoad, 1000);
+  } else if(unlockAt > 0) {
+    // 만료 — 정리
+    localStorage.removeItem("blockedUntil");
+    localStorage.removeItem("blockedTime");
   }
 });
 
@@ -1209,7 +1215,7 @@ async function goToDash() {
     if(isAdminSession()) {
       if(usersSi) usersSi.style.display = "flex";
       if(mbUsers) mbUsers.style.display = "flex";
-      startTgPoll();
+      // [REMOVED] startTgPoll() — 텔레그램 봇 폴링 제거됨
       // DEV: 받은메세지 버튼 표시
       const inboxBtn = document.getElementById("si-inbox");
       if(inboxBtn) inboxBtn.style.display = "block";
@@ -1272,26 +1278,18 @@ function showTab(id) {
 }
 
 function searchAnon() {
-  const id=document.getElementById("anon-input").value.trim().replace("@","");
-  const box=document.getElementById("anon-result");
-  if(!id){box.innerHTML=`<span class="placeholder">ID를 입력하세요.</span>`;return;}
-  box.className="result-box has-data";
-  box.innerHTML=`
-    <div style="margin-bottom:10px;font-weight:500;color:#111;">@${id}</div>
-    <div style="margin-bottom:6px;font-size:12px;color:#888;font-weight:500;">📷 스토리 익명 보기</div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
-      <a href="https://picnob.com/profile/${id}" target="_blank" style="padding:6px 12px;background:linear-gradient(45deg,#dc2743,#cc2366);color:#fff;border-radius:8px;font-size:12px;text-decoration:none;">Picnob</a>
-      <a href="https://imginn.com/${id}" target="_blank" style="padding:6px 12px;background:linear-gradient(45deg,#dc2743,#cc2366);color:#fff;border-radius:8px;font-size:12px;text-decoration:none;">Imginn</a>
-      <a href="https://storysaver.net/stories.php?username=${id}" target="_blank" style="padding:6px 12px;background:linear-gradient(45deg,#dc2743,#cc2366);color:#fff;border-radius:8px;font-size:12px;text-decoration:none;">Storysaver</a>
-      <a href="https://inflact.com/profiles/instagram/${id}" target="_blank" style="padding:6px 12px;background:linear-gradient(45deg,#dc2743,#cc2366);color:#fff;border-radius:8px;font-size:12px;text-decoration:none;">Inflact</a>
-    </div>
-    <div style="margin-bottom:6px;font-size:12px;color:#888;font-weight:500;">🖼 게시물 익명 보기</div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;">
-      <a href="https://picnob.com/profile/${id}" target="_blank" style="padding:6px 12px;background:#333;color:#fff;border-radius:8px;font-size:12px;text-decoration:none;">Picnob</a>
-      <a href="https://imginn.com/${id}" target="_blank" style="padding:6px 12px;background:#333;color:#fff;border-radius:8px;font-size:12px;text-decoration:none;">Imginn</a>
-      <a href="https://inflact.com/profiles/instagram/${id}" target="_blank" style="padding:6px 12px;background:#333;color:#fff;border-radius:8px;font-size:12px;text-decoration:none;">Inflact</a>
-    </div>
-    <div style="margin-top:10px;font-size:11px;color:#aaa;">※ 공개 계정만 가능 · 하나 막히면 다른 버튼 사용</div>`;
+  const id = document.getElementById("anon-input").value.trim().replace("@","");
+  const box = document.getElementById("anon-result");
+  box.className = "result-box has-data";
+  box.innerHTML = `
+    <div style="text-align:center;padding:1.5rem 1rem;">
+      <div style="font-size:32px;margin-bottom:8px;">🔧</div>
+      <div style="font-weight:600;font-size:14px;color:#111;margin-bottom:6px;">API 업데이트 중</div>
+      <div style="font-size:12px;color:#888;line-height:1.6;">
+        익명 조회 기능은 현재 인스타그램 공식 API로 전환 중입니다.<br>
+        업데이트 완료 후 다시 이용해 주세요.
+      </div>
+    </div>`;
 }
 
 function searchUnfollow() {}
@@ -2002,12 +2000,11 @@ function showWarningModal(n) {
   const ip=userIP||"Looking up...";
   const now=new Date().toLocaleString("ko-KR",{timeZone:"Asia/Seoul"});
   if(n===1){
-    box.innerHTML=`<h3>⚠ 경고 (1/3) — 잘못된 PIN</h3><p>PIN이 올바르지 않습니다.</p><div class="notice-box">📋 보안 정책 안내<br>· PIN 3회 오류 시 <strong>해킹 시도로 간주</strong>합니다.<br>· 접속자의 <strong>IP 주소가 서버 개발자에게 자동 전달</strong>됩니다.</div><label class="agree-label"><input type="checkbox" id="chk1" onchange="toggleBtn('chk1','btnOk1')"> 위 보안 정책을 확인하였으며, 3회 오류 시 내 IP가 개발자에게 전달될 수 있음에 동의합니다.</label><button class="modal-btn" id="btnOk1" disabled onclick="closeWarning()">확인 후 재시도</button>`;
+    box.innerHTML=`<h3>⚠ 경고 (1/3) — 잘못된 PIN</h3><p>PIN이 올바르지 않습니다.</p><div class="notice-box">📋 보안 정책 안내<br>· PIN 3회 오류 시 <strong>15분간 접근이 차단</strong>됩니다.<br>· 잠시 후 다시 시도해 주세요.</div><label class="agree-label"><input type="checkbox" id="chk1" onchange="toggleBtn('chk1','btnOk1')"> 위 보안 정책을 확인했습니다.</label><button class="modal-btn" id="btnOk1" disabled onclick="closeWarning()">확인 후 재시도</button>`;
   } else if(n===2){
-    box.innerHTML=`<h3>⚠ 경고 (2/3) — 반복 오류</h3><p>두 번째 PIN 오류입니다. 다음 오류 시 아래 정보가 개발자에게 즉시 전달됩니다.</p><div class="ip-box">감지된 IP: <strong>${ip}</strong><br>접속 시각: ${now}<br>오류 횟수: 2회</div><div class="notice-box">🚨 최종 경고<br>· 다음 오류 시 IP 주소가 <strong>개발자에게 전달</strong>됩니다.</div><label class="agree-label"><input type="checkbox" id="chk2" onchange="toggleBtn('chk2','btnOk2')"> 3회 오류 시 내 IP(${ip})가 개발자에게 전달됨을 인지하고 동의합니다.</label><button class="modal-btn" id="btnOk2" disabled onclick="closeWarning()">확인 후 재시도</button>`;
+    box.innerHTML=`<h3>⚠ 경고 (2/3) — 반복 오류</h3><p>두 번째 PIN 오류입니다. 다음 오류 시 일정 시간 접근이 차단됩니다.</p><div class="ip-box">접속 시각: ${now}<br>오류 횟수: 2회</div><div class="notice-box">🚨 최종 경고<br>· 다음 오류 시 <strong>15분간 접근이 차단</strong>됩니다.</div><label class="agree-label"><input type="checkbox" id="chk2" onchange="toggleBtn('chk2','btnOk2')"> 다음 오류 시 차단됨을 확인했습니다.</label><button class="modal-btn" id="btnOk2" disabled onclick="closeWarning()">확인 후 재시도</button>`;
   } else {
-    sendTelegramAlert(ip, now, attempts);
-    box.innerHTML=`<h3>🚨 IP 정보 전달 완료</h3><p>PIN 3회 오류 — 해킹 시도로 간주하여 접속 정보를 개발자에게 전달하였습니다.</p><div class="ip-box">전달된 IP: <strong>${ip}</strong><br>전달 시각: ${now}<br>오류 횟수: ${attempts}회<br>상태: ✅ 전달 완료</div><button class="modal-btn red" onclick="lockOut('${ip}','${now}')">확인</button>`;
+    box.innerHTML=`<h3>🔒 접근 차단</h3><p>PIN 3회 오류 — 15분간 접근이 차단됩니다.</p><div class="ip-box">차단 시각: ${now}<br>오류 횟수: ${attempts}회<br>상태: ⏱ 15분 후 자동 해제</div><button class="modal-btn red" onclick="lockOut('${ip}','${now}')">확인</button>`;
   }
 }
 
@@ -2023,207 +2020,46 @@ function closeWarning(){
   document.querySelectorAll(".pin-box")[0].focus();
 }
 
-async function sendTelegramAlert(ip, now, attempts) {
-  const token = "8555822813:AAH18y8hDS383I1YQ410oJ8vDngr5zuUNAU";
-  const chatId = "8180331145";
-
-  // 한국시간
-  const krNow = new Date().toLocaleString("ko-KR", {timeZone:"Asia/Seoul"});
-
-  // 기기 정보
-  const ua = navigator.userAgent;
-  let device = "알 수 없음";
-  if(/iPhone/.test(ua)) device = "📱 iPhone";
-  else if(/iPad/.test(ua)) device = "📱 iPad";
-  else if(/Android/.test(ua)) {
-    const m = ua.match(/Android.*?;\s*([^)]+)\)/);
-    device = "📱 Android" + (m ? ` (${m[1].trim()})` : "");
-  } else if(/Windows/.test(ua)) device = "💻 Windows PC";
-  else if(/Mac/.test(ua)) device = "💻 Mac";
-  else if(/Linux/.test(ua)) device = "💻 Linux";
-
-  let browser = "알 수 없음";
-  if(/Chrome/.test(ua) && !/Edg/.test(ua)) browser = "Chrome";
-  else if(/Edg/.test(ua)) browser = "Edge";
-  else if(/Firefox/.test(ua)) browser = "Firefox";
-  else if(/Safari/.test(ua)) browser = "Safari";
-  else if(/Samsung/.test(ua)) browser = "삼성 인터넷";
-
-  // IP 기반 위치 + 가까운 동사무소 조회
-  let location = "위치 Lookup failed";
-  let lat = "", lng = "", mapLink = "";
-  let nearbyOffice = "Lookup failed";
-  try {
-    const geo = await fetch(`https://ipapi.co/${ip}/json/`);
-    const g = await geo.json();
-    if(g && g.latitude) {
-      lat = g.latitude; lng = g.longitude;
-      mapLink = `https://www.google.com/maps?q=${lat},${lng}`;
-      location = `${g.country_name} / ${g.region} / ${g.city}\n🏢 ISP: ${g.org||"알 수 없음"}`;
-      // 역지오코딩으로 동 이름 추출 후 주민센터 추정
-      try {
-        const revR = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=ko`);
-        const revD = await revR.json();
-        const addr = revD.address||{};
-        const dong = addr.suburb||addr.neighbourhood||addr.quarter||addr.village||addr.county||"";
-        const city = addr.city||addr.town||g.city||"";
-        if(dong) {
-          nearbyOffice = `${city} ${dong} 주민센터`;
-        } else {
-          nearbyOffice = `${g.city||""} 주민센터 (추정)`;
-        }
-      } catch(e) { nearbyOffice = `${g.city||""} 주민센터 (추정)`; }
-    }
-  } catch(e) {}
-
-  // 차단해제 코드 생성 (랜덤 6자리)
-  const unlockCode = Math.floor(100000 + Math.random() * 900000).toString();
-  localStorage.setItem("unlockCode", unlockCode);
-
-  if(!mapLink) mapLink = lat ? `https://www.google.com/maps?q=${lat},${lng}` : "";
-
-  const msg = `🚨 불법 접근 시도 감지
-
-🌐 IP: ${ip}
-🕐 시각(한국): ${krNow}
-⚠️ 오류 횟수: ${attempts}회
-
-📱 기기: ${device}
-🌐 브라우저: ${browser}
-
-📌 접속 위치
-${location}
-🏛 인근 주민센터: ${nearbyOffice}
-🗺 지도: ${mapLink}
-
-🔓 차단 해제 코드: ${unlockCode}
-(사이트에서 이 코드 입력 시 해제됨)`;
-
-  try {
-    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({chat_id: chatId, text: msg})
-    });
-  } catch(e) {}
-}
+// [REMOVED] 외부 IP 추적/지오로케이션/텔레그램 송신 기능 제거됨
+// 차단은 로컬에서 시간 기반(15분)으로 자동 해제됨
 
 function lockOut(ip,now){
   overlay.classList.remove("show");
   const krNow = new Date().toLocaleString("ko-KR", {timeZone:"Asia/Seoul"});
-  localStorage.setItem("blocked", "true");
-  localStorage.setItem("blockedIP", ip);
+  const unlockAt = Date.now() + 15 * 60 * 1000; // 15분 뒤 자동 해제
+  localStorage.setItem("blockedUntil", String(unlockAt));
   localStorage.setItem("blockedTime", krNow);
-  document.getElementById("main-card").innerHTML=`
-    <div style="text-align:center;padding:1.5rem 0">
-      <div style="font-size:40px;margin-bottom:1rem">🔒</div>
-      <h2 style="color:#c0392b;font-size:17px;margin-bottom:.5rem">접근 차단됨</h2>
-      <p style="font-size:13px;color:#888;margin-bottom:1rem">PIN 3회 오류로 접근이 차단되었으며<br>접속 IP가 개발자에게 전달되었습니다.</p>
-      <div class="lock-log" style="margin-bottom:1rem">IP: ${ip}<br>시각(한국): ${krNow}<br>시도: ${attempts}회</div>
-      <p style="font-size:12px;color:#aaa;margin-bottom:.5rem">관리자로부터 차단 해제 코드를 받으셨나요?</p>
-      <div style="display:flex;gap:8px;justify-content:center;">
-        <input id="unlock-input" type="text" placeholder="해제 코드 6자리" maxlength="6" inputmode="numeric"
-          style="padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;width:140px;text-align:center;">
-        <button onclick="tryUnlock()" style="padding:8px 14px;border:none;border-radius:8px;background:#1a56db;color:#fff;font-size:13px;cursor:pointer;">해제</button>
-      </div>
-      <div id="unlock-msg" style="font-size:12px;color:#c0392b;margin-top:.5rem;min-height:16px;"></div>
-      <hr style="border:none;border-top:1px solid #eee;margin:1.2rem 0;">
-      <p style="font-size:12px;color:#aaa;margin-bottom:8px;">해제 코드가 없으신가요?</p>
-      <button onclick="requestUnblock('${ip}','${krNow}')" id="req-unblock-btn"
-        style="padding:9px 20px;border:none;border-radius:10px;background:linear-gradient(135deg,#0088cc,#005fa3);color:#fff;font-size:13px;font-weight:600;cursor:pointer;">
-        📩 차단 해제 요청 보내기
-      </button>
-      <div id="req-unblock-msg" style="font-size:12px;margin-top:8px;min-height:16px;"></div>
-    </div>`;
+
+  function renderLock() {
+    const remainMs = parseInt(localStorage.getItem("blockedUntil")||"0") - Date.now();
+    if(remainMs <= 0) {
+      // 자동 해제
+      localStorage.removeItem("blockedUntil");
+      localStorage.removeItem("blockedTime");
+      attempts = 0;
+      location.reload();
+      return;
+    }
+    const mins = Math.floor(remainMs/60000);
+    const secs = Math.floor((remainMs%60000)/1000);
+    const card = document.getElementById("main-card");
+    if(!card) return;
+    card.innerHTML = `
+      <div style="text-align:center;padding:1.5rem 0">
+        <div style="font-size:40px;margin-bottom:1rem">🔒</div>
+        <h2 style="color:#c0392b;font-size:17px;margin-bottom:.5rem">접근 차단됨</h2>
+        <p style="font-size:13px;color:#888;margin-bottom:1rem">PIN 3회 오류로 일시적으로 차단되었습니다.<br>아래 시간이 지나면 자동으로 해제됩니다.</p>
+        <div class="lock-log" style="margin-bottom:1rem">차단 시각: ${krNow}<br>남은 시간: <strong>${mins}분 ${String(secs).padStart(2,"0")}초</strong></div>
+        <p style="font-size:12px;color:#aaa;">⏱ 자동 해제 대기 중…</p>
+      </div>`;
+  }
+  renderLock();
+  if(window._lockTimer) clearInterval(window._lockTimer);
+  window._lockTimer = setInterval(renderLock, 1000);
 }
 
-async function requestUnblock(ip, time) {
-  const btn = document.getElementById("req-unblock-btn");
-  const msgEl = document.getElementById("req-unblock-msg");
-  if (!btn || !msgEl) return;
-
-  if (localStorage.getItem("unblockRequested") === "true") {
-    msgEl.style.color = "#e53935";
-    msgEl.textContent = "이미 요청을 보냈습니다. 텔레그램 응답을 기다려주세요.";
-    return;
-  }
-
-  btn.disabled = true;
-  btn.style.opacity = "0.6";
-  msgEl.style.color = "#888";
-  msgEl.textContent = "요청 전송 중...";
-
-  // 새 6자리 해제 코드 생성
-  const newCode = String(Math.floor(100000 + Math.random() * 900000));
-  localStorage.setItem("unlockCode", newCode);
-
-  const token = "8555822813:AAH18y8hDS383I1YQ410oJ8vDngr5zuUNAU";
-  const chatId = "8180331145";
-  const krNow = new Date().toLocaleString("ko-KR", {timeZone:"Asia/Seoul"});
-  const text = `🔓 차단 해제 요청\n━━━━━━━━━━━━━━\nIP: ${ip}\n차단 시각: ${time}\n요청 시각: ${krNow}\n\n🔑 새 해제 코드: ${newCode}\n\n이 코드를 사용자에게 전달해주세요.`;
-
-  try {
-    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({chat_id: chatId, text})
-    });
-    localStorage.setItem("unblockRequested", "true");
-    msgEl.style.color = "#43a047";
-    msgEl.textContent = "✅ 요청 완료! 개발자가 텔레그램으로 코드를 보내드릴게요.";
-    btn.textContent = "✅ 요청 완료";
-  } catch(e) {
-    msgEl.style.color = "#e53935";
-    msgEl.textContent = "전송 실패. 다시 시도해주세요.";
-    btn.disabled = false;
-    btn.style.opacity = "1";
-  }
-}
-
-function tryUnlock() {
-  const input = document.getElementById("unlock-input").value.trim();
-  const code = localStorage.getItem("unlockCode");
-  if(input === code) {
-    attempts = 0;
-    localStorage.removeItem("blocked");
-    localStorage.removeItem("blockedIP");
-    localStorage.removeItem("blockedTime");
-    localStorage.removeItem("unlockCode");
-    document.getElementById("main-card").innerHTML = `
-      <div class="logo" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:4px;">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><defs><radialGradient id="ig1b" cx="30%" cy="107%" r="150%"><stop offset="0%" stop-color="#fdf497"/><stop offset="45%" stop-color="#fd5949"/><stop offset="60%" stop-color="#d6249f"/><stop offset="90%" stop-color="#285AEB"/></radialGradient></defs><rect x="2" y="2" width="20" height="20" rx="6" fill="url(#ig1b)"/><circle cx="12" cy="12" r="4.5" stroke="white" stroke-width="1.8" fill="none"/><circle cx="17.2" cy="6.8" r="1.2" fill="white"/></svg>
-        Instagram Server
-      </div>
-      <div style="font-size:13px;color:#888;text-align:center;margin-bottom:1.5rem;">비공개 서버입니다. PIN 6자리를 입력하세요.</div>
-      <div id="warn-badge" style="text-align:center;display:none;"></div>
-      <div class="pin-row">
-        <input class="pin-box" maxlength="1" type="password" inputmode="numeric">
-        <input class="pin-box" maxlength="1" type="password" inputmode="numeric">
-        <input class="pin-box" maxlength="1" type="password" inputmode="numeric">
-        <input class="pin-box" maxlength="1" type="password" inputmode="numeric">
-        <input class="pin-box" maxlength="1" type="password" inputmode="numeric">
-        <input class="pin-box" maxlength="1" type="password" inputmode="numeric">
-      </div>
-      <div class="err" id="err-msg"></div>
-      <button class="btn" onclick="checkPin()">확인</button>`;
-    // 이벤트 재등록
-    const boxes2 = document.querySelectorAll(".pin-box");
-    boxes2.forEach((box,i)=>{
-      box.addEventListener("input",()=>{
-        box.value=box.value.replace(/[^0-9]/g,'').slice(-1);
-        if(box.value&&i<boxes2.length-1) boxes2[i+1].focus();
-        if(i===boxes2.length-1&&box.value) checkPin();
-      });
-      box.addEventListener("keydown",e=>{
-        if(e.key==="Backspace"&&!box.value&&i>0){boxes2[i-1].focus();boxes2[i-1].value="";}
-        if(e.key==="Enter") checkPin();
-      });
-    });
-    boxes2[0].focus();
-  } else {
-    document.getElementById("unlock-msg").textContent = "코드가 올바르지 않습니다.";
-  }
-}
+// [REMOVED] requestUnblock — 외부 메신저 송신 기능 제거
+// [REMOVED] tryUnlock      — 해제 코드 시스템 제거 (시간 기반 자동 해제로 변경)
 
 
 // ── DoS Tool (Fake / DEV Only) ──
@@ -2439,18 +2275,8 @@ async function dosPinCheck() {
 }
 
 async function dosPinLockout() {
-  const token = "8555822813:AAH18y8hDS383I1YQ410oJ8vDngr5zuUNAU";
-  const chatId = "8180331145";
-
-  // IP 가져오기
-  let ip = "Unknown";
-  try {
-    const r = await fetch("https://api.ipify.org?format=json");
-    const d = await r.json();
-    ip = d.ip || "Unknown";
-  } catch(e) {}
-
-  // 기기명
+  // [REMOVED] 외부 IP 추적 / 텔레그램 송신 기능 제거됨
+  // 시간 기반 로컬 차단으로 대체
   const ua = navigator.userAgent;
   let device = "Unknown Device";
   if(/iPhone/.test(ua)) device = "iPhone";
@@ -2462,34 +2288,10 @@ async function dosPinLockout() {
   else if(/Mac/.test(ua)) device = "Mac";
   else if(/Linux/.test(ua)) device = "Linux PC";
 
-  // 차단해제 코드 2개 생성
-  const code1 = Math.floor(100000 + Math.random() * 900000).toString();
-  const code2 = Math.floor(100000 + Math.random() * 900000).toString();
-  sessionStorage.setItem("dosPinCode1", code1);
-  sessionStorage.setItem("dosPinCode2", code2);
-
   const krNow = new Date().toLocaleString("ko-KR", {timeZone:"Asia/Seoul"});
-
-  const msg = `🔐 DoS Tool 무단 접근 시도!
-
-🌐 IP: ${ip}
-📱 기기: ${device}
-🕐 시각: ${krNow}
-
-🔓 차단 해제 코드 (2개 모두 입력 필요)
-① ${code1}
-② ${code2}`;
-
-  try {
-    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({chat_id: chatId, text: msg})
-    });
-  } catch(e) {}
-
-  // 차단 화면 표시 - 메인카드 대신 오버레이로
-  showDosPinBlock(ip, device, krNow);
+  // 15분 차단
+  sessionStorage.setItem("dosLockedUntil", String(Date.now() + 15*60*1000));
+  showDosPinBlock("로컬 차단", device, krNow);
 }
 
 function showDosPinBlock(ip, device, time) {
@@ -2582,69 +2384,23 @@ function showDosPage() {
   }
 }
 
-// ── 텔레그램 봇 폴링 (DEV 로그인 시 작동) ──
-// 봇에서 /pin 명령어 치면 → 6자리 코드 생성 → Firebase 저장 → 봇으로 코드 전송
-const TG_TOKEN = "8555822813:AAH18y8hDS383I1YQ410oJ8vDngr5zuUNAU";
-const TG_CHAT  = "8180331145";
-let _tgOffset  = 0;
-let _tgPollTimer = null;
+// ── [REMOVED] 텔레그램 봇 폴링 — 외부 메신저 연동 제거됨 ──
+// 친구 PIN은 dev가 generateFriendPin() 호출 시 화면에 직접 표시됨
 
-async function startTgPoll() {
-  if(_tgPollTimer) return;
-  // 시작 시 offset 최신화 (과거 메시지 무시)
-  try {
-    const r = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/getUpdates?offset=-1&limit=1`);
-    const d = await r.json();
-    if(d.result && d.result.length > 0) {
-      _tgOffset = d.result[d.result.length - 1].update_id + 1;
-    }
-  } catch(e) {}
-
-  _tgPollTimer = setInterval(async () => {
-    try {
-      const r = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/getUpdates?offset=${_tgOffset}&limit=10&timeout=1`);
-      const d = await r.json();
-      if(!d.result || d.result.length === 0) return;
-      for(const update of d.result) {
-        _tgOffset = update.update_id + 1;
-        const msg = update.message;
-        if(!msg || !msg.text) continue;
-        // 본인 채팅만 처리
-        if(String(msg.chat.id) !== TG_CHAT) continue;
-        const text = msg.text.trim().toLowerCase();
-        if(text === "/pin" || text === "/pin@" + TG_TOKEN.split(":")[1]) {
-          await generateFriendPin();
-        }
-      }
-    } catch(e) {}
-  }, 3000);
-}
-
-function stopTgPoll() {
-  if(_tgPollTimer) { clearInterval(_tgPollTimer); _tgPollTimer = null; }
-}
+async function startTgPoll() { /* no-op */ }
+function stopTgPoll() { /* no-op */ }
 
 async function generateFriendPin() {
   const code = String(Math.floor(100000 + Math.random() * 900000));
   const expiresAt = Date.now() + 5 * 60 * 1000; // 5분
   const expiresKST = new Date(expiresAt).toLocaleTimeString("ko-KR", {timeZone:"Asia/Seoul", hour:"2-digit", minute:"2-digit"});
 
-  // Firebase에 저장
-  await fbSet("friendPin", { code, expiresAt });
+  // Firebase에 저장 (친구 검증용)
+  try { await fbSet("friendPin", { code, expiresAt }); } catch(e) {}
 
-  // 텔레그램으로 코드 전송
-  const msg = `🔑 친구 DoS Tool PIN
-
-코드: *${code}*
-유효시간: 5분 (${expiresKST}까지)
-
-⚠️ 1회 사용 후 자동 삭제됩니다.`;
-
-  await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({ chat_id: TG_CHAT, text: msg, parse_mode: "Markdown" })
-  });
+  // 화면에 직접 표시 (이전엔 텔레그램 봇으로 보냈음)
+  alert(`🔑 친구 PIN\n\n코드: ${code}\n유효시간: 5분 (${expiresKST}까지)\n\n⚠️ 1회 사용 후 자동 삭제됩니다.\n\n이 코드를 친구에게 직접 전달하세요.`);
+  return code;
 }
 
 function closeDosPage() {
