@@ -321,7 +321,7 @@ document.addEventListener("DOMContentLoaded", function() {
       Instagram
     </a>
     <span style="color:#ddd;">|</span>
-    <a href="javascript:void(0)" onclick="openPrivacyModal()" style="color:#666;text-decoration:underline;font-size:13px;font-weight:500;">개인정보처리방침</a>
+    <a href="javascript:void(0)" onclick="showPrivacy()" style="color:#666;text-decoration:underline;font-size:13px;font-weight:500;">개인정보처리방침</a>
   </div>
   </div>
 </div>
@@ -350,7 +350,7 @@ document.addEventListener("DOMContentLoaded", function() {
         <li>본 약관은 사전 예고 없이 변경될 수 있습니다.</li>
         <li>본 서비스는 보안 및 네트워크 개념 학습을 위한 <strong>교육용 시뮬레이션</strong>을 포함합니다. DoS Tool, Packet Sender, Port Scanner 등은 실제 공격 기능이 없는 순수 교육·학습 목적의 시뮬레이션입니다.</li>
         <li>본 서비스에 포함된 모든 보안 관련 도구는 교육 목적으로만 사용해야 하며, 타인의 시스템에 대한 무단 접근이나 공격에 사용하는 것은 엄격히 금지됩니다.</li>
-        <li>개인정보의 수집·이용 및 보호에 관한 자세한 사항은 <a href="javascript:void(0)" onclick="event.preventDefault();openPrivacyModal();" style="color:#1a8cff;text-decoration:underline;">개인정보처리방침</a>을 참고하세요.</li>
+        <li>개인정보의 수집·이용 및 보호에 관한 자세한 사항은 <a href="javascript:void(0)" onclick="event.preventDefault();showPrivacy();" style="color:#1a8cff;text-decoration:underline;">개인정보처리방침</a>을 참고하세요.</li>
 
       </ul>
     </div>
@@ -2060,7 +2060,7 @@ function lockOut(ip,now){
 // [REMOVED] tryUnlock      — 해제 코드 시스템 제거 (시간 기반 자동 해제로 변경)
 
 
-// ── DoS Tool (Fake / DEV Only) ──
+// 도스툴 - 가짜임 (DEV용)
 function dosUpdateBtn() {
   const ip = document.getElementById("dos-ip").value.trim();
   const btn = document.getElementById("dos-btn");
@@ -2172,7 +2172,7 @@ function dosStop() {
   log.scrollTop = log.scrollHeight;
 }
 
-// ── DoS Tool PIN Gate ──
+// dos pin 체크
 let dosPinFailed = false;
 
 function dosPinGate() {
@@ -2328,7 +2328,7 @@ function dosPinUnlock() {
   }
 }
 
-// ── DoS Tool 풀스크린 페이지 ──
+// 도스툴 풀스크린
 function showDosPage() {
   document.getElementById("page-dash").style.display = "none";
   const p = document.getElementById("page-dos");
@@ -2382,7 +2382,7 @@ function showDosPage() {
   }
 }
 
-// ── [REMOVED] 텔레그램 봇 폴링 — 외부 메신저 연동 제거됨 ──
+// 텔레그램 봇 폴링 - 그냥뺐음
 // 친구 PIN은 dev가 generateFriendPin() 호출 시 화면에 직접 표시됨
 
 async function startTgPoll() { /* no-op */ }
@@ -2591,7 +2591,7 @@ function dos2Stop() {
   log.scrollTop = log.scrollHeight;
 }
 
-// ── 친구 전용 DoS 페이지 ──
+// 친구용 도스 페이지 (장난용임)
 function closeFriendPage() {
   document.getElementById("page-friend").style.display = "none";
   document.getElementById("page-pin").style.display = "flex";
@@ -2803,7 +2803,7 @@ window.addEventListener("beforeunload", function() {
   // PC만: 창/탭 닫을 때 정지
   if(!_isMobile) stopAllAudio();
 });
-// ── 접속자 관리 ──
+// 접속자 관리쪽
 async function loadUsers() {
   const box = document.getElementById("users-list");
   if(!box) return;
@@ -2963,7 +2963,7 @@ async function manualBanIP() {
   } catch(e) { msg.style.color="#c0392b"; msg.textContent = "오류: " + e; }
 }
 
-// ── 점검 화면 PIN 체크 ──
+// 점검모드 핀체크
 function stopMaintBgmStartNormal() {
   if(mbgm) { mbgm.pause(); mbgm.currentTime = 0; }
   // 기본 BGM 재생
@@ -2983,7 +2983,7 @@ function stopMaintBgmStartNormal() {
   setTimeout(startBgm, 400);
 }
 
-// ── 내 IP 조회 ──
+// 내 ip 보기
 async function loadMyIP() {
   const box = document.getElementById("ip-result");
   if(!box) return;
@@ -3048,7 +3048,7 @@ async function loadMyIP() {
   }
 }
 
-// ── Dev 메세지 시스템 ──
+// 개발자 메세지 시스템 (나중에 정리해야됨..)
 
 // 메세지 보내기 모달 열기
 function openDevMsg() {
@@ -3189,8 +3189,8 @@ function startInboxPoll() {
   }, 180000);
 }
 
-// ── 점검 체크 (페이지 로드 즉시) ──
-// ── 페이지 로드 즉시 점검 여부 확인 ──
+// 점검중인지 확인 (페이지뜨자마자 체크)
+// 점검 여부 보고 다른데로 보내기
 (async function checkMaintOnLoad() {
   const FB_URL = "https://instagram-server-d01e0-default-rtdb.firebaseio.com";
   try {
@@ -3515,7 +3515,7 @@ async function endMaintenance() {
   }
 }
 
-// ── 개발자 목록 토글 ──
+// 개발자 목록 펼치기
 function toggleDevList() {
   const content = document.getElementById("devlist-content");
   const arrow = document.getElementById("devlist-arrow");
@@ -3534,7 +3534,7 @@ function toggleDevList() {
   }
 }
 
-// ── 점검 영상 순차 재생 ──
+// 점검영상 순서대로 재생
 
 (function(){
   function playBGM(){
@@ -3552,7 +3552,7 @@ function toggleDevList() {
   document.addEventListener("keydown", playBGM, {once:true});
 })();
 
-// ── Firebase REST API (SDK 없이 fetch로 직접 통신) ──
+// firebase - sdk안쓰고 fetch로 직접
 const FB_URL = "https://instagram-server-d01e0-default-rtdb.firebaseio.com";
 window._fbReady = true;
 window._db = true; // waitForDb() 통과용
@@ -3639,7 +3639,7 @@ window.startRealtimeLeaderboard();
 // 점검 체크 (FB_URL 선언 이후 실행)
 // 점검 체크는 페이지 로드시 IIFE로 자동 실행됨
 
-// ── eDEX Terminal ──
+// edex 터미널 (영상보고따라만든거)
 let edexHistory = [];
 let edexHistoryIdx = -1;
 let edexBooted = false;
@@ -4054,7 +4054,7 @@ function edexClose() {
   if (page) page.style.display = "none";
 }
 
-// ── Code Runner ──
+// 코드 돌리기
 let crCurrentLang = "python";
 
 const CR_PLACEHOLDERS = {
@@ -4169,7 +4169,7 @@ function codeRunnerClose() {
   if (page) page.style.display = "none";
 }
 
-// ── Ping Tester ──
+// 핑테스트
 let pingRunning = false;
 let pingAbort = false;
 let pingSent = 0, pingRecv = 0, pingLost = 0;
@@ -4310,7 +4310,7 @@ function pingTesterClose() {
   if (page) page.style.display = "none";
 }
 
-// ── Port Scanner ──
+// 포트스캔 (가짜)
 const PS_PRESETS = {
   common: [
     {port:21,name:"FTP"},{port:22,name:"SSH"},{port:23,name:"Telnet"},
@@ -4511,7 +4511,7 @@ function portScannerClose() {
   if (page) page.style.display = "none";
 }
 
-// ── Insta Lookup ──
+// 인스타 lookup (점검중임)
 function instaLookupOpen() {
   const page = document.getElementById("page-instalookup");
   if (page) page.style.display = "flex";
@@ -4524,7 +4524,7 @@ function instaLookupClose() {
   if (page) page.style.display = "none";
 }
 
-// ── Map ──
+// 지도
 let leafletMap = null;
 let leafletLayer = null;
 let leafletMarker = null;
@@ -4615,7 +4615,7 @@ function mapClose() {
   if (page) page.style.display = "none";
 }
 
-// ── Packet Sender ──
+// 패킷 보내기 (이것도 가짜)
 const PKT_FILES = [
   { id:1, name:"packet_data_001.bin", size:"500 MB",  color:"#00ff88" },
   { id:2, name:"packet_data_002.bin", size:"1 GB",    color:"#00e5ff" },
@@ -4842,7 +4842,7 @@ function pktBackToFiles() {
   document.getElementById("pkt-file-screen").style.display = "flex";
 }
 
-// ── 수능·모의고사 ──
+// 수능, 모의고사 (평가원 링크로 보내줌)
 const EXAM_DATA = {
   suneung: {
     years: [2025,2024,2023,2022,2021,2020,2019,2018,2017,2016,2015],
@@ -5044,7 +5044,7 @@ function mapZoom(dir) {
   leafletMap.setZoom(leafletMap.getZoom() + dir);
 }
 
-// ── 모바일 더보기 메뉴 ──
+// 모바일에서 더보기 누르면 뜨는거
 function mbMoreToggle() {
   const menu = document.getElementById("mb-more-menu");
   if (!menu) return;
@@ -5435,6 +5435,38 @@ print('Hello, World!')"></textarea>
 
 <!-- ── Port Scanner ── -->
 <div id="page-portscan" style="display:none;position:fixed;inset:0;z-index:5000;background:#0a0a0f;flex-direction:column;font-family:'Courier New',monospace;">
+  <!-- 학습 패널 -->
+  <div id="ps-learn-panel" style="position:absolute;top:60px;right:10px;width:280px;max-height:calc(100vh - 100px);overflow-y:auto;background:rgba(13,13,24,0.95);border:1px solid #febc2e33;border-radius:6px;padding:14px 16px;z-index:60;font-family:'Pretendard','맑은 고딕',sans-serif;color:#bbb;font-size:11px;line-height:1.7;backdrop-filter:blur(6px);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:1px solid #febc2e33;padding-bottom:8px;">
+      <span style="color:#febc2e;font-size:11px;font-weight:600;letter-spacing:1px;">📖 포트 스캔이란?</span>
+      <button onclick="document.getElementById('ps-learn-panel').style.display='none';document.getElementById('ps-learn-toggle').style.display='block';" style="background:none;border:none;color:#666;cursor:pointer;font-size:14px;">✕</button>
+    </div>
+    <p style="margin:0 0 10px 0;color:#999;font-size:10.5px;">대상 컴퓨터에 어떤 <strong style="color:#febc2e;">포트</strong>가 열려 있는지 확인하는 기술. 포트마다 어떤 서비스가 돌아가는지 알 수 있음.</p>
+
+    <div style="color:#e0e0e0;font-size:11.5px;font-weight:600;margin:10px 0 6px 0;">자주 보는 포트들</div>
+    <div style="font-size:10px;color:#999;font-family:'Courier New',monospace;">
+      <div style="margin:3px 0;"><span style="color:#00ff88;">22</span> SSH (원격접속)</div>
+      <div style="margin:3px 0;"><span style="color:#00ff88;">80</span> HTTP (웹)</div>
+      <div style="margin:3px 0;"><span style="color:#00ff88;">443</span> HTTPS (보안 웹)</div>
+      <div style="margin:3px 0;"><span style="color:#00ff88;">3306</span> MySQL DB</div>
+      <div style="margin:3px 0;"><span style="color:#00ff88;">5432</span> PostgreSQL</div>
+      <div style="margin:3px 0;"><span style="color:#00ff88;">21</span> FTP (파일전송)</div>
+      <div style="margin:3px 0;"><span style="color:#00ff88;">25</span> SMTP (메일)</div>
+    </div>
+
+    <div style="color:#e0e0e0;font-size:11.5px;font-weight:600;margin:10px 0 6px 0;">포트 상태 3가지</div>
+    <p style="margin:3px 0;font-size:10.5px;color:#999;"><span class="ps-open">OPEN</span> 서비스가 응답함 (취약할수도)</p>
+    <p style="margin:3px 0;font-size:10.5px;color:#999;"><span class="ps-closed">CLOSED</span> 포트는 닫혀있지만 호스트는 살아있음</p>
+    <p style="margin:3px 0;font-size:10.5px;color:#999;"><span class="ps-filter">FILTERED</span> 방화벽이 막고 있어서 응답 없음</p>
+
+    <div style="color:#e0e0e0;font-size:11.5px;font-weight:600;margin:10px 0 6px 0;">법적 주의</div>
+    <p style="margin:0;color:#999;font-size:10.5px;">남의 서버에 허락없이 포트 스캔하는것도 정보통신망법상 침해행위로 볼 수 있음. 본인 서버나 의도적으로 공개된 테스트 서버에만 사용할것.</p>
+
+    <div style="margin-top:10px;padding-top:8px;border-top:1px solid #febc2e22;color:#666;font-size:10px;font-style:italic;">
+      ※ 이 도구는 시뮬레이션, 실제 스캔 안함
+    </div>
+  </div>
+  <button id="ps-learn-toggle" onclick="document.getElementById('ps-learn-panel').style.display='block';this.style.display='none'" style="position:absolute;top:60px;right:10px;display:none;z-index:60;padding:6px 12px;background:#3a2a0a;border:1px solid #febc2e;border-radius:4px;color:#febc2e;font-size:10px;cursor:pointer;">📖 학습노트</button>
   <style>
     #ps-log { flex:1; overflow-y:auto; padding:16px; font-size:12px; line-height:1.9; }
     .ps-open   { color:#00ff88; }
@@ -5619,6 +5651,31 @@ print('Hello, World!')"></textarea>
 
 <!-- ── Packet Sender ── -->
 <div id="page-packet" style="display:none;position:fixed;inset:0;z-index:5000;background:#0a0a0a;flex-direction:column;font-family:'Courier New',monospace;">
+  <!-- 학습 패널 -->
+  <div id="pkt-learn-panel" style="position:absolute;top:60px;right:10px;width:280px;max-height:calc(100vh - 100px);overflow-y:auto;background:rgba(15,15,15,0.95);border:1px solid #ff6b3533;border-radius:6px;padding:14px 16px;z-index:60;font-family:'Pretendard','맑은 고딕',sans-serif;color:#bbb;font-size:11px;line-height:1.7;backdrop-filter:blur(6px);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:1px solid #ff6b3533;padding-bottom:8px;">
+      <span style="color:#ff6b35;font-size:11px;font-weight:600;letter-spacing:1px;">📖 패킷이 뭐야?</span>
+      <button onclick="document.getElementById('pkt-learn-panel').style.display='none';document.getElementById('pkt-learn-toggle').style.display='block';" style="background:none;border:none;color:#666;cursor:pointer;font-size:14px;">✕</button>
+    </div>
+    <p style="margin:0 0 10px 0;color:#999;font-size:10.5px;">인터넷에서 데이터는 한번에 안가고 작은 조각으로 쪼개져서 감. 이 조각 하나가 <strong style="color:#ff6b35;">패킷(packet)</strong>임.</p>
+
+    <div style="color:#e0e0e0;font-size:11.5px;font-weight:600;margin:10px 0 6px 0;">패킷 구조</div>
+    <p style="margin:0 0 6px 0;color:#999;font-size:10.5px;">패킷 = <strong style="color:#ff6b35;">헤더</strong> + <strong style="color:#ff6b35;">페이로드</strong></p>
+    <p style="margin:3px 0;font-size:10px;color:#888;">• 헤더: 어디서 어디로, 어떤 프로토콜인지</p>
+    <p style="margin:3px 0;font-size:10px;color:#888;">• 페이로드: 진짜 보내려는 데이터</p>
+
+    <div style="color:#e0e0e0;font-size:11.5px;font-weight:600;margin:10px 0 6px 0;">TCP vs UDP</div>
+    <p style="margin:3px 0;font-size:10.5px;color:#999;"><strong style="color:#00ff88;">TCP</strong> — 신뢰성 있음. 도착했는지 확인하고 다시보냄. 웹·메일 같은데 사용</p>
+    <p style="margin:3px 0;font-size:10.5px;color:#999;"><strong style="color:#fbbf24;">UDP</strong> — 빠르지만 불안정. 도착 안해도 모름. 게임·영상 스트리밍에 사용</p>
+
+    <div style="color:#e0e0e0;font-size:11.5px;font-weight:600;margin:10px 0 6px 0;">왜 이걸 공부해?</div>
+    <p style="margin:0;color:#999;font-size:10.5px;">네트워크 보안 공부의 기초임. 패킷 구조를 알아야 어떻게 변조하는지, 어떻게 공격하는지, 어떻게 방어하는지 이해할 수 있다. Wireshark같은 진짜 도구로 실제 패킷 보는것도 추천.</p>
+
+    <div style="margin-top:10px;padding-top:8px;border-top:1px solid #ff6b3522;color:#666;font-size:10px;font-style:italic;">
+      ※ 이 화면은 UI 시뮬레이션, 실제 패킷 안나감
+    </div>
+  </div>
+  <button id="pkt-learn-toggle" onclick="document.getElementById('pkt-learn-panel').style.display='block';this.style.display='none'" style="position:absolute;top:60px;right:10px;display:none;z-index:60;padding:6px 12px;background:#3a1a0a;border:1px solid #ff6b35;border-radius:4px;color:#ff6b35;font-size:10px;cursor:pointer;">📖 학습노트</button>
   <style>
     #pkt-log { flex:1;overflow-y:auto;padding:14px 16px;font-size:12px;line-height:1.9;color:#e0e0e0; }
     .pkt-ok   { color:#ffffff; }
@@ -5763,6 +5820,35 @@ print('Hello, World!')"></textarea>
 
 <!-- 메인 레이아웃 -->
 <div style="position:relative;z-index:10;display:flex;flex:1;overflow:hidden;">
+
+  <!-- 학습 설명 패널 (DoS 공격 원리) -->
+  <div id="dos-learn-panel" style="position:absolute;top:10px;right:10px;width:280px;max-height:calc(100vh - 80px);overflow-y:auto;background:rgba(15,15,15,0.95);border:1px solid #2a2a2a;border-radius:6px;padding:14px 16px;z-index:50;font-family:'Pretendard','맑은 고딕',sans-serif;color:#bbb;font-size:11px;line-height:1.7;backdrop-filter:blur(6px);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:1px solid #2a2a2a;padding-bottom:8px;">
+      <span style="color:#4ade80;font-size:11px;font-weight:600;letter-spacing:1px;">📖 학습 노트</span>
+      <button onclick="document.getElementById('dos-learn-panel').style.display='none';document.getElementById('dos-learn-toggle').style.display='block';" style="background:none;border:none;color:#666;cursor:pointer;font-size:14px;">✕</button>
+    </div>
+    <div style="color:#e0e0e0;font-size:12px;font-weight:600;margin-bottom:6px;">DoS 공격이란?</div>
+    <p style="margin:0 0 10px 0;color:#999;">Denial of Service (서비스 거부) 공격. 서버나 네트워크에 처리 못할 만큼 많은 요청을 보내서 정상 서비스를 못하게 만드는 공격이다.</p>
+
+    <div style="color:#e0e0e0;font-size:12px;font-weight:600;margin:12px 0 6px 0;">주요 방식 8가지</div>
+    <div style="font-size:10.5px;color:#999;">
+      <p style="margin:4px 0;"><span style="color:#fbbf24;">UDP Flood</span> — UDP 패킷을 무차별로 보내서 대역폭 점유</p>
+      <p style="margin:4px 0;"><span style="color:#fbbf24;">SYN Flood</span> — TCP 연결 시작만 하고 응답 안함. 서버는 자원 낭비함</p>
+      <p style="margin:4px 0;"><span style="color:#fbbf24;">HTTP Flood</span> — 웹 요청을 대량으로. 정상 트래픽처럼 보여서 막기 어려움</p>
+      <p style="margin:4px 0;"><span style="color:#fbbf24;">ICMP Flood</span> — 핑 패킷 폭격. 옛날 방식이지만 여전히 쓰임</p>
+      <p style="margin:4px 0;"><span style="color:#fbbf24;">Slowloris</span> — 연결을 천천히 유지. 적은 자원으로 큰 효과</p>
+      <p style="margin:4px 0;"><span style="color:#fbbf24;">DNS/NTP Amplification</span> — 응답이 큰 서버를 이용해 트래픽 증폭</p>
+      <p style="margin:4px 0;"><span style="color:#fbbf24;">RUDY</span> — POST 요청을 아주 느리게. Slowloris의 변형</p>
+    </div>
+
+    <div style="color:#e0e0e0;font-size:12px;font-weight:600;margin:12px 0 6px 0;">왜 위험한가?</div>
+    <p style="margin:0;color:#999;font-size:10.5px;">실제 공격은 한국 형법상 업무방해죄 (5년 이하 징역) + 정보통신망법 위반이다. 절대 실제 시스템에 사용하면 안된다.</p>
+
+    <div style="margin-top:12px;padding-top:10px;border-top:1px solid #2a2a2a;color:#666;font-size:10px;font-style:italic;">
+      ※ 이 도구는 시각화용이고 실제 패킷 안나감
+    </div>
+  </div>
+  <button id="dos-learn-toggle" onclick="document.getElementById('dos-learn-panel').style.display='block';this.style.display='none'" style="position:absolute;top:10px;right:10px;display:none;z-index:50;padding:6px 12px;background:#0a3a1f;border:1px solid #4ade80;border-radius:4px;color:#4ade80;font-size:10px;cursor:pointer;">📖 학습노트 보기</button>
 
   <!-- 왼쪽 컨트롤 패널 -->
   <div style="width:300px;flex-shrink:0;border-right:1px solid #0f0f0f;background:#070707;display:flex;flex-direction:column;overflow-y:auto;">
@@ -6017,13 +6103,14 @@ print('Hello, World!')"></textarea>
   <div class="privacy-modal-box">
     <div class="privacy-modal-header">
       <h2>🔒 개인정보처리방침</h2>
-      <button class="privacy-modal-close" onclick="closePrivacyModal()">✕</button>
+      <button class="privacy-modal-close" onclick="hidePrivacy()">✕</button>
     </div>
     <div class="privacy-modal-body">
-      <p>Instagram Server(이하 "본 사이트")는 「개인정보 보호법」 제30조에 따라 정보주체의 개인정보를 보호하고 이와 관련한 고충을 신속하고 원활하게 처리할 수 있도록 다음과 같이 개인정보처리방침을 수립·공개합니다.</p>
+      <p>안녕하세요, Instagram Server 운영자 JunOHLE 입니다.</p>
+      <p>이 사이트는 개인 프로젝트로 운영되며, 「개인정보 보호법」 제30조에 따라 아래와 같이 개인정보처리방침을 안내드립니다. 최대한 쉽게 풀어 적었습니다.</p>
 
-      <h3>제1조 (수집하는 개인정보 항목)</h3>
-      <p>본 사이트는 서비스 제공을 위해 아래의 최소한의 정보만을 수집합니다.</p>
+      <h3>1. 어떤 정보를 모으나요?</h3>
+      <p>꼭 필요한 정보만 받습니다. 아래 표가 전부입니다.</p>
       <table>
         <thead>
           <tr><th>항목</th><th>수집 방법</th><th>필수 여부</th></tr>
@@ -6035,93 +6122,89 @@ print('Hello, World!')"></textarea>
         </tbody>
       </table>
 
-      <h3>제2조 (개인정보의 수집 및 이용 목적)</h3>
+      <h3>2. 왜 모으나요?</h3>
       <ul>
-        <li><strong>IP 주소</strong>: 부정 이용 방지, 비정상 접근 차단, 서비스 보안 유지</li>
-        <li><strong>닉네임</strong>: 이용자 식별 및 메시지 기능 제공</li>
-        <li><strong>프로필 사진</strong>: 이용자 식별 보조</li>
+        <li><strong>IP 주소</strong>: 사이트 어지럽히는 사람 막으려고요. 차단할 때만 씁니다.</li>
+        <li><strong>닉네임</strong>: 누가 누군지 표시해야 하니까요.</li>
+        <li><strong>프로필 사진</strong>: 본인 식별용 (안 올려도 됩니다)</li>
       </ul>
 
-      <h3>제3조 (개인정보의 보유 및 이용 기간)</h3>
+      <h3>3. 얼마나 보관하나요?</h3>
       <ul>
-        <li>닉네임 및 프로필 사진은 이용자가 브라우저에서 직접 변경하거나 삭제할 수 있으며, 별도 서버에 저장되지 않습니다.</li>
-        <li>IP 주소는 차단 목록에 등록된 경우에 한해 차단 만료 시까지만 보관되며, 만료 즉시 자동 삭제됩니다.</li>
-        <li>이용자가 보낸 메시지는 운영자가 확인 후 처리하며, 더 이상 필요하지 않은 경우 즉시 삭제됩니다.</li>
+        <li>닉네임이랑 프로필 사진은 본인 브라우저에만 저장됩니다. 제 서버엔 안 가요.</li>
+        <li>IP 주소는 차단된 사람만 잠깐 보관하고, 차단 풀리면 바로 지웁니다.</li>
+        <li>메세지로 보내주신 내용은 확인하고 처리하면 지웁니다.</li>
       </ul>
 
-      <h3>제4조 (개인정보의 제3자 제공)</h3>
-      <p>본 사이트는 이용자의 개인정보를 외부에 제공하지 않습니다. 다만, 다음의 경우에는 예외로 합니다.</p>
+      <h3>4. 다른 데로 넘기나요?</h3>
+      <p>안 넘깁니다. 절대로요. 단, 경찰이나 법원에서 정식으로 요청하면 그때는 어쩔 수 없이 협조해야 됩니다.</p>
+
+      <h3>5. 외부 위탁?</h3>
+      <p>없습니다. 혼자 운영하는 사이트라 위탁할 데도 없어요.</p>
+
+      <h3>6. 본인 정보 어떻게 처리하나요?</h3>
+      <p>아래 같은 것들 다 요청하실 수 있어요:</p>
       <ul>
-        <li>이용자가 사전에 동의한 경우</li>
-        <li>법령에 의해 요구되거나 수사 목적으로 법령에 정한 절차와 방법에 따라 수사기관의 요구가 있는 경우</li>
+        <li>내 정보 보여달라</li>
+        <li>잘못된거 고쳐달라</li>
+        <li>지워달라</li>
+        <li>그만 처리해라</li>
+      </ul>
+      <p>밑에 적힌 텔레그램으로 연락주시면 바로 해드립니다.</p>
+
+      <h3>7. 안전하게 보관하나요?</h3>
+      <ul>
+        <li>대부분의 정보는 본인 브라우저(localStorage 등)에만 저장됩니다. 별도 DB 같은거 없어요.</li>
+        <li>관리자 페이지는 비밀번호 걸려있습니다.</li>
+        <li>이상한 사람 못들어오게 차단 시스템도 돌아갑니다.</li>
       </ul>
 
-      <h3>제5조 (개인정보 처리의 위탁)</h3>
-      <p>본 사이트는 개인정보 처리를 외부에 위탁하지 않습니다.</p>
+      <h3>8. 쿠키는요?</h3>
+      <p>편의를 위해 쿠키 살짝 씁니다. 싫으시면 브라우저 설정에서 끄세요. 다만 그러면 일부 기능이 안될수도 있어요.</p>
 
-      <h3>제6조 (정보주체의 권리·의무 및 행사 방법)</h3>
-      <p>이용자는 언제든지 다음과 같은 권리를 행사할 수 있습니다.</p>
+      <h3>9. 운영자 연락처</h3>
+      <p>혼자 운영하는거라 보호책임자 = 저 입니다.</p>
       <ul>
-        <li>개인정보 열람 요구</li>
-        <li>오류 등이 있을 경우 정정 요구</li>
-        <li>삭제 요구</li>
-        <li>처리 정지 요구</li>
-      </ul>
-      <p>위 권리 행사는 아래 개인정보 보호책임자의 연락처를 통해 요청하실 수 있으며, 본 사이트는 지체 없이 조치하겠습니다.</p>
-
-      <h3>제7조 (개인정보의 안전성 확보 조치)</h3>
-      <ul>
-        <li>본 사이트는 이용자의 개인정보를 별도 데이터베이스에 저장하지 않으며, 이용자 본인의 브라우저(localStorage 등)에만 저장됩니다.</li>
-        <li>관리자 페이지는 비밀번호로 접근이 제한됩니다.</li>
-        <li>외부로부터의 무단 접근을 막기 위해 접근 통제 시스템을 운영합니다.</li>
+        <li><strong>이름</strong>: JunOHLE (닉네임)</li>
+        <li><strong>연락</strong>: 텔레그램 <a href="https://t.me/JY091025_lee" target="_blank" style="color:#4ade80;">@JY091025_lee</a> 로 DM 주세요</li>
       </ul>
 
-      <h3>제8조 (개인정보 자동 수집 장치의 설치·운영 및 거부)</h3>
-      <p>본 사이트는 이용자의 편의 제공을 위해 쿠키를 사용할 수 있습니다. 이용자는 브라우저 설정을 통해 쿠키 저장을 거부할 수 있으며, 이 경우 일부 서비스 이용에 제한이 있을 수 있습니다.</p>
-
-      <h3>제9조 (개인정보 보호책임자)</h3>
-      <p>본 사이트는 개인정보 처리에 관한 업무를 총괄해서 책임지고, 개인정보 처리와 관련한 정보주체의 불만 처리 및 피해 구제 등을 위하여 아래와 같이 개인정보 보호책임자를 지정하고 있습니다.</p>
-      <ul>
-        <li><strong>개인정보 보호책임자</strong>: JunOHLE</li>
-        <li><strong>연락처</strong>: 텔레그램 <a href="https://t.me/JY091025_lee" target="_blank" style="color:#4ade80;">@JY091025_lee</a></li>
-      </ul>
-
-      <h3>제10조 (권익침해 구제 방법)</h3>
-      <p>개인정보 침해로 인한 신고나 상담이 필요한 경우 아래 기관에 문의하실 수 있습니다.</p>
+      <h3>10. 만약 침해당했다고 생각되면?</h3>
+      <p>저한테 먼저 말씀해주시면 좋고, 안되면 아래 기관들에 신고하실 수 있습니다.</p>
       <ul>
         <li>개인정보분쟁조정위원회: 1833-6972 (www.kopico.go.kr)</li>
         <li>개인정보침해신고센터: 118 (privacy.kisa.or.kr)</li>
-        <li>대검찰청 사이버수사과: 1301 (www.spo.go.kr)</li>
-        <li>경찰청 사이버수사국: 182 (ecrm.police.go.kr)</li>
+        <li>대검찰청 사이버수사과: 1301</li>
+        <li>경찰청 사이버수사국: 182</li>
       </ul>
 
-      <h3>제11조 (개인정보처리방침의 변경)</h3>
-      <p>본 개인정보처리방침은 시행일로부터 적용되며, 법령 및 방침에 따른 변경 내용의 추가, 삭제 및 정정이 있는 경우에는 변경사항의 시행 7일 전부터 본 사이트 공지사항을 통하여 고지합니다.</p>
+      <h3>11. 내용이 바뀌면?</h3>
+      <p>법이 바뀌거나 사이트 정책이 바뀌면 이 페이지도 업데이트 됩니다. 큰 변경은 7일 전에 공지할게요.</p>
 
       <p class="effective-date">
         시행일: 2026년 5월 6일<br>
-        최종 개정일: 2026년 5월 6일
+        ── 그냥 개인 프로젝트지만 법적으로 필요해서 만든 페이지입니다. 궁금한거 있으면 텔레그램으로 편하게 물어보세요.
       </p>
     </div>
   </div>
 </div>
 
 <script>
-function openPrivacyModal() {
+function showPrivacy() {
   document.getElementById('privacyModal').classList.add('active');
   document.body.style.overflow = 'hidden';
 }
-function closePrivacyModal() {
+function hidePrivacy() {
   document.getElementById('privacyModal').classList.remove('active');
   document.body.style.overflow = '';
 }
 document.getElementById('privacyModal')?.addEventListener('click', function(e) {
-  if (e.target === this) closePrivacyModal();
+  if (e.target === this) hidePrivacy();
 });
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
     var modal = document.getElementById('privacyModal');
-    if (modal && modal.classList.contains('active')) closePrivacyModal();
+    if (modal && modal.classList.contains('active')) hidePrivacy();
   }
 });
 </script>
