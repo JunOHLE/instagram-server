@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Instagram Server</title>
-<meta name="description" content="인스타그램 익명 조회, IP 조회, 팔로우 분석 등 다양한 기능을 제공하는 인스타그램 서버 도구입니다.">
-<meta name="keywords" content="인스타그램, Instagram, 익명조회, 팔로우분석, IP조회, 인스타서버">
+<meta name="description" content="IP 조회, 팔로우 분석, 학습용 도구를 제공하는 멀티 서비스 사이트입니다.">
+<meta name="keywords" content="IP조회, 팔로우분석, 인스타서버, 학습용 도구">
 <meta name="robots" content="index, follow">
 <link rel="canonical" href="https://junohle.github.io/instagram-server/">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
@@ -13,7 +13,7 @@
 <!-- Open Graph -->
 <meta property="og:site_name" content="Instagram Server">
 <meta property="og:title" content="Instagram Server">
-<meta property="og:description" content="인스타그램 익명 조회, IP 조회, 팔로우 분석 도구">
+<meta property="og:description" content="IP 조회, 팔로우 분석, 학습용 도구">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://junohle.github.io/instagram-server/">
 <meta property="og:locale" content="ko_KR">
@@ -29,7 +29,7 @@
   "@type": "WebApplication",
   "name": "Instagram Server",
   "url": "https://junohle.github.io/instagram-server/",
-  "description": "인스타그램 익명 조회, IP 조회, 팔로우 분석 등 다양한 기능을 제공하는 서버 도구",
+  "description": "IP 조회, 팔로우 분석, 학습용 도구를 제공하는 서버 도구",
   "applicationCategory": "UtilitiesApplication",
   "operatingSystem": "Web",
   "inLanguage": "ko",
@@ -311,7 +311,7 @@ document.addEventListener("DOMContentLoaded", function() {
     <span id="vol-label" style="font-size:12px;color:#888;width:36px;">50%</span>
     <span style="font-size:13px;">🔊</span>
   </div>
-  <div class="contact" style="display:flex;align-items:center;justify-content:center;gap:12px;">
+  <div class="contact" style="display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;">
     <span style="color:#111;">Contact</span>
     <a href="https://t.me/JY091025_lee" target="_blank" style="color:#1a8cff;text-decoration:none;font-weight:500;display:flex;align-items:center;gap:4px;">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="#1a8cff"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.012 9.487c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L6.26 14.4l-2.95-.924c-.642-.204-.655-.642.136-.953l11.57-4.461c.537-.194 1.006.131.546 2.186z"/></svg>
@@ -320,6 +320,8 @@ document.addEventListener("DOMContentLoaded", function() {
     <a href="https://www.instagram.com/j.1bx9/" target="_blank" style="color:#cc2366;text-decoration:none;font-weight:500;">
       Instagram
     </a>
+    <span style="color:#ddd;">|</span>
+    <a href="javascript:void(0)" onclick="openPrivacyModal()" style="color:#666;text-decoration:underline;font-size:13px;font-weight:500;">개인정보처리방침</a>
   </div>
   </div>
 </div>
@@ -339,16 +341,16 @@ document.addEventListener("DOMContentLoaded", function() {
     <div class="terms-sub">서비스 이용 전 아래 약관을 확인해주세요.</div>
     <div class="terms-box">
       <ul>
-        <li>본 서비스는 인스타그램 공개 계정의 정보를 조회하는 목적으로만 사용합니다.</li>
+        <li>본 서비스는 인스타그램 공식 데이터 파일 분석 및 학습용 도구를 제공합니다.</li>
         <li>수집된 정보는 서버에 저장되지 않으며, 조회 즉시 폐기됩니다.</li>
         <li>타인의 개인정보를 무단으로 수집하거나 악용하는 행위는 금지됩니다.</li>
-        <li>익명 스토리·게시물 조회 기능은 공개 계정에 한해 제공됩니다.</li>
+        <li>인스타그램 관련 조회 기능은 Meta 공식 API를 통해서만 제공되며, 현재 서비스 준비 중입니다.</li>
         <li>본 서비스를 이용하여 발생하는 모든 법적 책임은 이용자 본인에게 있습니다.</li>
         <li>서비스 운영자는 이용자의 서비스 이용 기록을 보관하지 않습니다.</li>
-        <li>인스타그램 비공개 계정 조회는 지원하지 않습니다.</li>
         <li>본 약관은 사전 예고 없이 변경될 수 있습니다.</li>
         <li>본 서비스는 보안 및 네트워크 개념 학습을 위한 <strong>교육용 시뮬레이션</strong>을 포함합니다. DoS Tool, Packet Sender, Port Scanner 등은 실제 공격 기능이 없는 순수 교육·학습 목적의 시뮬레이션입니다.</li>
         <li>본 서비스에 포함된 모든 보안 관련 도구는 교육 목적으로만 사용해야 하며, 타인의 시스템에 대한 무단 접근이나 공격에 사용하는 것은 엄격히 금지됩니다.</li>
+        <li>개인정보의 수집·이용 및 보호에 관한 자세한 사항은 <a href="javascript:void(0)" onclick="event.preventDefault();openPrivacyModal();" style="color:#1a8cff;text-decoration:underline;">개인정보처리방침</a>을 참고하세요.</li>
 
       </ul>
     </div>
@@ -553,17 +555,13 @@ document.addEventListener("DOMContentLoaded", function() {
         </div>
       </div>
 
-      <!-- 익명 조회 탭 -->
+      <!-- 인스타그램 공개정보 조회 탭 (서비스 준비 중) -->
       <div id="tab-anon">
         <div class="content-card">
-          <h3>익명 스토리·게시물 조회</h3>
-          <div class="desc">인스타그램 ID를 검색하면 방문 기록 없이 스토리와 게시물을 확인할 수 있습니다. 공개 계정만 지원합니다.</div>
-          <div class="search-row">
-            <input type="text" id="anon-input" placeholder="인스타그램 ID 입력 (@ 제외)" onkeydown="if(event.key==='Enter')searchAnon()">
-            <button onclick="searchAnon()">LOOKUP</button>
-          </div>
-          <div class="result-box" id="anon-result">
-            <span class="placeholder">ID를 입력하고 조회 버튼을 누르세요.</span>
+          <h3>인스타그램 공개정보 조회 (서비스 준비 중)</h3>
+          <div class="desc">Meta 공식 API 연동을 준비하고 있습니다. 현재는 이용하실 수 없습니다.</div>
+          <div class="result-box" id="anon-result" style="text-align:center;padding:24px;color:#888;">
+            <span class="placeholder">🔧 서비스 준비 중입니다.</span>
           </div>
         </div>
       </div>
@@ -5925,6 +5923,208 @@ print('Hello, World!')"></textarea>
   </div>
 </div>
 </div>
+
+
+<!-- ============================================== -->
+<!-- 개인정보처리방침 모달                          -->
+<!-- ============================================== -->
+<style>
+.privacy-modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 99999;
+  justify-content: center;
+  align-items: center;
+  backdrop-filter: blur(4px);
+}
+.privacy-modal-overlay.active { display: flex; }
+.privacy-modal-box {
+  background: #1a1a1a;
+  color: #e0e0e0;
+  width: 90%;
+  max-width: 720px;
+  max-height: 85vh;
+  border-radius: 12px;
+  border: 1px solid #333;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Pretendard', -apple-system, sans-serif;
+}
+.privacy-modal-header {
+  padding: 18px 24px;
+  border-bottom: 1px solid #333;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #0f0f0f;
+}
+.privacy-modal-header h2 { margin: 0; font-size: 18px; color: #fff; }
+.privacy-modal-close {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 22px;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.privacy-modal-close:hover { color: #fff; }
+.privacy-modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  line-height: 1.7;
+  font-size: 14px;
+}
+.privacy-modal-body h3 {
+  color: #4ade80;
+  margin-top: 24px;
+  margin-bottom: 10px;
+  font-size: 15px;
+  border-left: 3px solid #4ade80;
+  padding-left: 10px;
+}
+.privacy-modal-body h3:first-child { margin-top: 0; }
+.privacy-modal-body p, .privacy-modal-body li {
+  color: #c0c0c0;
+  margin: 6px 0;
+}
+.privacy-modal-body ul { padding-left: 20px; }
+.privacy-modal-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 10px 0;
+  font-size: 13px;
+}
+.privacy-modal-body th, .privacy-modal-body td {
+  border: 1px solid #333;
+  padding: 8px 12px;
+  text-align: left;
+}
+.privacy-modal-body th { background: #252525; color: #fff; }
+.privacy-modal-body .effective-date {
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1px solid #333;
+  color: #888;
+  font-size: 12px;
+}
+</style>
+
+<div class="privacy-modal-overlay" id="privacyModal">
+  <div class="privacy-modal-box">
+    <div class="privacy-modal-header">
+      <h2>🔒 개인정보처리방침</h2>
+      <button class="privacy-modal-close" onclick="closePrivacyModal()">✕</button>
+    </div>
+    <div class="privacy-modal-body">
+      <p>Instagram Server(이하 "본 사이트")는 「개인정보 보호법」 제30조에 따라 정보주체의 개인정보를 보호하고 이와 관련한 고충을 신속하고 원활하게 처리할 수 있도록 다음과 같이 개인정보처리방침을 수립·공개합니다.</p>
+
+      <h3>제1조 (수집하는 개인정보 항목)</h3>
+      <p>본 사이트는 서비스 제공을 위해 아래의 최소한의 정보만을 수집합니다.</p>
+      <table>
+        <thead>
+          <tr><th>항목</th><th>수집 방법</th><th>필수 여부</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>IP 주소</td><td>접속 시 자동 수집</td><td>필수</td></tr>
+          <tr><td>닉네임</td><td>이용자 직접 입력</td><td>필수</td></tr>
+          <tr><td>프로필 사진</td><td>이용자 직접 업로드</td><td>선택</td></tr>
+        </tbody>
+      </table>
+
+      <h3>제2조 (개인정보의 수집 및 이용 목적)</h3>
+      <ul>
+        <li><strong>IP 주소</strong>: 부정 이용 방지, 비정상 접근 차단, 서비스 보안 유지</li>
+        <li><strong>닉네임</strong>: 이용자 식별 및 메시지 기능 제공</li>
+        <li><strong>프로필 사진</strong>: 이용자 식별 보조</li>
+      </ul>
+
+      <h3>제3조 (개인정보의 보유 및 이용 기간)</h3>
+      <ul>
+        <li>닉네임 및 프로필 사진은 이용자가 브라우저에서 직접 변경하거나 삭제할 수 있으며, 별도 서버에 저장되지 않습니다.</li>
+        <li>IP 주소는 차단 목록에 등록된 경우에 한해 차단 만료 시까지만 보관되며, 만료 즉시 자동 삭제됩니다.</li>
+        <li>이용자가 보낸 메시지는 운영자가 확인 후 처리하며, 더 이상 필요하지 않은 경우 즉시 삭제됩니다.</li>
+      </ul>
+
+      <h3>제4조 (개인정보의 제3자 제공)</h3>
+      <p>본 사이트는 이용자의 개인정보를 외부에 제공하지 않습니다. 다만, 다음의 경우에는 예외로 합니다.</p>
+      <ul>
+        <li>이용자가 사전에 동의한 경우</li>
+        <li>법령에 의해 요구되거나 수사 목적으로 법령에 정한 절차와 방법에 따라 수사기관의 요구가 있는 경우</li>
+      </ul>
+
+      <h3>제5조 (개인정보 처리의 위탁)</h3>
+      <p>본 사이트는 개인정보 처리를 외부에 위탁하지 않습니다.</p>
+
+      <h3>제6조 (정보주체의 권리·의무 및 행사 방법)</h3>
+      <p>이용자는 언제든지 다음과 같은 권리를 행사할 수 있습니다.</p>
+      <ul>
+        <li>개인정보 열람 요구</li>
+        <li>오류 등이 있을 경우 정정 요구</li>
+        <li>삭제 요구</li>
+        <li>처리 정지 요구</li>
+      </ul>
+      <p>위 권리 행사는 아래 개인정보 보호책임자의 연락처를 통해 요청하실 수 있으며, 본 사이트는 지체 없이 조치하겠습니다.</p>
+
+      <h3>제7조 (개인정보의 안전성 확보 조치)</h3>
+      <ul>
+        <li>본 사이트는 이용자의 개인정보를 별도 데이터베이스에 저장하지 않으며, 이용자 본인의 브라우저(localStorage 등)에만 저장됩니다.</li>
+        <li>관리자 페이지는 비밀번호로 접근이 제한됩니다.</li>
+        <li>외부로부터의 무단 접근을 막기 위해 접근 통제 시스템을 운영합니다.</li>
+      </ul>
+
+      <h3>제8조 (개인정보 자동 수집 장치의 설치·운영 및 거부)</h3>
+      <p>본 사이트는 이용자의 편의 제공을 위해 쿠키를 사용할 수 있습니다. 이용자는 브라우저 설정을 통해 쿠키 저장을 거부할 수 있으며, 이 경우 일부 서비스 이용에 제한이 있을 수 있습니다.</p>
+
+      <h3>제9조 (개인정보 보호책임자)</h3>
+      <p>본 사이트는 개인정보 처리에 관한 업무를 총괄해서 책임지고, 개인정보 처리와 관련한 정보주체의 불만 처리 및 피해 구제 등을 위하여 아래와 같이 개인정보 보호책임자를 지정하고 있습니다.</p>
+      <ul>
+        <li><strong>개인정보 보호책임자</strong>: JunOHLE</li>
+        <li><strong>연락처</strong>: 텔레그램 <a href="https://t.me/JY091025_lee" target="_blank" style="color:#4ade80;">@JY091025_lee</a></li>
+      </ul>
+
+      <h3>제10조 (권익침해 구제 방법)</h3>
+      <p>개인정보 침해로 인한 신고나 상담이 필요한 경우 아래 기관에 문의하실 수 있습니다.</p>
+      <ul>
+        <li>개인정보분쟁조정위원회: 1833-6972 (www.kopico.go.kr)</li>
+        <li>개인정보침해신고센터: 118 (privacy.kisa.or.kr)</li>
+        <li>대검찰청 사이버수사과: 1301 (www.spo.go.kr)</li>
+        <li>경찰청 사이버수사국: 182 (ecrm.police.go.kr)</li>
+      </ul>
+
+      <h3>제11조 (개인정보처리방침의 변경)</h3>
+      <p>본 개인정보처리방침은 시행일로부터 적용되며, 법령 및 방침에 따른 변경 내용의 추가, 삭제 및 정정이 있는 경우에는 변경사항의 시행 7일 전부터 본 사이트 공지사항을 통하여 고지합니다.</p>
+
+      <p class="effective-date">
+        시행일: 2026년 5월 6일<br>
+        최종 개정일: 2026년 5월 6일
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+function openPrivacyModal() {
+  document.getElementById('privacyModal').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+function closePrivacyModal() {
+  document.getElementById('privacyModal').classList.remove('active');
+  document.body.style.overflow = '';
+}
+document.getElementById('privacyModal')?.addEventListener('click', function(e) {
+  if (e.target === this) closePrivacyModal();
+});
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    var modal = document.getElementById('privacyModal');
+    if (modal && modal.classList.contains('active')) closePrivacyModal();
+  }
+});
+</script>
 
 
 </body>
